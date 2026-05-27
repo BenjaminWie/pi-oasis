@@ -62,8 +62,8 @@ const AuthenticatedContainerIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
+  '/mqtt': typeof AuthenticatedMqttRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
@@ -71,8 +71,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
+  '/mqtt': typeof AuthenticatedMqttRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
@@ -82,8 +82,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
-  '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
+  '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
   '/_authenticated/container/$id': typeof AuthenticatedContainerIdRoute
@@ -93,8 +93,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
-    | '/mqtt'
     | '/overview'
+    | '/mqtt'
     | '/settings'
     | '/terminal'
     | '/container/$id'
@@ -102,8 +102,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
-    | '/mqtt'
     | '/overview'
+    | '/mqtt'
     | '/settings'
     | '/terminal'
     | '/container/$id'
@@ -112,8 +112,8 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/login'
-    | '/_authenticated/mqtt'
     | '/_authenticated/overview'
+    | '/_authenticated/mqtt'
     | '/_authenticated/settings'
     | '/_authenticated/terminal'
     | '/_authenticated/container/$id'
@@ -187,16 +187,16 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedMqttRoute: typeof AuthenticatedMqttRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
+  AuthenticatedMqttRoute: typeof AuthenticatedMqttRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTerminalRoute: typeof AuthenticatedTerminalRoute
   AuthenticatedContainerIdRoute: typeof AuthenticatedContainerIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedMqttRoute: AuthenticatedMqttRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
+  AuthenticatedMqttRoute: AuthenticatedMqttRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTerminalRoute: AuthenticatedTerminalRoute,
   AuthenticatedContainerIdRoute: AuthenticatedContainerIdRoute,
