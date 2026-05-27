@@ -16,13 +16,15 @@ function OverviewPage() {
   const stats = useQuery({
     queryKey: ["stats"],
     queryFn: () => statsFn(),
-    refetchInterval: 2000,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
   });
 
   const containers = useQuery({
     queryKey: ["containers"],
     queryFn: () => listFn(),
-    refetchInterval: 5000,
+    refetchInterval: 10000,
+    refetchIntervalInBackground: false,
   });
 
   const s = stats.data;

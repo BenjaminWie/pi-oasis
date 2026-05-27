@@ -20,7 +20,12 @@ export function ContainerCard({ c }: { c: ContainerSummary }) {
         isFailing ? "border-status-crit/30" : "border-border"
       }`}
     >
-      <div className="absolute top-5 right-5">
+      <div className="absolute top-5 right-5 flex items-center gap-2">
+        {c.isMqtt && (
+          <span className="text-[8px] font-bold uppercase tracking-widest text-primary bg-primary/15 border border-primary/30 rounded-md px-1.5 py-0.5">
+            MQTT
+          </span>
+        )}
         <div className={`size-2 rounded-full ${meta.dot}`} />
       </div>
       <div className="mb-4 pr-6">
