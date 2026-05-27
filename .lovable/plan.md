@@ -1,139 +1,77 @@
-## Goal
+## Goals
 
-A mobile-first PWA you open from your phone on the home network to:
-- See your Pi's containers (running/failing), CPU/RAM/disk/temp
-- Start/stop/restart containers and tail logs
-- Drive a full shell (xterm.js) with `gemini-cli` available
-- Push-to-talk: speak into your phone → text → executed as a gemini prompt
-
-Visual: "Industrial Cyberpunk v2" — dark `#0a0a0c`, neon accent `#00f0ff`, status green/amber/red, IBM Plex Mono + Inter.
+1. Cut runtime cost on the Pi so the dashboard barely registers
+2. Auto-detect MQTT broker containers and let you watch live messages
+3. One-command local run from a fresh `git clone`
 
 ---
 
-## What gets built in Lovable
+## 1. Lightweight runtime
 
-A TanStack Start app — mobile-first, installable as a PWA.
+Target: <60 MB RSS idle, <2% CPU idle on a Pi 4.
 
-### Routes
+- **Drop heavy deps**: no `better-sqlite3` (use a JSON file at `~/.pi-dashboard/state.json` — only stores PIN hash + trusted devices, <1 KB). No `bcryptjs` — use Node's built-in `scrypt` (zero deps, faster on ARM).
+- **Polling discipline**: pause all `useQuery` polling when the tab is hidden (`refetchIntervalInBackground: false`, already default — confirm). Slow stats poll from 2s → 5s, container list 5s → 10s. Single shared `/api/snapshot` endpoint returns stats + container list in one round-trip instead of two.
+- **Docker stats are expensive**: `docker stats` streams cost ~5% CPU per container. Skip per-container CPU/MEM in the list view; compute only on the detail page while it's open.
+- **System stats**: read `/proc/stat` + `/proc/meminfo` directly (no `systeminformation` npm package — it forks subprocesses). `vcgencmd measure_temp` only every 5s, cached.
+- **Logs & terminal**: WebSocket only opens when the route is mounted; closes on unmount. Log tail capped at 500 lines client-side.
+- **Bundle**: strip unused Radix/shadcn components; the dashboard only needs Button, Card, Input, Sheet, Switch, Sonner. Prune the rest from `src/components/ui/` before build. Production build with Vite's default minify + brotli — served via built-in `node:http` (no Express).
+- **Process**: single Node process, no clustering. `--max-old-space-size=128` flag in systemd unit.
 
-```
-/                       → redirects based on auth
-/login                  → PIN keypad (4–6 digit), "trust this device" toggle
-/_authenticated/
-  overview              → Pi header + CPU/RAM/Temp gauges + container list
-  container/$id         → detail + logs (auto-tail) + Stop/Restart/Shell
-  terminal              → full-screen xterm.js + mic FAB
-  settings              → change PIN, manage trusted devices, host info
-```
+Expected footprint: ~45 MB RSS, install size ~80 MB on disk.
 
-### Backend (TanStack server functions + WebSocket route)
+## 2. MQTT message inspector
 
-- `POST /api/auth/pin` — verify PIN (bcrypt), issue signed device token cookie (httpOnly)
-- `getSystemStats` — reads `/proc/stat`, `/proc/meminfo`, `df`, `vcgencmd measure_temp`
-- `listContainers` / `getContainer($id)` / `containerAction(id, start|stop|restart)` / `getLogs(id)` — calls `/var/run/docker.sock` via `dockerode`
-- `WS /api/terminal` — spawns `node-pty` shell, streams stdin/stdout to xterm.js
-- `POST /api/stt` — optional Whisper proxy (only if browser STT isn't enough)
+Auto-light-up when a broker is detected.
 
-Voice: use the browser's built-in **Web Speech API** first (free, on-device on iOS/Android Chrome). Mic FAB → transcribe → prefix with `gemini ` and send through the same PTY. ElevenLabs Scribe as a fallback if you want better accuracy later.
+- **Detection**: on container list refresh, flag any container whose image matches `/mosquitto|emqx|hivemq|nanomq|vernemq/i` OR exposes port 1883/8883. Surface a small "MQTT" chip on the container card.
+- **New route** `/_authenticated/mqtt`: appears in bottom nav only when ≥1 broker is detected.
+- **Connection**: server-side `mqtt.js` client connects to the broker over the Docker bridge (`mqtt://<container-ip>:1883`). Optional username/password stored in `state.json`, per broker.
+- **UI**: 
+  - Topic filter input (default `#`)
+  - Live scrolling list of `{ts, topic, payload, qos, retained}`, newest on top, capped at 500 messages
+  - Tap a message → expand JSON payload (pretty-printed if parseable)
+  - Pause / Resume / Clear buttons
+  - Publish drawer: topic + payload + QoS + retain → publish button
+- **Transport to browser**: same WebSocket as terminal (different path `/api/mqtt`), so we add zero new dependencies on the browser side beyond what's already there.
+- **Preview mode**: a mock broker emits fake `home/sensors/*` messages every 2s so the UI is reviewable in Lovable.
 
-### Design system
+## 3. Run locally from a clone
 
-Tokens straight from the chosen prototype, ported into `src/styles.css` (oklch equivalents of `#0a0a0c`, `#141418`, `#00f0ff`, `#39ff14`, `#ffb000`, `#ff3e3e`). Inter + IBM Plex Mono via Google Fonts. Soft neon glows, ping animation on status dots, breathing accent bar on the active nav.
+Add to repo root:
 
----
+- **`scripts/install.sh`** — checks Node ≥20, runs `npm ci`, builds, writes `.env` from `.env.example` if missing (generates `SESSION_SECRET`).
+- **`scripts/dev.sh`** — `npm run dev` with mock backend (what Lovable preview uses).
+- **`scripts/start.sh`** — production: `node .output/server/index.mjs` with real Docker socket.
+- **`README.md`** updated with a "Run on your Pi in 3 commands" section:
 
-## Auth model (PIN + device trust)
+  ```bash
+  git clone <repo> pi-dashboard && cd pi-dashboard
+  ./scripts/install.sh
+  ./scripts/start.sh         # http://<pi>:3000
+  ```
 
-- PIN stored as bcrypt hash in a local SQLite file (`~/.pi-dashboard/db.sqlite`) — no internet required.
-- On successful PIN entry with "trust this device", server signs a 90-day JWT and sets it as an httpOnly cookie. Future visits skip the PIN.
-- Settings page lists trusted devices (user-agent + last seen) and lets you revoke any.
-- Brute-force protection: 5 wrong PINs → 60s lockout, doubles each cycle.
+  And a "Run on your laptop (preview only)" section:
 
----
+  ```bash
+  git clone <repo> pi-dashboard && cd pi-dashboard
+  npm install
+  npm run dev                # http://localhost:5173, mocks only
+  ```
 
-## How it runs on the Pi
-
-**Native Node process (recommended, what you picked).** This gets Docker socket and `/proc` access without container gymnastics.
-
-### Install on the Pi
-
-```bash
-# one-time
-curl -fsSL https://get.gemini.dev | sh           # gemini-cli
-sudo apt install nodejs npm
-git clone <your-repo> /opt/pi-dashboard
-cd /opt/pi-dashboard && npm install && npm run build
-
-# systemd service
-sudo tee /etc/systemd/system/pi-dashboard.service <<'EOF'
-[Unit]
-Description=Pi Dashboard
-After=docker.service
-
-[Service]
-ExecStart=/usr/bin/node /opt/pi-dashboard/.output/server/index.mjs
-Restart=always
-User=pi
-Environment=PORT=3000
-Environment=SESSION_SECRET=<generated>
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl enable --now pi-dashboard
-```
-
-Then open `http://raspberrypi.local:3000` from your phone, add to home screen → installs as PWA.
-
-### Why not Docker for the dashboard itself
-
-You'd need `--privileged` or to mount `/var/run/docker.sock`, `/proc`, `/sys`, a PTY device, AND make `gemini-cli` reachable inside. Each of those is a footgun. Native process is one `systemctl restart` and you're done.
-
-If you ever do want Docker: `docker run --network host -v /var/run/docker.sock:/var/run/docker.sock -v /proc:/host/proc:ro --pid=host pi-dashboard` — but skip this for v1.
-
-### Network access
-
-LAN-only by default (bind to `0.0.0.0:3000`). For outside-the-house access later: Tailscale on the Pi → reach `http://raspberrypi:3000` from anywhere without opening ports.
+- **`DEPLOY.md`** trimmed: the systemd unit moves into `scripts/install-systemd.sh` so it's one command, not copy-paste.
 
 ---
 
-## Voice → gemini-cli flow
+## Technical notes
 
-1. Tap mic FAB on `/terminal`
-2. Browser SpeechRecognition starts, shows live transcript in the input bar
-3. Release to send → text is prefixed (configurable, default `gemini `) and written to the PTY
-4. Output streams back into xterm.js in real time
+- Files touched: `src/lib/system.functions.ts`, `src/lib/auth.functions.ts` (swap bcryptjs → scrypt), new `src/lib/mqtt.functions.ts`, new `src/routes/_authenticated/mqtt.tsx`, new `src/routes/api/mqtt.ts` (WS), `src/components/BottomNav.tsx` (conditional MQTT tab), new `scripts/{install,dev,start,install-systemd}.sh`, `README.md`.
+- New runtime deps (Pi only): `mqtt` (~200 KB, pure JS, no native). No new browser deps.
+- The preview still runs the mock layer — MQTT mock included so you can review the inspector UI before deploying.
 
-This works on iOS Safari 14.5+ and Chrome on Android out of the box. No API key, no cloud roundtrip.
+## Phasing
 
----
-
-## Technical details
-
-- **Stack**: TanStack Start v1, React 19, Tailwind v4, xterm.js, dockerode, node-pty, ws, bcryptjs, better-sqlite3
-- **State**: TanStack Query for container list (5s polling) + stats (2s polling); WS for logs + terminal
-- **PWA**: manifest + service worker for "Add to Home Screen" and offline shell of the login page
-- **Mobile-first**: viewport set to mobile in the editor; everything sized for 390px width; bottom nav with safe-area-inset padding
-- **Security**: PIN hash never leaves the server; WS upgrade requires the device cookie; PTY runs as the `pi` user (not root); rate-limit on `/api/auth/pin`
-
----
-
-## Build phases
-
-1. **Shell + design system** — TanStack route tree, tokens, fonts, bottom nav, mocked data
-2. **PIN auth** — keypad UI, SQLite, JWT cookie, `_authenticated` guard
-3. **System stats + container list** — dockerode wiring, gauges, status cards, polling
-4. **Container detail + log tail** — WS log stream, action buttons
-5. **Terminal** — xterm.js + node-pty WS + mic FAB with Web Speech API
-6. **Settings + trusted devices**
-7. **PWA manifest + service worker**
-8. **Deployment doc** — the systemd snippet above, plus a `scripts/install-on-pi.sh`
-
-Each phase is testable on the Pi independently. Phase 1 ships immediately so you can see the look on your phone while the rest is built.
-
----
-
-## Open question before I start
-
-Lovable's preview runs in the cloud, so phases 3–5 (Docker socket, PTY, `/proc`) can't be exercised in preview — they only light up once deployed to the Pi. I'll build them with realistic mocked data and you'll test live on the Pi. OK to proceed that way, or do you want me to first stub out a tiny "demo mode" backend so the preview shows fake-but-live containers?
+1. MQTT inspector UI + mock broker (visible in preview)
+2. Lightweight refactor (deps swap, polling, snapshot endpoint, UI pruning)
+3. `scripts/` + README rewrite
+4. Wire real `mqtt.js` client (only matters on the Pi)
