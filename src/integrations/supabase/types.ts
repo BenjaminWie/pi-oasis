@@ -14,7 +14,169 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      agent_commands: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          delivered_at: string | null
+          device_id: string
+          id: string
+          kind: string
+          payload: Json
+          result: Json | null
+          source: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          device_id: string
+          id?: string
+          kind: string
+          payload?: Json
+          result?: Json | null
+          source?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          device_id?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          result?: Json | null
+          source?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devices: {
+        Row: {
+          created_at: string
+          device_token_hash: string | null
+          id: string
+          last_seen_at: string | null
+          last_snapshot: Json | null
+          name: string
+          pairing_code: string | null
+          pairing_expires_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_token_hash?: string | null
+          id?: string
+          last_seen_at?: string | null
+          last_snapshot?: Json | null
+          name: string
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_token_hash?: string | null
+          id?: string
+          last_seen_at?: string | null
+          last_snapshot?: Json | null
+          name?: string
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          telegram_bot_token: string | null
+          telegram_bot_username: string | null
+          telegram_chat_id: number | null
+          telegram_link_code: string | null
+          telegram_linked_at: string | null
+          telegram_webhook_secret: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+          telegram_bot_token?: string | null
+          telegram_bot_username?: string | null
+          telegram_chat_id?: number | null
+          telegram_link_code?: string | null
+          telegram_linked_at?: string | null
+          telegram_webhook_secret?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          telegram_bot_token?: string | null
+          telegram_bot_username?: string | null
+          telegram_chat_id?: number | null
+          telegram_link_code?: string | null
+          telegram_linked_at?: string | null
+          telegram_webhook_secret?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telegram_audit: {
+        Row: {
+          chat_id: number | null
+          command: string
+          created_at: string
+          device_id: string | null
+          id: string
+          result: string | null
+          user_id: string
+        }
+        Insert: {
+          chat_id?: number | null
+          command: string
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          result?: string | null
+          user_id: string
+        }
+        Update: {
+          chat_id?: number | null
+          command?: string
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          result?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_audit_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
