@@ -10,17 +10,37 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CloudRouteImport } from './routes/_cloud'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CloudTelegramRouteImport } from './routes/_cloud/telegram'
+import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
+import { Route as CloudAuditRouteImport } from './routes/_cloud/audit'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
+import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
+import { Route as ApiPublicAgentResultRouteImport } from './routes/api/public/agent/result'
+import { Route as ApiPublicAgentRegisterRouteImport } from './routes/api/public/agent/register'
+import { Route as ApiPublicAgentPollRouteImport } from './routes/api/public/agent/poll'
+import { Route as ApiPublicAgentHeartbeatRouteImport } from './routes/api/public/agent/heartbeat'
+import { Route as ApiPublicTelegramWebhookUserIdRouteImport } from './routes/api/public/telegram/webhook.$userId'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CloudRoute = CloudRouteImport.update({
+  id: '/_cloud',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -31,6 +51,21 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const CloudTelegramRoute = CloudTelegramRouteImport.update({
+  id: '/telegram',
+  path: '/telegram',
+  getParentRoute: () => CloudRoute,
+} as any)
+const CloudDevicesRoute = CloudDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => CloudRoute,
+} as any)
+const CloudAuditRoute = CloudAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => CloudRoute,
 } as any)
 const AuthenticatedTerminalRoute = AuthenticatedTerminalRouteImport.update({
   id: '/terminal',
@@ -52,77 +87,177 @@ const AuthenticatedMqttRoute = AuthenticatedMqttRouteImport.update({
   path: '/mqtt',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const CloudDevicesIdRoute = CloudDevicesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => CloudDevicesRoute,
+} as any)
 const AuthenticatedContainerIdRoute =
   AuthenticatedContainerIdRouteImport.update({
     id: '/container/$id',
     path: '/container/$id',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicAgentResultRoute = ApiPublicAgentResultRouteImport.update({
+  id: '/api/public/agent/result',
+  path: '/api/public/agent/result',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAgentRegisterRoute = ApiPublicAgentRegisterRouteImport.update({
+  id: '/api/public/agent/register',
+  path: '/api/public/agent/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAgentPollRoute = ApiPublicAgentPollRouteImport.update({
+  id: '/api/public/agent/poll',
+  path: '/api/public/agent/poll',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAgentHeartbeatRoute = ApiPublicAgentHeartbeatRouteImport.update({
+  id: '/api/public/agent/heartbeat',
+  path: '/api/public/agent/heartbeat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTelegramWebhookUserIdRoute =
+  ApiPublicTelegramWebhookUserIdRouteImport.update({
+    id: '/api/public/telegram/webhook/$userId',
+    path: '/api/public/telegram/webhook/$userId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
+  '/audit': typeof CloudAuditRoute
+  '/devices': typeof CloudDevicesRouteWithChildren
+  '/telegram': typeof CloudTelegramRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
+  '/devices/$id': typeof CloudDevicesIdRoute
+  '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
+  '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
+  '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
+  '/api/public/agent/result': typeof ApiPublicAgentResultRoute
+  '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
+  '/audit': typeof CloudAuditRoute
+  '/devices': typeof CloudDevicesRouteWithChildren
+  '/telegram': typeof CloudTelegramRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
+  '/devices/$id': typeof CloudDevicesIdRoute
+  '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
+  '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
+  '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
+  '/api/public/agent/result': typeof ApiPublicAgentResultRoute
+  '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/_cloud': typeof CloudRouteWithChildren
+  '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
+  '/_cloud/audit': typeof CloudAuditRoute
+  '/_cloud/devices': typeof CloudDevicesRouteWithChildren
+  '/_cloud/telegram': typeof CloudTelegramRoute
   '/_authenticated/container/$id': typeof AuthenticatedContainerIdRoute
+  '/_cloud/devices/$id': typeof CloudDevicesIdRoute
+  '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
+  '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
+  '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
+  '/api/public/agent/result': typeof ApiPublicAgentResultRoute
+  '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/login'
     | '/mqtt'
     | '/overview'
     | '/settings'
     | '/terminal'
+    | '/audit'
+    | '/devices'
+    | '/telegram'
     | '/container/$id'
+    | '/devices/$id'
+    | '/api/public/agent/heartbeat'
+    | '/api/public/agent/poll'
+    | '/api/public/agent/register'
+    | '/api/public/agent/result'
+    | '/api/public/telegram/webhook/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/login'
     | '/mqtt'
     | '/overview'
     | '/settings'
     | '/terminal'
+    | '/audit'
+    | '/devices'
+    | '/telegram'
     | '/container/$id'
+    | '/devices/$id'
+    | '/api/public/agent/heartbeat'
+    | '/api/public/agent/poll'
+    | '/api/public/agent/register'
+    | '/api/public/agent/result'
+    | '/api/public/telegram/webhook/$userId'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/_cloud'
+    | '/auth'
     | '/login'
     | '/_authenticated/mqtt'
     | '/_authenticated/overview'
     | '/_authenticated/settings'
     | '/_authenticated/terminal'
+    | '/_cloud/audit'
+    | '/_cloud/devices'
+    | '/_cloud/telegram'
     | '/_authenticated/container/$id'
+    | '/_cloud/devices/$id'
+    | '/api/public/agent/heartbeat'
+    | '/api/public/agent/poll'
+    | '/api/public/agent/register'
+    | '/api/public/agent/result'
+    | '/api/public/telegram/webhook/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  CloudRoute: typeof CloudRouteWithChildren
+  AuthRoute: typeof AuthRoute
   LoginRoute: typeof LoginRoute
+  ApiPublicAgentHeartbeatRoute: typeof ApiPublicAgentHeartbeatRoute
+  ApiPublicAgentPollRoute: typeof ApiPublicAgentPollRoute
+  ApiPublicAgentRegisterRoute: typeof ApiPublicAgentRegisterRoute
+  ApiPublicAgentResultRoute: typeof ApiPublicAgentResultRoute
+  ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -132,6 +267,20 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_cloud': {
+      id: '/_cloud'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof CloudRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -147,6 +296,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_cloud/telegram': {
+      id: '/_cloud/telegram'
+      path: '/telegram'
+      fullPath: '/telegram'
+      preLoaderRoute: typeof CloudTelegramRouteImport
+      parentRoute: typeof CloudRoute
+    }
+    '/_cloud/devices': {
+      id: '/_cloud/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof CloudDevicesRouteImport
+      parentRoute: typeof CloudRoute
+    }
+    '/_cloud/audit': {
+      id: '/_cloud/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof CloudAuditRouteImport
+      parentRoute: typeof CloudRoute
     }
     '/_authenticated/terminal': {
       id: '/_authenticated/terminal'
@@ -176,12 +346,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMqttRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_cloud/devices/$id': {
+      id: '/_cloud/devices/$id'
+      path: '/$id'
+      fullPath: '/devices/$id'
+      preLoaderRoute: typeof CloudDevicesIdRouteImport
+      parentRoute: typeof CloudDevicesRoute
+    }
     '/_authenticated/container/$id': {
       id: '/_authenticated/container/$id'
       path: '/container/$id'
       fullPath: '/container/$id'
       preLoaderRoute: typeof AuthenticatedContainerIdRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/agent/result': {
+      id: '/api/public/agent/result'
+      path: '/api/public/agent/result'
+      fullPath: '/api/public/agent/result'
+      preLoaderRoute: typeof ApiPublicAgentResultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/agent/register': {
+      id: '/api/public/agent/register'
+      path: '/api/public/agent/register'
+      fullPath: '/api/public/agent/register'
+      preLoaderRoute: typeof ApiPublicAgentRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/agent/poll': {
+      id: '/api/public/agent/poll'
+      path: '/api/public/agent/poll'
+      fullPath: '/api/public/agent/poll'
+      preLoaderRoute: typeof ApiPublicAgentPollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/agent/heartbeat': {
+      id: '/api/public/agent/heartbeat'
+      path: '/api/public/agent/heartbeat'
+      fullPath: '/api/public/agent/heartbeat'
+      preLoaderRoute: typeof ApiPublicAgentHeartbeatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/telegram/webhook/$userId': {
+      id: '/api/public/telegram/webhook/$userId'
+      path: '/api/public/telegram/webhook/$userId'
+      fullPath: '/api/public/telegram/webhook/$userId'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookUserIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -206,21 +418,44 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface CloudDevicesRouteChildren {
+  CloudDevicesIdRoute: typeof CloudDevicesIdRoute
+}
+
+const CloudDevicesRouteChildren: CloudDevicesRouteChildren = {
+  CloudDevicesIdRoute: CloudDevicesIdRoute,
+}
+
+const CloudDevicesRouteWithChildren = CloudDevicesRoute._addFileChildren(
+  CloudDevicesRouteChildren,
+)
+
+interface CloudRouteChildren {
+  CloudAuditRoute: typeof CloudAuditRoute
+  CloudDevicesRoute: typeof CloudDevicesRouteWithChildren
+  CloudTelegramRoute: typeof CloudTelegramRoute
+}
+
+const CloudRouteChildren: CloudRouteChildren = {
+  CloudAuditRoute: CloudAuditRoute,
+  CloudDevicesRoute: CloudDevicesRouteWithChildren,
+  CloudTelegramRoute: CloudTelegramRoute,
+}
+
+const CloudRouteWithChildren = CloudRoute._addFileChildren(CloudRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  CloudRoute: CloudRouteWithChildren,
+  AuthRoute: AuthRoute,
   LoginRoute: LoginRoute,
+  ApiPublicAgentHeartbeatRoute: ApiPublicAgentHeartbeatRoute,
+  ApiPublicAgentPollRoute: ApiPublicAgentPollRoute,
+  ApiPublicAgentRegisterRoute: ApiPublicAgentRegisterRoute,
+  ApiPublicAgentResultRoute: ApiPublicAgentResultRoute,
+  ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

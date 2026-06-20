@@ -1,77 +1,113 @@
-## Goals
+## Architektur
 
-1. Cut runtime cost on the Pi so the dashboard barely registers
-2. Auto-detect MQTT broker containers and let you watch live messages
-3. One-command local run from a fresh `git clone`
+```
+┌──────────┐   HTTPS poll    ┌──────────────────┐   webhook   ┌──────────┐
+│  Pi      │ ───────────────►│  Lovable Cloud   │◄────────────│ Telegram │
+│  Agent   │◄─── commands ───│  (Verwaltung)    │────sendMsg─►│   Bot    │
+│ (Node)   │   POST results  │  Cloud DB + API  │             │ pro User │
+└────┬─────┘                 └──────────────────┘             └──────────┘
+     │ docker.sock / /proc / lokaler MQTT
+```
 
----
+- **Pi-UI bleibt unverändert** (Live-Dashboard, Terminal, MQTT-Inspector — nur LAN).
+- **Cloud-UI** = Verwaltung: Login, Geräte registrieren, Bot-Token einhängen, Audit-Log.
+- **Pi-Agent** = neuer kleiner Node-Prozess (`pi-agent`) im selben Repo, läuft parallel zur Dashboard-UI oder allein headless. Spricht nur Outbound HTTPS zur Cloud — keine offenen Ports nötig.
+- **Long-Polling**: Agent macht `GET /api/agent/poll?wait=25s`. Cloud hält Request offen bis Command vorliegt oder Timeout, antwortet, Agent führt aus und `POST /api/agent/result`. Status-Snapshots werden periodisch (alle 30 s) via `POST /api/agent/heartbeat` geschickt.
 
-## 1. Lightweight runtime
+## Cloud-Anwendung (Lovable Cloud aktivieren)
 
-Target: <60 MB RSS idle, <2% CPU idle on a Pi 4.
+**Datenbank** (`public` Schema, mit GRANTs + RLS):
+- `profiles` — verknüpft mit `auth.users`, hält `telegram_bot_token` (verschlüsselt via pgsodium), `telegram_chat_id`, `linked_at`.
+- `devices` — `id`, `user_id`, `name`, `pairing_code` (8-stellig, einmalig), `device_token_hash`, `last_seen_at`, `last_snapshot jsonb`.
+- `agent_commands` — `id`, `device_id`, `kind` (`status` / `container_action` / `mqtt_publish` / `mqtt_subscribe`), `payload jsonb`, `status` (`pending`/`delivered`/`done`/`failed`), `result jsonb`, Timestamps. RLS: nur Owner sieht eigene.
+- `telegram_audit` — wer hat wann welchen Befehl per Bot ausgelöst.
 
-- **Drop heavy deps**: no `better-sqlite3` (use a JSON file at `~/.pi-dashboard/state.json` — only stores PIN hash + trusted devices, <1 KB). No `bcryptjs` — use Node's built-in `scrypt` (zero deps, faster on ARM).
-- **Polling discipline**: pause all `useQuery` polling when the tab is hidden (`refetchIntervalInBackground: false`, already default — confirm). Slow stats poll from 2s → 5s, container list 5s → 10s. Single shared `/api/snapshot` endpoint returns stats + container list in one round-trip instead of two.
-- **Docker stats are expensive**: `docker stats` streams cost ~5% CPU per container. Skip per-container CPU/MEM in the list view; compute only on the detail page while it's open.
-- **System stats**: read `/proc/stat` + `/proc/meminfo` directly (no `systeminformation` npm package — it forks subprocesses). `vcgencmd measure_temp` only every 5s, cached.
-- **Logs & terminal**: WebSocket only opens when the route is mounted; closes on unmount. Log tail capped at 500 lines client-side.
-- **Bundle**: strip unused Radix/shadcn components; the dashboard only needs Button, Card, Input, Sheet, Switch, Sonner. Prune the rest from `src/components/ui/` before build. Production build with Vite's default minify + brotli — served via built-in `node:http` (no Express).
-- **Process**: single Node process, no clustering. `--max-old-space-size=128` flag in systemd unit.
+**Auth**: Email/Password + Google (Lovable-Defaults). Vor jeder Aktion `auth.uid()`-Check.
 
-Expected footprint: ~45 MB RSS, install size ~80 MB on disk.
+**Server-Routes** (Pi spricht hier rein, kein User-Session — Auth via Device-Bearer):
+- `POST /api/public/agent/register` — tauscht `pairing_code` gegen Device-Token (zeigt Cloud-UI nach „+ Gerät anlegen“ als 8-stelligen Code an, 10 Min gültig).
+- `GET  /api/public/agent/poll` — Long-Poll, Header `Authorization: Bearer <device-token>`. Liefert nächsten `pending` Command oder 204 nach 25 s.
+- `POST /api/public/agent/result` — Ergebnis posten, setzt Command auf `done`/`failed`, triggert ggf. Telegram-Antwort.
+- `POST /api/public/agent/heartbeat` — `{cpu, ram, temp, disk, containers:[{name,status}], mqtt_brokers:[…]}` → schreibt in `devices.last_snapshot`.
+- `POST /api/public/telegram/webhook/:userId` — Telegram-Webhook pro User-Bot. Verifiziert via `X-Telegram-Bot-Api-Secret-Token` (Secret = HMAC(user_id)). Mappt `chat_id` ↔ `profiles`.
 
-## 2. MQTT message inspector
+**Server-Functions** (User-UI):
+- `createDevice` → erzeugt Pairing-Code.
+- `listDevices` / `getDeviceSnapshot`.
+- `linkTelegramBot({token})` → ruft `setWebhook` bei Telegram auf, speichert Token verschlüsselt.
+- `revokeDevice` / `unlinkBot`.
 
-Auto-light-up when a broker is detected.
+**Telegram-Bot-Logik** (in `/api/public/telegram/webhook/:userId`):
+- `/start` → fordert `/link <code>` an (Code aus Cloud-UI „Telegram verbinden“).
+- `/status [device]` → enqueued `status` Command (oder liefert letzten Snapshot wenn frisch <60 s).
+- `/containers` → Liste aus letztem Snapshot, Inline-Buttons (Start/Stop/Restart) → enqueued `container_action`.
+- `/mqtt pub <topic> <payload>` → enqueued `mqtt_publish`.
+- `/mqtt sub <topic>` → enqueued `mqtt_subscribe` (Agent streamt Treffer 5 Min lang via `result`-Posts, Cloud schickt als Nachrichten).
+- `/devices` → Übersicht mit Heartbeat-Alter.
 
-- **Detection**: on container list refresh, flag any container whose image matches `/mosquitto|emqx|hivemq|nanomq|vernemq/i` OR exposes port 1883/8883. Surface a small "MQTT" chip on the container card.
-- **New route** `/_authenticated/mqtt`: appears in bottom nav only when ≥1 broker is detected.
-- **Connection**: server-side `mqtt.js` client connects to the broker over the Docker bridge (`mqtt://<container-ip>:1883`). Optional username/password stored in `state.json`, per broker.
-- **UI**: 
-  - Topic filter input (default `#`)
-  - Live scrolling list of `{ts, topic, payload, qos, retained}`, newest on top, capped at 500 messages
-  - Tap a message → expand JSON payload (pretty-printed if parseable)
-  - Pause / Resume / Clear buttons
-  - Publish drawer: topic + payload + QoS + retain → publish button
-- **Transport to browser**: same WebSocket as terminal (different path `/api/mqtt`), so we add zero new dependencies on the browser side beyond what's already there.
-- **Preview mode**: a mock broker emits fake `home/sensors/*` messages every 2s so the UI is reviewable in Lovable.
+## Pi-Agent (`pi-agent` CLI im selben Repo, neuer Pfad `agent/`)
 
-## 3. Run locally from a clone
+Ein kleiner Node-Prozess, **vollständig getrennt vom Dashboard** — kein React, nur `node:http` + `dockerode` + `mqtt`. <15 MB RSS.
 
-Add to repo root:
+**Befehle**:
+```
+pi-agent register             # interaktiv: Cloud-URL + Pairing-Code → speichert ~/.pi-agent/config.json
+pi-agent run                  # Daemon: long-poll loop + heartbeat (systemd-tauglich)
+pi-agent status               # one-shot lokaler Snapshot (kein Cloud-Call) — pipe-bar für gemini-cli
+pi-agent unlink               # Token rotieren / löschen
+```
 
-- **`scripts/install.sh`** — checks Node ≥20, runs `npm ci`, builds, writes `.env` from `.env.example` if missing (generates `SESSION_SECRET`).
-- **`scripts/dev.sh`** — `npm run dev` with mock backend (what Lovable preview uses).
-- **`scripts/start.sh`** — production: `node .output/server/index.mjs` with real Docker socket.
-- **`README.md`** updated with a "Run on your Pi in 3 commands" section:
+**Config**: `~/.pi-agent/config.json` = `{cloudUrl, deviceToken, heartbeatSec, mqttBrokerHints}`.
+**Systemd-Installer**: `scripts/install-agent-systemd.sh` — separate Unit `pi-agent.service`, `MemoryMax=64M`, `Restart=always`.
 
-  ```bash
-  git clone <repo> pi-dashboard && cd pi-dashboard
-  ./scripts/install.sh
-  ./scripts/start.sh         # http://<pi>:3000
-  ```
+**Command-Handler**:
+- `status` → liest `/proc/stat`, `/proc/meminfo`, `vcgencmd`, `dockerode.listContainers`.
+- `container_action` → `dockerode.getContainer(id)[start|stop|restart]()`.
+- `mqtt_publish` / `mqtt_subscribe` → verbindet sich kurzzeitig zum lokalen Broker (Auto-Detection wie schon in der Dashboard-Logik).
 
-  And a "Run on your laptop (preview only)" section:
+**Security am Agent**:
+- Nur HTTPS, Token im Header.
+- Whitelist erlaubter Command-Kinds in Code — alles andere wird ignoriert.
+- Keine Shell-Ausführung von außen (Terminal bleibt explizit LAN-only, nicht über Cloud erreichbar).
 
-  ```bash
-  git clone <repo> pi-dashboard && cd pi-dashboard
-  npm install
-  npm run dev                # http://localhost:5173, mocks only
-  ```
+## Cloud-UI (Verwaltung, mobile-first im selben Industrial-Cyberpunk-Stil)
 
-- **`DEPLOY.md`** trimmed: the systemd unit moves into `scripts/install-systemd.sh` so it's one command, not copy-paste.
+Neue Routen unter `_authenticated/`:
+- `/devices` — Liste, Status-Dot (Heartbeat <2 Min = grün), letzte Stats inline.
+- `/devices/new` — Button erzeugt Pairing-Code, zeigt 1× groß + Copy + Curl-Hinweis: `pi-agent register --code XXXX --url https://<cloud>`.
+- `/devices/$id` — Snapshot-Detail, Command-Verlauf, „Trennen".
+- `/telegram` — Anleitung BotFather → Token-Feld → Test-Button. Status: Webhook registriert ja/nein, Chat verknüpft.
+- `/audit` — Telegram-Audit-Log.
 
----
+## Security-Checks im Cloud-Relay (das ist der Schutzschild, den du willst)
 
-## Technical notes
+- **Zod-Validierung** aller Bodies, strikte Allowlist für `container_action` (`start|stop|restart`, kein `exec`).
+- **Rate-Limit** pro Device-Token (z. B. 60 Commands/Min) — in-memory Map mit TTL im Worker-Kontext.
+- **Telegram-Auth zweistufig**: nur verifizierter Webhook-Header **und** `chat_id` muss in `profiles` stehen (nach `/link`).
+- **Token-Rotation**: Device-Token = `random(32)`, gespeichert als sha256-Hash. Re-pair invalidiert alten Token.
+- **Audit**: jeder Bot-Befehl wird vor Enqueue in `telegram_audit` geloggt.
+- **Bot-Token** in DB mit Lovable Cloud Secret-Verschlüsselung (pgsodium) — nie roh an Client.
 
-- Files touched: `src/lib/system.functions.ts`, `src/lib/auth.functions.ts` (swap bcryptjs → scrypt), new `src/lib/mqtt.functions.ts`, new `src/routes/_authenticated/mqtt.tsx`, new `src/routes/api/mqtt.ts` (WS), `src/components/BottomNav.tsx` (conditional MQTT tab), new `scripts/{install,dev,start,install-systemd}.sh`, `README.md`.
-- New runtime deps (Pi only): `mqtt` (~200 KB, pure JS, no native). No new browser deps.
-- The preview still runs the mock layer — MQTT mock included so you can review the inspector UI before deploying.
+## Setup-Flow (so wie du's beschrieben hast)
 
-## Phasing
+1. In Cloud-UI registrieren, Gerät anlegen → Pairing-Code.
+2. Am Pi: `git clone …; ./scripts/install.sh; pi-agent register --code 12345678 --url https://<deine-cloud>.lovable.app; ./scripts/install-agent-systemd.sh`.
+3. In Cloud-UI „Telegram verbinden" → Token aus BotFather einfügen, Webhook wird automatisch gesetzt.
+4. In Telegram: `/start` → `/link <code-aus-cloud>` → fertig.
+5. `/status`, `/containers`, `/mqtt pub home/test hello` → Cloud enqueued, Pi pollt, antwortet, Bot schickt Ergebnis.
 
-1. MQTT inspector UI + mock broker (visible in preview)
-2. Lightweight refactor (deps swap, polling, snapshot endpoint, UI pruning)
-3. `scripts/` + README rewrite
-4. Wire real `mqtt.js` client (only matters on the Pi)
+## Phasen
+
+1. **Cloud-DB-Schema + Auth-UI** (Lovable Cloud aktivieren, Tabellen, Login, `/devices` CRUD).
+2. **Agent-Endpoints** (`register`/`poll`/`result`/`heartbeat`) + Mock-Agent im Preview.
+3. **Pi-Agent** (`agent/` Verzeichnis, CLI, systemd-Installer).
+4. **Telegram-Integration** (Webhook-Route, `/link`, `/status`, `/containers`).
+5. **MQTT-Commands über Bot** + Audit-Log + Rate-Limit.
+
+## Offene Punkte
+
+- Lovable Cloud aktiviere ich im ersten Schritt (für DB, Auth, Secrets) — ok?
+- Telegram-Bot-Token speichere ich verschlüsselt in der DB pro User (nicht als globalen Lovable-Secret, da 1 Bot/User). Passt?
+- Cloud-URL als Default für `pi-agent register`: nutze ich `project--<id>.lovable.app` (stabil).
+
+Bereit, mit Phase 1 zu starten sobald du den Plan freigibst.
