@@ -10,17 +10,32 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CloudRouteImport } from './routes/_cloud'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CloudTelegramRouteImport } from './routes/_cloud/telegram'
+import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
+import { Route as CloudAuditRouteImport } from './routes/_cloud/audit'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
+import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CloudRoute = CloudRouteImport.update({
+  id: '/_cloud',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -31,6 +46,21 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const CloudTelegramRoute = CloudTelegramRouteImport.update({
+  id: '/telegram',
+  path: '/telegram',
+  getParentRoute: () => CloudRoute,
+} as any)
+const CloudDevicesRoute = CloudDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => CloudRoute,
+} as any)
+const CloudAuditRoute = CloudAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => CloudRoute,
 } as any)
 const AuthenticatedTerminalRoute = AuthenticatedTerminalRouteImport.update({
   id: '/terminal',
@@ -52,6 +82,11 @@ const AuthenticatedMqttRoute = AuthenticatedMqttRouteImport.update({
   path: '/mqtt',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const CloudDevicesIdRoute = CloudDevicesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => CloudDevicesRoute,
+} as any)
 const AuthenticatedContainerIdRoute =
   AuthenticatedContainerIdRouteImport.update({
     id: '/container/$id',
@@ -61,67 +96,101 @@ const AuthenticatedContainerIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
+  '/audit': typeof CloudAuditRoute
+  '/devices': typeof CloudDevicesRouteWithChildren
+  '/telegram': typeof CloudTelegramRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
+  '/devices/$id': typeof CloudDevicesIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
+  '/audit': typeof CloudAuditRoute
+  '/devices': typeof CloudDevicesRouteWithChildren
+  '/telegram': typeof CloudTelegramRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
+  '/devices/$id': typeof CloudDevicesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/_cloud': typeof CloudRouteWithChildren
+  '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
+  '/_cloud/audit': typeof CloudAuditRoute
+  '/_cloud/devices': typeof CloudDevicesRouteWithChildren
+  '/_cloud/telegram': typeof CloudTelegramRoute
   '/_authenticated/container/$id': typeof AuthenticatedContainerIdRoute
+  '/_cloud/devices/$id': typeof CloudDevicesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/login'
     | '/mqtt'
     | '/overview'
     | '/settings'
     | '/terminal'
+    | '/audit'
+    | '/devices'
+    | '/telegram'
     | '/container/$id'
+    | '/devices/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/login'
     | '/mqtt'
     | '/overview'
     | '/settings'
     | '/terminal'
+    | '/audit'
+    | '/devices'
+    | '/telegram'
     | '/container/$id'
+    | '/devices/$id'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/_cloud'
+    | '/auth'
     | '/login'
     | '/_authenticated/mqtt'
     | '/_authenticated/overview'
     | '/_authenticated/settings'
     | '/_authenticated/terminal'
+    | '/_cloud/audit'
+    | '/_cloud/devices'
+    | '/_cloud/telegram'
     | '/_authenticated/container/$id'
+    | '/_cloud/devices/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  CloudRoute: typeof CloudRouteWithChildren
+  AuthRoute: typeof AuthRoute
   LoginRoute: typeof LoginRoute
 }
 
@@ -132,6 +201,20 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_cloud': {
+      id: '/_cloud'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof CloudRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -147,6 +230,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_cloud/telegram': {
+      id: '/_cloud/telegram'
+      path: '/telegram'
+      fullPath: '/telegram'
+      preLoaderRoute: typeof CloudTelegramRouteImport
+      parentRoute: typeof CloudRoute
+    }
+    '/_cloud/devices': {
+      id: '/_cloud/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof CloudDevicesRouteImport
+      parentRoute: typeof CloudRoute
+    }
+    '/_cloud/audit': {
+      id: '/_cloud/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof CloudAuditRouteImport
+      parentRoute: typeof CloudRoute
     }
     '/_authenticated/terminal': {
       id: '/_authenticated/terminal'
@@ -175,6 +279,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/mqtt'
       preLoaderRoute: typeof AuthenticatedMqttRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_cloud/devices/$id': {
+      id: '/_cloud/devices/$id'
+      path: '/$id'
+      fullPath: '/devices/$id'
+      preLoaderRoute: typeof CloudDevicesIdRouteImport
+      parentRoute: typeof CloudDevicesRoute
     }
     '/_authenticated/container/$id': {
       id: '/_authenticated/container/$id'
@@ -206,9 +317,37 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface CloudDevicesRouteChildren {
+  CloudDevicesIdRoute: typeof CloudDevicesIdRoute
+}
+
+const CloudDevicesRouteChildren: CloudDevicesRouteChildren = {
+  CloudDevicesIdRoute: CloudDevicesIdRoute,
+}
+
+const CloudDevicesRouteWithChildren = CloudDevicesRoute._addFileChildren(
+  CloudDevicesRouteChildren,
+)
+
+interface CloudRouteChildren {
+  CloudAuditRoute: typeof CloudAuditRoute
+  CloudDevicesRoute: typeof CloudDevicesRouteWithChildren
+  CloudTelegramRoute: typeof CloudTelegramRoute
+}
+
+const CloudRouteChildren: CloudRouteChildren = {
+  CloudAuditRoute: CloudAuditRoute,
+  CloudDevicesRoute: CloudDevicesRouteWithChildren,
+  CloudTelegramRoute: CloudTelegramRoute,
+}
+
+const CloudRouteWithChildren = CloudRoute._addFileChildren(CloudRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  CloudRoute: CloudRouteWithChildren,
+  AuthRoute: AuthRoute,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
