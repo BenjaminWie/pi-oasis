@@ -1,0 +1,16 @@
+{
+  "name": "pi-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Pi Hub agent - polls Lovable Cloud and executes commands locally",
+  "bin": {
+    "pi-agent": "./index.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node index.mjs run"
+  },
+  "dependencies": {}
+}
