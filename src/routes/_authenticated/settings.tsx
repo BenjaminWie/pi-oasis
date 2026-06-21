@@ -119,6 +119,13 @@ function SettingsPage() {
             <Row label="Status" value="bridged" tone="ok" />
             <Row label="Gerät" value={host.cloudBridge.deviceName ?? "—"} />
             <Row label="Cloud" value={host.cloudBridge.cloudUrl ?? "—"} />
+            <button
+              onClick={() => disconnectBridgeMut.mutate()}
+              disabled={disconnectBridgeMut.isPending}
+              className="w-full mt-3 py-3 text-[10px] font-bold uppercase tracking-widest border border-destructive/40 text-destructive rounded-2xl active:scale-95 transition-transform"
+            >
+              Bridge trennen
+            </button>
           </>
         ) : (
           <>
@@ -134,6 +141,11 @@ function SettingsPage() {
             >
               In Cloud anmelden & Bridge aktivieren
             </button>
+            {bridgeStatus && (
+              <p className="text-[11px] text-center mt-3 font-mono text-muted-foreground">
+                {bridgeStatus}
+              </p>
+            )}
             {!host?.isPi && (
               <p className="text-[10px] text-muted-foreground/60 mt-2 text-center">
                 Pairing nur auf dem Pi-Runtime verfügbar.
