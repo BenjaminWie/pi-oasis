@@ -92,15 +92,14 @@ $(ok "pi-hub installed at $DIR")
 Run it now (foreground):
   cd $DIR && ./scripts/start.sh
 
-Recommended for production (PM2):
+Recommended (PM2 — survives reboots, restarts on crash):
   sudo npm install -g pm2
   cd $DIR && pm2 start ecosystem.config.cjs && pm2 save
-  pm2 startup    # follow the printed sudo command
+  pm2 startup    # then run the sudo command it prints
 
-Alternative (systemd):
-  cd $DIR && ./scripts/install-systemd.sh
-
-Then open:
+Then open from any device on your LAN:
   http://${HOSTNAME_LOCAL}:3000
+
+Default PIN: 1234  (change it in Settings on first login)
 
 DONE

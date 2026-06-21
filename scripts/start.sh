@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Start the built pi-hub server. Requires a prior ./scripts/install.sh build.
+# Start the pi-hub dev server. Requires a prior ./scripts/install.sh.
+#
+# We intentionally run `vite dev` rather than a production build:
+# TanStack Start's prod server entry path is unstable across versions on ARM,
+# which caused restart loops. Dev mode is fast enough on a Pi 4.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -7,38 +11,10 @@ cd "$(dirname "$0")/.."
 PORT="${PORT:-3000}"
 HOST="${HOST:-0.0.0.0}"
 
-# Resolve the production server entry. We support multiple paths because the
-# build target can vary across versions of TanStack Start / Vite plugins.
-ENTRY=""
-for candidate in \
-  "dist/server/server.js" \
-  "dist/server/index.mjs" \
-  ".output/server/index.mjs"
-do
-  if [ -f "$candidate" ]; then
-    ENTRY="$candidate"
-    break
-  fi
-done
-
-if [ -z "$ENTRY" ]; then
-  cat >&2 <<MSG
-ERROR: no production build found.
-
-Expected one of:
-  dist/server/server.js
-  dist/server/index.mjs
-  .output/server/index.mjs
-
-Run the build first:
-  ./scripts/install.sh
-
-This script intentionally does NOT auto-build at runtime — auto-builds caused
-restart loops on low-memory devices. Run the install script once and then
-restart this service.
-MSG
+if [ ! -d node_modules ]; then
+  echo "ERROR: node_modules missing. Run ./scripts/install.sh first." >&2
   exit 1
 fi
 
-echo "→ pi-hub listening on http://$HOST:$PORT  (entry: $ENTRY)"
-exec node --max-old-space-size=192 "$ENTRY"
+echo "→ pi-hub dev server on http://$HOST:$PORT"
+exec npx vite dev --host "$HOST" --port "$PORT"

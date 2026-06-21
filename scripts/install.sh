@@ -101,33 +101,11 @@ EOF
   echo "→ wrote .env (PIN: 1234 — change in Settings)"
 fi
 
-# --- build ---
-echo "→ building production bundle"
-npm run build
-
-# --- verify build artifact ---
-FOUND=""
-for candidate in \
-  "dist/server/server.js" \
-  "dist/server/index.mjs" \
-  ".output/server/index.mjs"
-do
-  if [ -f "$candidate" ]; then
-    FOUND="$candidate"
-    break
-  fi
-done
-
-if [ -z "$FOUND" ]; then
-  cat >&2 <<MSG
-ERROR: build completed but no server entry was found.
-Looked for: dist/server/server.js, dist/server/index.mjs, .output/server/index.mjs
-MSG
-  exit 1
-fi
+# NOTE: we no longer run `npm run build` here. The TanStack Start prod server
+# entry path is unstable across versions on ARM, which caused restart loops.
+# pi-hub runs under `vite dev` via PM2 instead — see ecosystem.config.cjs.
 
 echo
-echo "✓ install done  (entry: $FOUND)"
+echo "✓ install done"
 echo "  start (foreground):  ./scripts/start.sh"
 echo "  recommended (PM2):   pm2 start ecosystem.config.cjs && pm2 save"
-echo "  alternative (systemd): ./scripts/install-systemd.sh"
