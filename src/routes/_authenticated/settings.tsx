@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogOut, Smartphone, Cpu, Shield, Cloud, KeyRound, RefreshCw } from "lucide-react";
 import { auth } from "@/lib/auth-store";
 import { changePin, resetPinWithFactoryToken } from "@/lib/auth.functions";
