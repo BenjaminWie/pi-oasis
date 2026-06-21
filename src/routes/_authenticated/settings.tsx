@@ -10,7 +10,7 @@ import {
   revokeTrustedDevices,
   getFactoryTokenForDisplay,
 } from "@/lib/host-info.functions";
-import { createPairingNonce } from "@/lib/cloud-pairing.functions";
+import { createPairingNonce, claimCloudPairing, disconnectCloudBridge } from "@/lib/cloud-pairing.functions";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
