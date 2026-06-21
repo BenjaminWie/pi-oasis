@@ -74,17 +74,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1",
       },
-      { name: "theme-color", content: "#0a0a0c" },
-      { title: "Pi Hub" },
-      { name: "description", content: "Mobile control hub for your Raspberry Pi." },
-      { property: "og:title", content: "Pi Hub" },
-      { name: "twitter:title", content: "Pi Hub" },
-      { property: "og:description", content: "Mobile control hub for your Raspberry Pi." },
-      { name: "twitter:description", content: "Mobile control hub for your Raspberry Pi." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/25c18535-5a77-4b47-a082-2d780c254406" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/25c18535-5a77-4b47-a082-2d780c254406" },
+      { name: "theme-color", content: "#07090a" },
+      { title: "pi-hub — your home, in your terminal" },
+      { name: "description", content: "Self-hosted home OS for your Raspberry Pi. Voice, chat, and Telegram — for the geeks and the rest of the household." },
+      { property: "og:title", content: "pi-hub — your home, in your terminal" },
+      { name: "twitter:title", content: "pi-hub — your home, in your terminal" },
+      { property: "og:description", content: "Self-hosted home OS for your Raspberry Pi. Voice, chat, and Telegram — agent-based, cyberpunk, household-friendly." },
+      { name: "twitter:description", content: "Self-hosted home OS for your Raspberry Pi. Voice, chat, and Telegram — agent-based, cyberpunk, household-friendly." },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
+
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -92,8 +91,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap",
       },
+
     ],
   }),
   shellComponent: RootShell,
