@@ -7,7 +7,8 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-const INSTALL_CMD = "curl -fsSL pi-hub.sh | sh";
+const DOMAIN = "pi-hub.benniwie.com";
+const INSTALL_CMD = `curl -fsSL https://${DOMAIN}/install.sh | sh`;
 
 function Landing() {
   return (
@@ -480,7 +481,7 @@ function FooterCta() {
           </Link>
         </div>
         <p className="mt-10 text-[11px] font-mono uppercase tracking-widest text-muted-foreground">
-          pi-hub · self-hosted · made for tinkerers · loved by the household
+          <a href={`https://${DOMAIN}`} className="hover:text-primary transition">{DOMAIN}</a> · self-hosted · made for tinkerers · loved by the household
         </p>
       </div>
     </section>

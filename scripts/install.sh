@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup on the Pi (or any Linux box with Docker + Node 20+).
+# One-time setup on the Pi (or any Linux box with Node 20+).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -28,6 +28,7 @@ if [ ! -f .env ]; then
   cat > .env <<EOF
 SESSION_SECRET=$SECRET
 PORT=3000
+HOST=0.0.0.0
 PI_DASHBOARD_PIN=1234
 EOF
   echo "→ wrote .env (PIN: 1234 — change in Settings)"
@@ -37,7 +38,29 @@ fi
 echo "→ building production bundle"
 npm run build
 
+# --- verify build artifact ---
+FOUND=""
+for candidate in \
+  "dist/server/server.js" \
+  "dist/server/index.mjs" \
+  ".output/server/index.mjs"
+do
+  if [ -f "$candidate" ]; then
+    FOUND="$candidate"
+    break
+  fi
+done
+
+if [ -z "$FOUND" ]; then
+  cat >&2 <<MSG
+ERROR: build completed but no server entry was found.
+Looked for: dist/server/server.js, dist/server/index.mjs, .output/server/index.mjs
+MSG
+  exit 1
+fi
+
 echo
-echo "✓ install done"
-echo "  start:           ./scripts/start.sh"
-echo "  install systemd: ./scripts/install-systemd.sh"
+echo "✓ install done  (entry: $FOUND)"
+echo "  start (foreground):  ./scripts/start.sh"
+echo "  recommended (PM2):   pm2 start ecosystem.config.cjs && pm2 save"
+echo "  alternative (systemd): ./scripts/install-systemd.sh"
