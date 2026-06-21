@@ -76,7 +76,7 @@ export const claimCloudPairing = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { hasProcStats } = await import("./pi-runtime.server");
     if (!hasProcStats()) return { ok: false as const, error: "not on Pi" };
-    const cloudUrl = (data.cloudUrl || "https://pi-hub.lovable.app").replace(/\/+$/, "");
+    const cloudUrl = (data.cloudUrl || "https://pi-hub.benniwie.com").replace(/\/+$/, "");
     try {
       const res = await fetch(cloudUrl + "/api/public/cloud-bridge/claim", {
         method: "POST",

@@ -62,7 +62,7 @@ function SettingsPage() {
       }
       const cloudUrl =
         (import.meta as any).env?.VITE_PI_HUB_CLOUD_URL ||
-        "https://pi-hub.lovable.app";
+        "https://pi-hub.benniwie.com";
       const local = window.location.origin;
       const hostname = host?.hostname || window.location.hostname;
       const dest = new URL(cloudUrl + "/auth");
