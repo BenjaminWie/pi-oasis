@@ -307,10 +307,9 @@ function ResetPinModal({ onClose, submit }: any) {
 
 function FactoryTokenModal({ onClose, load }: any) {
   const [tok, setTok] = useState<string | null>(null);
-  useState(() => {
+  useEffect(() => {
     load().then(setTok);
-    return undefined;
-  });
+  }, []);
   return (
     <ModalShell title="Factory token" onClose={onClose}>
       <p className="text-xs text-muted-foreground">
