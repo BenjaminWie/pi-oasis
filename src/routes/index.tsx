@@ -353,7 +353,7 @@ function HowItWorks() {
 
 function DiagramNode({ icon, title, lines }: { icon: React.ReactNode; title: string; lines: string[] }) {
   return (
-    <div className="rounded-xl border border-primary/25 bg-background/60 backdrop-blur p-5 flex flex-col gap-2 glow-mint/30">
+    <div className="rounded-xl border border-primary/25 bg-background/60 backdrop-blur p-5 flex flex-col gap-2">
       <div className="flex items-center gap-3">
         <span className="h-9 w-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
           {icon}
