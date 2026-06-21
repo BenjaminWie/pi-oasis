@@ -208,7 +208,8 @@ export const linkTelegramBot = createServerFn({ method: "POST" })
 export const unlinkTelegramBot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: prof } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: prof } = await supabaseAdmin
       .from("profiles")
       .select("telegram_bot_token")
       .eq("id", context.userId)
@@ -218,7 +219,7 @@ export const unlinkTelegramBot = createServerFn({ method: "POST" })
         method: "POST",
       }).catch(() => {});
     }
-    await context.supabase
+    await supabaseAdmin
       .from("profiles")
       .update({
         telegram_bot_token: null,
