@@ -127,10 +127,21 @@ async function handleCommand(cmd) {
     }
     if (cmd.kind === "mqtt_publish") {
       const { topic, payload, broker, port } = cmd.payload || {};
-      // Use mosquitto_pub if available (very common), else error.
+      const hostStr = String(broker || "127.0.0.1");
+      // Allow only hostnames/IPv4/IPv6 chars — no shell metachars.
+      if (!/^[a-zA-Z0-9_.\-:]{1,253}$/.test(hostStr)) {
+        return { ok: false, result: { error: "invalid broker host" } };
+      }
+      const portNum = Number(port ?? 1883);
+      if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
+        return { ok: false, result: { error: "invalid port" } };
+      }
+      if (typeof topic !== "string" || !topic.length) {
+        return { ok: false, result: { error: "invalid topic" } };
+      }
       try {
         execSync(
-          `mosquitto_pub -h ${broker || "127.0.0.1"} -p ${port || 1883} -t ${shellEscape(topic)} -m ${shellEscape(payload || "")}`,
+          `mosquitto_pub -h ${shellEscape(hostStr)} -p ${portNum} -t ${shellEscape(topic)} -m ${shellEscape(payload || "")}`,
           { timeout: 5000 },
         );
         return { ok: true, result: { topic } };
