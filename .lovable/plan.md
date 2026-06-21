@@ -1,40 +1,53 @@
-## Problem
+## Goal
 
-`esbuild`'s prebuilt `linux-arm64` binary crashes with `SIGILL: illegal instruction` on the user's Raspberry Pi. This is a known incompatibility: recent esbuild releases (≥0.21, pulled in by Vite 7) are compiled by a Go toolchain that emits ARMv8.2+ instructions (notably `LSE` atomics), but Pi 4 / Pi 3 / CM4 cores are ARMv8.0-A and don't implement them. The CPU traps on the very first instruction of `esbuild --version`, and `npm install` aborts in the post-install hook.
+When pi-hub is installed on a Raspberry Pi, the dashboard should show **real** data (real containers, real CPU/RAM/temp, real MQTT brokers). The hosted landing at `pi-hub.benniwie.com` keeps using the mock data as a marketing demo — nothing the public sees changes.
 
-This has nothing to do with our install script's shell — it's a binary/CPU mismatch. The fix has to happen inside `scripts/install.sh` (which `public/install.sh` calls), before the failing post-install runs.
+Also: stop fighting the broken TanStack Start production build and make the installed Pi service run `vite dev` under PM2, which is what actually works on your hardware (you proved it).
 
-## Fix
+## What changes
 
-Update `scripts/install.sh` to detect this combination and build `esbuild` from source instead of using the prebuilt binary.
+### 1. Real data on the Pi (server functions)
 
-### Steps
+Replace the mock returns in `src/lib/system.functions.ts` and `src/lib/mqtt.functions.ts` with real implementations, gated by a single helper `isPiRuntime()` that checks for `/proc/stat` + `/var/run/docker.sock`. When the helper returns `false` (Cloudflare Worker serving the landing, or local `vite dev` on your laptop), the server fn returns the existing mock data — so the landing demo is untouched.
 
-1. **Detect the risk** before running `npm ci` / `npm install`:
-   - `uname -m` is `aarch64` (or `arm64`), AND
-   - `/proc/cpuinfo` does **not** advertise the `atomics` HWCAP (the LSE bit). This is the precise signal — present on ARMv8.1+, absent on Pi 4 / CM4 / Pi 3.
+Real implementations:
+- **`getSystemStats`**: read `/proc/stat` (CPU%), `/proc/meminfo` (RAM), `/proc/uptime`, `os.hostname()`, and `vcgencmd measure_temp` (with `/sys/class/thermal/thermal_zone0/temp` fallback).
+- **`listContainers` / `getContainer` / `containerAction`**: use `dockerode` against `/var/run/docker.sock`. Container logs via `container.logs({ tail: 200, stdout: true, stderr: true })`.
+- **`listMqttBrokers`**: filter the real container list by image (`eclipse-mosquitto`, `emqx`, `hivemq`, `vernemq`) and exposed port 1883.
+- **`pollMqttMessages` / `publishMqttMessage`**: open a short-lived `mqtt.connect("mqtt://host:1883")` per request, subscribe to filter, drain buffered messages, then close. Keep a small in-memory ring buffer keyed by broker+filter so the existing 1-second polling UI still works.
 
-2. **When the risk is present**, prepare a from-source esbuild before `npm install`:
-   - Ensure `go` is available. If not, `apt-get install -y golang-go` (with `sudo` when not root; warn and exit with a clear message if neither works).
-   - `GOBIN=$HOME/.local/bin go install github.com/evanw/esbuild/cmd/esbuild@<version>` where `<version>` matches the esbuild version pinned by our lockfile (read from `package-lock.json` / `bun.lock`, fallback to `latest`). Building from source on the local CPU produces a binary the Pi can execute.
-   - Export `ESBUILD_BINARY_PATH=$HOME/.local/bin/esbuild` for the rest of the script. The npm post-install honors this env var and skips the prebuilt-binary check that was triggering SIGILL.
+The `dockerode` and `mqtt` packages are added as deps but imported with dynamic `await import()` inside `.handler()`, so they never get bundled into the Cloudflare landing build.
 
-3. **Then run** the existing `npm ci` (or `npm install` fallback) and `npm run build` as today. Print a short note when the workaround was applied so the user understands what happened.
+### 2. PM2 runs `vite dev` (the thing that works)
 
-4. **No changes to `public/install.sh`** are required — it already delegates to `scripts/install.sh`.
+You already discovered that the production build's server entry path is unstable on the Pi and `npm run dev` works reliably. Make that the supported path:
 
-5. **README / DEPLOY note**: one short paragraph under the Pi install section explaining: "On ARMv8.0 boards (Pi 3, Pi 4, CM4) the installer automatically builds `esbuild` from source via Go; this adds ~1–2 minutes to first install." No action required from the user.
+- `ecosystem.config.cjs`: switch from `script: "dist/server/server.js"` to `script: "npm"`, `args: "run dev -- --host 0.0.0.0 --port 3000"`, `interpreter: "none"`, drop the 192 MB memory cap (dev server needs ~400 MB on a Pi 4), `max_memory_restart: "600M"`.
+- `scripts/install.sh`: skip `npm run build` and the "verify build artifact" step entirely. The install ends after `npm install` + `.env` creation. ARMv8.0 esbuild rebuild logic stays — `vite dev` still uses esbuild.
+- `scripts/start.sh`: change to `exec npx vite dev --host 0.0.0.0 --port "${PORT:-3000}"` so foreground starts also work without a build.
+- `public/install.sh`: update the printed "Run it now" section to lead with PM2 + dev mode and drop the systemd path (which had the NVM PATH issue you hit).
+- `README.md` / `DEPLOY.md`: one short paragraph explaining why we run dev mode on the Pi (TanStack Start production entry path is brittle on ARM; dev mode is fast enough and stable).
 
-### Technical notes
+### 3. Landing page (unchanged behavior)
 
-- The `ESBUILD_BINARY_PATH` escape hatch is supported and documented by esbuild specifically for this scenario; it suppresses the install-time `--version` self-test that's crashing.
-- Building esbuild from source on a Pi 4 takes ~60–90s and needs ~300 MB free disk. The Go toolchain from Debian's `golang-go` package (1.19+) is sufficient.
-- We deliberately do **not** downgrade esbuild via an npm override — Vite 7 has a tight peer range and overriding it risks breaking the dev server. Building the same version from source is the safer fix.
-- Pi 5 is ARMv8.2 and unaffected; the detection will skip the workaround there, so the install stays fast.
-- If `go` cannot be installed (offline, non-Debian distro), the script exits with an actionable message pointing at the two manual options: install Go and re-run, or run on a Pi 5 / x86 host.
+- `src/routes/index.tsx`: no code change. The "demo" chat + terminal animations are already hardcoded JSX, not server-fn data.
+- The `_authenticated/*` routes still ship in the Cloudflare bundle, but no one reaches them without a PIN. If a curious visitor does sign in on the hosted site, `isPiRuntime()` returns false there and they see the existing mock data — same as today.
 
-### Out of scope
+## Technical notes
 
-- No app code, route, or UI changes.
-- No change to PM2 / systemd flow.
-- No change to the landing page or the published `install.sh` URL.
+- `dockerode` and `mqtt` are pure-JS / Node-stream packages. They work under Node on the Pi. They are NOT loaded on Cloudflare because the dynamic `import()` only runs inside `.handler()` after the `isPiRuntime()` check returns true — Vite's Worker SSR bundler will tree-shake the unused branch and these deps only need to resolve at runtime on the Pi.
+- `vcgencmd` is shelled out with `child_process.execFile` (300 ms timeout). Falls back to thermal_zone0 if missing (non-Pi Linux).
+- Per-request MQTT connect/disconnect is intentional: keeps memory flat on a 1 GB Pi and avoids needing a connection registry. Connection setup on localhost is ~5 ms.
+- No changes to auth, routing, RLS, or Lovable Cloud.
+
+## Files touched
+
+- `src/lib/system.functions.ts` — real impls + mock fallback
+- `src/lib/mqtt.functions.ts` — real impls + mock fallback
+- `src/lib/pi-runtime.server.ts` — new, `isPiRuntime()` helper
+- `ecosystem.config.cjs` — run `npm run dev`
+- `scripts/install.sh` — drop build step
+- `scripts/start.sh` — exec vite dev
+- `public/install.sh` — updated next-steps text
+- `README.md`, `DEPLOY.md` — short note on dev-mode-on-Pi
+- `package.json` — add `dockerode`, `mqtt`
