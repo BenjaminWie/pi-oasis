@@ -463,10 +463,7 @@ function CompareCard({
     </div>
   );
 }
-      </div>
-    </section>
-  );
-}
+
 
 function DiagramNode({ icon, title, lines }: { icon: React.ReactNode; title: string; lines: string[] }) {
   return (
