@@ -25,6 +25,8 @@ function SettingsPage() {
   const resetFn = useServerFn(resetPinWithFactoryToken);
   const tokenFn = useServerFn(getFactoryTokenForDisplay);
   const nonceFn = useServerFn(createPairingNonce);
+  const claimFn = useServerFn(claimCloudPairing);
+  const disconnectFn = useServerFn(disconnectCloudBridge);
 
   const { data: host } = useQuery({
     queryKey: ["host-info"],
@@ -33,9 +35,15 @@ function SettingsPage() {
   });
 
   const [pinMode, setPinMode] = useState<null | "change" | "reset" | "factory">(null);
+  const [bridgeStatus, setBridgeStatus] = useState<string | null>(null);
 
   const revokeMut = useMutation({
     mutationFn: () => revokeFn({}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["host-info"] }),
+  });
+
+  const disconnectBridgeMut = useMutation({
+    mutationFn: () => disconnectFn({}),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["host-info"] }),
   });
 
@@ -46,9 +54,10 @@ function SettingsPage() {
 
   const startCloudPair = async () => {
     try {
+      setBridgeStatus("Erzeuge Nonce …");
       const res = await nonceFn({});
       if (!res.ok) {
-        alert(res.error || "Pairing nicht möglich");
+        setBridgeStatus(res.error || "Pairing nicht möglich");
         return;
       }
       const cloudUrl =
@@ -62,8 +71,28 @@ function SettingsPage() {
       dest.searchParams.set("nonce", res.nonce);
       dest.searchParams.set("hostname", hostname);
       window.open(dest.toString(), "pi-hub-pair", "width=480,height=720");
+      setBridgeStatus("Warte auf Cloud-Login …");
+
+      // Poll the cloud (via Pi server fn) until the freshly minted pairing shows up
+      const nonce = res.nonce;
+      const deadline = Date.now() + 5 * 60 * 1000;
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 2500));
+        const cl = await claimFn({ data: { nonce, cloudUrl } });
+        if (cl.ok) {
+          setBridgeStatus(`✓ Bridged as ${cl.name}`);
+          qc.invalidateQueries({ queryKey: ["host-info"] });
+          return;
+        }
+        if (!cl.ok && "pending" in cl && cl.pending) continue;
+        if (!cl.ok && "error" in cl && cl.error) {
+          setBridgeStatus(cl.error);
+          return;
+        }
+      }
+      setBridgeStatus("Timeout — versuche es nochmal.");
     } catch (e: any) {
-      alert(e.message);
+      setBridgeStatus(e.message || String(e));
     }
   };
 
