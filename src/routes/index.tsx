@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Check, Copy, Mic, Terminal, Cpu, Cloud, MessageSquare, Shield, Radio, Home } from "lucide-react";
+import { Check, Copy, Mic, Terminal, Cpu, Cloud, MessageSquare, Shield, Radio, Home, Router, EyeOff, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -15,6 +15,7 @@ function Landing() {
     <div className="min-h-screen bg-background text-foreground font-sans antialiased overflow-x-hidden">
       <NavBar />
       <Hero />
+      <NoDnsHustle />
       <ChatDemo />
       <HowItWorks />
       <HouseholdBand />
@@ -101,6 +102,11 @@ function Hero() {
           <p>
             <span className="text-coral">♥</span> For everyone else: just ask. "Dim the kitchen."
             "Is the dryer done?" "Goodnight." That's it.
+          </p>
+          <p className="text-sm text-muted-foreground/80">
+            And because your Pi talks <span className="text-primary font-mono">out</span>, not in,
+            you skip every router tutorial you were dreading — no port forwarding, no DuckDNS,
+            no public IP.
           </p>
         </motion.div>
 
