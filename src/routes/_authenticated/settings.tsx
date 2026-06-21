@@ -171,7 +171,7 @@ function SettingsPage() {
       {pinMode === "change" && (
         <ChangePinModal
           onClose={() => setPinMode(null)}
-          submit={async (cur, neu) => {
+          submit={async (cur: string, neu: string) => {
             const r = await changeFn({ data: { currentPin: cur, newPin: neu } });
             return r;
           }}
@@ -180,7 +180,7 @@ function SettingsPage() {
       {pinMode === "reset" && (
         <ResetPinModal
           onClose={() => setPinMode(null)}
-          submit={async (tok, neu) => {
+          submit={async (tok: string, neu: string) => {
             const r = await resetFn({ data: { factoryToken: tok, newPin: neu } });
             return r;
           }}
