@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-# pi-hub bootstrap installer
+#!/bin/sh
+# pi-hub bootstrap installer (POSIX sh — safe to pipe to `| sh` on Debian/dash)
 # Usage:
 #   curl -fsSL https://pi-hub.benniwie.com/install.sh | sh
 # Or directly from GitHub:
@@ -30,13 +30,13 @@ say "repo: $REPO@$REF"
 say "dir:  $DIR"
 
 # --- prerequisites ---
-MISSING=()
-command -v git  >/dev/null 2>&1 || MISSING+=("git")
-command -v node >/dev/null 2>&1 || MISSING+=("node")
-command -v npm  >/dev/null 2>&1 || MISSING+=("npm")
+MISSING=""
+for bin in git node npm; do
+  command -v "$bin" >/dev/null 2>&1 || MISSING="$MISSING $bin"
+done
 
-if [ "${#MISSING[@]}" -gt 0 ]; then
-  warn "missing: ${MISSING[*]}"
+if [ -n "$MISSING" ]; then
+  warn "missing:$MISSING"
   cat >&2 <<'HINT'
 
 Install Node 20+ and git on Debian/Ubuntu/Raspberry Pi OS:
