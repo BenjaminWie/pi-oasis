@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -61,6 +62,30 @@ function AuthPage() {
             >
               Registrieren
             </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={async () => {
+              setError(null);
+              const result = await lovable.auth.signInWithOAuth("google", {
+                redirect_uri: window.location.origin + "/cloud/devices",
+              });
+              if (result.error) {
+                setError(result.error.message);
+                return;
+              }
+              if (result.redirected) return;
+              navigate({ to: "/cloud/devices" });
+            }}
+            className="w-full rounded-lg bg-background border border-border py-3 text-sm font-bold uppercase tracking-widest mb-4 hover:bg-muted"
+          >
+            Mit Google fortfahren
+          </button>
+          <div className="flex items-center gap-3 mb-4 text-xs text-muted-foreground">
+            <div className="flex-1 h-px bg-border" />
+            oder
+            <div className="flex-1 h-px bg-border" />
           </div>
 
           <form onSubmit={submit} className="space-y-4">
