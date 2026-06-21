@@ -15,36 +15,45 @@ one `systemctl restart` away from any change.
 ## One-time install on the Pi
 
 ```bash
-# 1) gemini-cli + node
-curl -fsSL https://get.gemini.dev | sh
-sudo apt update && sudo apt install -y nodejs npm git
+# 1) node + git
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt update && sudo apt install -y nodejs git
 
-# 2) clone & build
-sudo git clone <your-repo-url> /opt/pi-dashboard
-cd /opt/pi-dashboard
-sudo npm install
-sudo npm run build
-
-# 3) systemd unit
-sudo tee /etc/systemd/system/pi-dashboard.service > /dev/null <<EOF
-[Unit]
-Description=Pi Hub Dashboard
-After=docker.service
-
-[Service]
-ExecStart=/usr/bin/node /opt/pi-dashboard/.output/server/index.mjs
-Restart=always
-User=pi
-Environment=PORT=3000
-Environment=SESSION_SECRET=$(openssl rand -hex 32)
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo usermod -aG docker pi
-sudo systemctl enable --now pi-dashboard
+# 2) clone & build (writes .env, runs npm install + npm run build)
+sudo git clone <your-repo-url> /opt/pi-hub
+sudo chown -R "$USER":"$USER" /opt/pi-hub
+cd /opt/pi-hub
+./scripts/install.sh
 ```
+
+The build emits the server entry at `dist/server/server.js` (or
+`dist/server/index.mjs` / `.output/server/index.mjs` depending on the build
+preset). All start scripts auto-detect whichever one exists.
+
+### Recommended: run with PM2
+
+PM2 sidesteps the `$PATH` / NVM issues that raw systemd units hit on the Pi
+and ships with log rotation and crash restarts.
+
+```bash
+sudo npm install -g pm2
+cd /opt/pi-hub
+pm2 start ecosystem.config.cjs
+pm2 save
+pm2 startup                       # run the sudo command it prints
+```
+
+### Alternative: systemd
+
+```bash
+cd /opt/pi-hub
+./scripts/install-systemd.sh      # installs /etc/systemd/system/pi-hub.service
+```
+
+The unit pins `ExecStart` to the resolved build artifact and does NOT auto-build
+at runtime — earlier versions did, which caused restart loops when the build
+output landed at a different path than expected.
+
 
 Open `http://raspberrypi.local:3000` from your phone, tap Share → Add to
 Home Screen. Demo PIN is **1234** until you change it in Settings.
