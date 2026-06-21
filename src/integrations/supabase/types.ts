@@ -64,6 +64,50 @@ export type Database = {
           },
         ]
       }
+      cloud_pairings: {
+        Row: {
+          claimed_at: string | null
+          created_at: string
+          device_id: string
+          device_name: string
+          device_token: string
+          expires_at: string
+          id: string
+          nonce_hash: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string
+          device_id: string
+          device_name: string
+          device_token: string
+          expires_at?: string
+          id?: string
+          nonce_hash: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string
+          device_id?: string
+          device_name?: string
+          device_token?: string
+          expires_at?: string
+          id?: string
+          nonce_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_pairings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devices: {
         Row: {
           created_at: string
