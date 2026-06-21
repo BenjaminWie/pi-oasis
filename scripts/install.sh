@@ -97,8 +97,42 @@ SESSION_SECRET=$SECRET
 PORT=3000
 HOST=0.0.0.0
 PI_DASHBOARD_PIN=1234
+PI_DASHBOARD_SECRET=$SECRET
+VITE_PI_HUB_CLOUD_URL=https://pi-hub.lovable.app
 EOF
   echo "→ wrote .env (PIN: 1234 — change in Settings)"
+fi
+
+# --- pi-hub state (PIN hash + factory reset token) ---
+STATE_DIR="$HOME/.pi-hub"
+STATE_FILE="$STATE_DIR/state.json"
+if [ ! -f "$STATE_FILE" ]; then
+  mkdir -p "$STATE_DIR"
+  chmod 700 "$STATE_DIR"
+  node -e "
+    const c = require('crypto');
+    const fs = require('fs');
+    const salt = c.randomBytes(16).toString('hex');
+    const pin = process.env.PI_DASHBOARD_PIN || '1234';
+    const hash = c.scryptSync(pin, salt, 32).toString('hex');
+    const token = c.randomBytes(16).toString('hex');
+    fs.writeFileSync('$STATE_FILE',
+      JSON.stringify({ pinHash: hash, pinSalt: salt, factoryToken: token, trustedDevices: [] }, null, 2),
+      { mode: 0o600 });
+    console.log(token);
+  " > /tmp/pi-hub-factory-token
+  FACTORY_TOKEN=$(cat /tmp/pi-hub-factory-token)
+  rm -f /tmp/pi-hub-factory-token
+  echo
+  echo "════════════════════════════════════════════════════════════════"
+  echo "  FACTORY RESET TOKEN — note this somewhere safe!"
+  echo "  Use it in Settings → Reset PIN if you forget your PIN."
+  echo
+  echo "    $FACTORY_TOKEN"
+  echo
+  echo "  Also stored at: $STATE_FILE"
+  echo "════════════════════════════════════════════════════════════════"
+  echo
 fi
 
 # NOTE: we no longer run `npm run build` here. The TanStack Start prod server
@@ -109,3 +143,6 @@ echo
 echo "✓ install done"
 echo "  start (foreground):  ./scripts/start.sh"
 echo "  recommended (PM2):   pm2 start ecosystem.config.cjs && pm2 save"
+echo
+echo "  Local URL:  http://$(hostname).local:3000  (or http://$(hostname -I | awk '{print $1}'):3000)"
+echo "  Cloud pair: open Settings → 'In Cloud anmelden & Bridge aktivieren'"
