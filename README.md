@@ -10,6 +10,10 @@ Site: **https://pi-hub.benniwie.com**
   exposing 1883
 - **PIN auth + device trust**, LAN-only by default
 - **PWA**: add to Home Screen for a native feel
+- **Cloud bridge**: one-click pair from the Pi UI — sign into the cloud once,
+  tokens transfer back automatically, the Pi long-polls for remote commands
+- **Telegram voice**: speak to the bot, GPT-4o-mini-transcribe turns it into a
+  command (status / containers / mqtt …)
 
 ---
 
