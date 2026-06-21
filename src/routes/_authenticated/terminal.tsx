@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { Mic, Send, MicOff } from "lucide-react";
+import { runTerminalCommand } from "@/lib/terminal.functions";
 
 export const Route = createFileRoute("/_authenticated/terminal")({
   component: TerminalPage,
 });
 
-// Browser SpeechRecognition typing
 type SR = {
   start: () => void;
   stop: () => void;
@@ -31,27 +32,16 @@ interface Line {
   text: string;
 }
 
-function fakeRespond(input: string): string {
-  const t = input.trim().toLowerCase();
-  if (t.startsWith("gemini")) {
-    return `> analysing request "${input.slice(7).trim() || "(empty)"}"\n> recommendation: prune dangling images, redeploy plex with cap-add SYS_NICE\n> done.`;
-  }
-  if (t.startsWith("docker ps")) {
-    return `CONTAINER ID   IMAGE                              STATUS\n80a91          ghcr.io/home-assistant:stable     Up 12d\nc0092          jc21/nginx-proxy-manager:latest   Up 30d\nd7a44          linuxserver/plex:latest           Up 2h (unhealthy)\nb3f12          pihole/pihole:latest              Exited (1)`;
-  }
-  if (t.startsWith("df")) return `Filesystem  Size  Used  Avail  Use%\n/dev/root   29G   18G   10G   64%`;
-  if (t === "help") return `available (preview mode): gemini <prompt>, docker ps, df, clear`;
-  return `(preview) command not executed — on the Pi this streams through a real PTY.`;
-}
-
 function TerminalPage() {
+  const run = useServerFn(runTerminalCommand);
   const [lines, setLines] = useState<Line[]>([
-    { who: "sys", text: "pi-dashboard v2.0.4-β · gemini-cli ready" },
-    { who: "sys", text: 'type "help" or tap the mic to speak' },
+    { who: "sys", text: "pi-hub shell · allow-listed commands" },
+    { who: "sys", text: 'type "help" or tap the mic to speak · prefix with "gemini" for AI' },
   ]);
   const [input, setInput] = useState("");
   const [listening, setListening] = useState(false);
   const [sttSupported, setSttSupported] = useState(true);
+  const [busy, setBusy] = useState(false);
   const recRef = useRef<SR | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -81,7 +71,7 @@ function TerminalPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [lines]);
 
-  const submit = (raw?: string) => {
+  const submit = async (raw?: string) => {
     const value = (raw ?? input).trim();
     if (!value) return;
     setInput("");
@@ -89,7 +79,16 @@ function TerminalPage() {
       setLines([]);
       return;
     }
-    setLines((l) => [...l, { who: "user", text: value }, { who: "sys", text: fakeRespond(value) }]);
+    setLines((l) => [...l, { who: "user", text: value }]);
+    setBusy(true);
+    try {
+      const res = await run({ data: { cmd: value } });
+      setLines((l) => [...l, { who: "sys", text: res.output }]);
+    } catch (e: any) {
+      setLines((l) => [...l, { who: "sys", text: `error: ${e.message || e}` }]);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const toggleMic = () => {
@@ -117,11 +116,13 @@ function TerminalPage() {
     <div className="px-4 pt-6 flex flex-col h-[calc(100vh-7rem)]">
       <header className="mb-4">
         <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">
-          Shell · PTY
+          Shell · allow-listed
         </div>
         <div className="flex items-center gap-2">
-          <div className="size-2 bg-status-ok rounded-full animate-pulse" />
-          <span className="font-mono text-xs text-status-ok/90">gemini-cli active</span>
+          <div className={`size-2 rounded-full ${busy ? "bg-status-warn animate-pulse" : "bg-status-ok animate-pulse"}`} />
+          <span className="font-mono text-xs text-status-ok/90">
+            {busy ? "running…" : "ready"}
+          </span>
         </div>
       </header>
 
@@ -151,7 +152,8 @@ function TerminalPage() {
               if (e.key === "Enter") submit();
             }}
             placeholder="RUN COMMAND…"
-            className="w-full bg-white/5 border border-border rounded-2xl pl-10 pr-3 py-3 font-mono text-xs text-primary focus:outline-none focus:border-primary/30 placeholder:text-muted-foreground/40"
+            disabled={busy}
+            className="w-full bg-white/5 border border-border rounded-2xl pl-10 pr-3 py-3 font-mono text-xs text-primary focus:outline-none focus:border-primary/30 placeholder:text-muted-foreground/40 disabled:opacity-50"
             autoCapitalize="off"
             autoCorrect="off"
             spellCheck={false}
@@ -159,7 +161,7 @@ function TerminalPage() {
         </div>
         <button
           onClick={toggleMic}
-          disabled={!sttSupported}
+          disabled={!sttSupported || busy}
           aria-label={listening ? "Stop listening" : "Start voice input"}
           className={`size-12 shrink-0 rounded-2xl flex items-center justify-center border transition-all ${
             listening
@@ -173,8 +175,9 @@ function TerminalPage() {
         </button>
         <button
           onClick={sendAsGemini}
+          disabled={busy}
           aria-label="Send to gemini"
-          className="size-12 shrink-0 rounded-2xl flex items-center justify-center bg-primary text-primary-foreground active:scale-95 transition-transform"
+          className="size-12 shrink-0 rounded-2xl flex items-center justify-center bg-primary text-primary-foreground active:scale-95 transition-transform disabled:opacity-50"
         >
           <Send className="size-5" />
         </button>

@@ -15,6 +15,7 @@ import { Route as CloudRouteImport } from './routes/_cloud'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CloudTelegramRouteImport } from './routes/_cloud/telegram'
+import { Route as CloudPairCallbackRouteImport } from './routes/_cloud/pair-callback'
 import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
 import { Route as CloudAuditRouteImport } from './routes/_cloud/audit'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
@@ -23,6 +24,7 @@ import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
 import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
+import { Route as ApiPublicCloudBridgeClaimRouteImport } from './routes/api/public/cloud-bridge/claim'
 import { Route as ApiPublicAgentResultRouteImport } from './routes/api/public/agent/result'
 import { Route as ApiPublicAgentRegisterRouteImport } from './routes/api/public/agent/register'
 import { Route as ApiPublicAgentPollRouteImport } from './routes/api/public/agent/poll'
@@ -55,6 +57,11 @@ const IndexRoute = IndexRouteImport.update({
 const CloudTelegramRoute = CloudTelegramRouteImport.update({
   id: '/telegram',
   path: '/telegram',
+  getParentRoute: () => CloudRoute,
+} as any)
+const CloudPairCallbackRoute = CloudPairCallbackRouteImport.update({
+  id: '/pair-callback',
+  path: '/pair-callback',
   getParentRoute: () => CloudRoute,
 } as any)
 const CloudDevicesRoute = CloudDevicesRouteImport.update({
@@ -98,6 +105,12 @@ const AuthenticatedContainerIdRoute =
     path: '/container/$id',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicCloudBridgeClaimRoute =
+  ApiPublicCloudBridgeClaimRouteImport.update({
+    id: '/api/public/cloud-bridge/claim',
+    path: '/api/public/cloud-bridge/claim',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAgentResultRoute = ApiPublicAgentResultRouteImport.update({
   id: '/api/public/agent/result',
   path: '/api/public/agent/result',
@@ -135,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/terminal': typeof AuthenticatedTerminalRoute
   '/audit': typeof CloudAuditRoute
   '/devices': typeof CloudDevicesRouteWithChildren
+  '/pair-callback': typeof CloudPairCallbackRoute
   '/telegram': typeof CloudTelegramRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/devices/$id': typeof CloudDevicesIdRoute
@@ -142,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
+  '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRoutesByTo {
@@ -154,6 +169,7 @@ export interface FileRoutesByTo {
   '/terminal': typeof AuthenticatedTerminalRoute
   '/audit': typeof CloudAuditRoute
   '/devices': typeof CloudDevicesRouteWithChildren
+  '/pair-callback': typeof CloudPairCallbackRoute
   '/telegram': typeof CloudTelegramRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/devices/$id': typeof CloudDevicesIdRoute
@@ -161,6 +177,7 @@ export interface FileRoutesByTo {
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
+  '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRoutesById {
@@ -176,6 +193,7 @@ export interface FileRoutesById {
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
   '/_cloud/audit': typeof CloudAuditRoute
   '/_cloud/devices': typeof CloudDevicesRouteWithChildren
+  '/_cloud/pair-callback': typeof CloudPairCallbackRoute
   '/_cloud/telegram': typeof CloudTelegramRoute
   '/_authenticated/container/$id': typeof AuthenticatedContainerIdRoute
   '/_cloud/devices/$id': typeof CloudDevicesIdRoute
@@ -183,6 +201,7 @@ export interface FileRoutesById {
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
+  '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRouteTypes {
@@ -197,6 +216,7 @@ export interface FileRouteTypes {
     | '/terminal'
     | '/audit'
     | '/devices'
+    | '/pair-callback'
     | '/telegram'
     | '/container/$id'
     | '/devices/$id'
@@ -204,6 +224,7 @@ export interface FileRouteTypes {
     | '/api/public/agent/poll'
     | '/api/public/agent/register'
     | '/api/public/agent/result'
+    | '/api/public/cloud-bridge/claim'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -216,6 +237,7 @@ export interface FileRouteTypes {
     | '/terminal'
     | '/audit'
     | '/devices'
+    | '/pair-callback'
     | '/telegram'
     | '/container/$id'
     | '/devices/$id'
@@ -223,6 +245,7 @@ export interface FileRouteTypes {
     | '/api/public/agent/poll'
     | '/api/public/agent/register'
     | '/api/public/agent/result'
+    | '/api/public/cloud-bridge/claim'
     | '/api/public/telegram/webhook/$userId'
   id:
     | '__root__'
@@ -237,6 +260,7 @@ export interface FileRouteTypes {
     | '/_authenticated/terminal'
     | '/_cloud/audit'
     | '/_cloud/devices'
+    | '/_cloud/pair-callback'
     | '/_cloud/telegram'
     | '/_authenticated/container/$id'
     | '/_cloud/devices/$id'
@@ -244,6 +268,7 @@ export interface FileRouteTypes {
     | '/api/public/agent/poll'
     | '/api/public/agent/register'
     | '/api/public/agent/result'
+    | '/api/public/cloud-bridge/claim'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesById: FileRoutesById
 }
@@ -257,6 +282,7 @@ export interface RootRouteChildren {
   ApiPublicAgentPollRoute: typeof ApiPublicAgentPollRoute
   ApiPublicAgentRegisterRoute: typeof ApiPublicAgentRegisterRoute
   ApiPublicAgentResultRoute: typeof ApiPublicAgentResultRoute
+  ApiPublicCloudBridgeClaimRoute: typeof ApiPublicCloudBridgeClaimRoute
   ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
 }
 
@@ -302,6 +328,13 @@ declare module '@tanstack/react-router' {
       path: '/telegram'
       fullPath: '/telegram'
       preLoaderRoute: typeof CloudTelegramRouteImport
+      parentRoute: typeof CloudRoute
+    }
+    '/_cloud/pair-callback': {
+      id: '/_cloud/pair-callback'
+      path: '/pair-callback'
+      fullPath: '/pair-callback'
+      preLoaderRoute: typeof CloudPairCallbackRouteImport
       parentRoute: typeof CloudRoute
     }
     '/_cloud/devices': {
@@ -359,6 +392,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/container/$id'
       preLoaderRoute: typeof AuthenticatedContainerIdRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/cloud-bridge/claim': {
+      id: '/api/public/cloud-bridge/claim'
+      path: '/api/public/cloud-bridge/claim'
+      fullPath: '/api/public/cloud-bridge/claim'
+      preLoaderRoute: typeof ApiPublicCloudBridgeClaimRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/agent/result': {
       id: '/api/public/agent/result'
@@ -433,12 +473,14 @@ const CloudDevicesRouteWithChildren = CloudDevicesRoute._addFileChildren(
 interface CloudRouteChildren {
   CloudAuditRoute: typeof CloudAuditRoute
   CloudDevicesRoute: typeof CloudDevicesRouteWithChildren
+  CloudPairCallbackRoute: typeof CloudPairCallbackRoute
   CloudTelegramRoute: typeof CloudTelegramRoute
 }
 
 const CloudRouteChildren: CloudRouteChildren = {
   CloudAuditRoute: CloudAuditRoute,
   CloudDevicesRoute: CloudDevicesRouteWithChildren,
+  CloudPairCallbackRoute: CloudPairCallbackRoute,
   CloudTelegramRoute: CloudTelegramRoute,
 }
 
@@ -454,6 +496,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAgentPollRoute: ApiPublicAgentPollRoute,
   ApiPublicAgentRegisterRoute: ApiPublicAgentRegisterRoute,
   ApiPublicAgentResultRoute: ApiPublicAgentResultRoute,
+  ApiPublicCloudBridgeClaimRoute: ApiPublicCloudBridgeClaimRoute,
   ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
 }
 export const routeTree = rootRouteImport
