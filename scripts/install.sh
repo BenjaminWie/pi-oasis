@@ -98,7 +98,7 @@ PORT=3000
 HOST=0.0.0.0
 PI_DASHBOARD_PIN=1234
 PI_DASHBOARD_SECRET=$SECRET
-VITE_PI_HUB_CLOUD_URL=https://pi-hub.lovable.app
+VITE_PI_HUB_CLOUD_URL=https://pi-hub.benniwie.com
 EOF
   echo "→ wrote .env (PIN: 1234 — change in Settings)"
 fi
