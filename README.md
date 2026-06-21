@@ -74,18 +74,21 @@ proxy, no DB server. State is a tiny JSON file at `~/.pi-hub/state.json`
 
 See [DEPLOY.md](./DEPLOY.md) for the mock-to-real wiring.
 
-## Build artifact
+## Why we run `vite dev` on the Pi
 
-`npm run build` emits the server entry at one of:
+pi-hub runs the TanStack Start dev server under PM2 rather than a production
+build. The prod server entry path moves between TanStack Start releases
+(`dist/server/server.js` vs `.output/server/index.mjs`), which caused restart
+loops on ARM. Dev mode boots in seconds, stays under ~500 MB RSS on a Pi 4,
+and is what `scripts/start.sh` and `ecosystem.config.cjs` invoke.
 
-- `dist/server/server.js`
-- `dist/server/index.mjs`
-- `.output/server/index.mjs` (older layouts)
+## Real data vs demo
 
-`scripts/start.sh`, `ecosystem.config.cjs`, and `scripts/install-systemd.sh`
-all resolve to whichever one exists. If none exist, they fail with a clear
-message — they no longer trigger a rebuild at runtime (which previously caused
-restart loops on low-RAM Pis).
+When pi-hub runs on a host with `/proc/stat` and `/var/run/docker.sock`
+(i.e. your Pi), server functions read real Docker containers, real CPU/RAM
+from `/proc`, real temperature from `vcgencmd`, and connect to real MQTT
+brokers. Anywhere else — the public landing site, local laptop preview —
+those same server functions fall back to mock data so the demo still works.
 
 ## Access from outside the house
 
