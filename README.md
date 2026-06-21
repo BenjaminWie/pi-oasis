@@ -21,6 +21,11 @@ git clone <this-repo> pi-hub && cd pi-hub
 ./scripts/start.sh                # → http://<pi>.local:3000
 ```
 
+> On ARMv8.0 boards (Pi 3, Pi 4, CM4) the installer detects the CPU and rebuilds
+> `esbuild` from source via Go to work around a known `SIGILL` in the prebuilt
+> `linux-arm64` binary. This adds ~1–2 minutes to the first install. Pi 5 and
+> x86 hosts are unaffected.
+
 ### Run as a background service (recommended: PM2)
 
 PM2 avoids the `$PATH` / NVM headaches that bite raw systemd units on the Pi
