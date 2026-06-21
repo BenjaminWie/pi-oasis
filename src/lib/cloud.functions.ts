@@ -188,7 +188,8 @@ export const linkTelegramBot = createServerFn({ method: "POST" })
       throw new Error("setWebhook fehlgeschlagen: " + (setBody.description || setRes.status));
     }
 
-    const { error } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
       .from("profiles")
       .update({
         telegram_bot_token: data.token,
