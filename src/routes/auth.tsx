@@ -1,15 +1,38 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { z } from "zod";
+
+const authSearchSchema = z.object({
+  returnTo: z.string().optional(),
+  local: z.string().optional(),
+  nonce: z.string().optional(),
+  hostname: z.string().optional(),
+});
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
+  validateSearch: (s) => authSearchSchema.parse(s),
   component: AuthPage,
 });
 
+function buildPostAuthTarget(search: z.infer<typeof authSearchSchema>): string {
+  if (search.returnTo === "pair-callback" && search.local && search.nonce) {
+    const params = new URLSearchParams({
+      local: search.local,
+      nonce: search.nonce,
+    });
+    if (search.hostname) params.set("hostname", search.hostname);
+    return "/cloud/pair-callback?" + params.toString();
+  }
+  return "/cloud/devices";
+}
+
 function AuthPage() {
   const navigate = useNavigate();
+  const search = useSearch({ from: "/auth" });
+  const postAuth = buildPostAuthTarget(search);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,14 +48,14 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin + "/cloud/devices" },
+          options: { emailRedirectTo: window.location.origin + postAuth },
         });
         if (error) throw error;
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      navigate({ to: "/cloud/devices" });
+      navigate({ to: postAuth });
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -69,14 +92,14 @@ function AuthPage() {
             onClick={async () => {
               setError(null);
               const result = await lovable.auth.signInWithOAuth("google", {
-                redirect_uri: window.location.origin + "/cloud/devices",
+                redirect_uri: window.location.origin + postAuth,
               });
               if (result.error) {
                 setError(result.error.message);
                 return;
               }
               if (result.redirected) return;
-              navigate({ to: "/cloud/devices" });
+              navigate({ to: postAuth });
             }}
             className="w-full rounded-lg bg-background border border-border py-3 text-sm font-bold uppercase tracking-widest mb-4 hover:bg-muted"
           >
