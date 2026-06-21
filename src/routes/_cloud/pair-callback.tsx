@@ -1,8 +1,5 @@
-// Cloud-side landing page that runs *after* Supabase sign-in. Mints a
-// device+token for the user's home Pi and POSTs the credentials back to
-// the Pi-local install endpoint. The nonce travels through the URL so a
-// third party can't trigger an install without holding a fresh Pi-issued
-// nonce.
+// Runs *after* Supabase sign-in on the cloud popup. Mints a one-shot device
+// token, stores it keyed by sha256(nonce) — the Pi picks it up by polling.
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
@@ -10,7 +7,7 @@ import { z } from "zod";
 import { mintLocalPairing } from "@/lib/cloud-pairing.functions";
 
 const searchSchema = z.object({
-  local: z.string().url(),
+  local: z.string().url().optional(),
   nonce: z.string().min(8),
   hostname: z.string().min(1).max(128).optional(),
 });
@@ -24,41 +21,24 @@ function PairCallback() {
   const search = useSearch({ from: "/_cloud/pair-callback" });
   const mint = useServerFn(mintLocalPairing);
   const [status, setStatus] = useState<"working" | "ok" | "error">("working");
-  const [message, setMessage] = useState("Generiere Geräte-Token …");
+  const [message, setMessage] = useState("Erzeuge sicheren Geräte-Token …");
   const [name, setName] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const hostname = search.hostname || new URL(search.local).hostname;
-        setMessage("Generiere Geräte-Token …");
-        const minted = await mint({ data: { hostname } });
-
-        setMessage("Sende Token an deinen Pi …");
-        const cloudUrl = window.location.origin;
-        const res = await fetch(search.local.replace(/\/+$/, "") + "/api/public/cloud-bridge/install", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            nonce: search.nonce,
-            cloudUrl,
-            deviceId: minted.deviceId,
-            deviceToken: minted.deviceToken,
-            name: minted.name,
-          }),
-        });
-        if (!res.ok) {
-          const txt = await res.text().catch(() => "");
-          throw new Error(`Install fehlgeschlagen (${res.status}): ${txt}`);
-        }
-        const j = (await res.json()) as { name: string };
-        setName(j.name);
+        const hostname =
+          search.hostname ||
+          (search.local ? new URL(search.local).hostname : "pi-hub");
+        const res = await mint({ data: { nonce: search.nonce, hostname } });
+        if (!res.ok) throw new Error("Pairing fehlgeschlagen");
+        setName(res.name);
         setStatus("ok");
-        setMessage(`✓ Verbunden als ${j.name}`);
-        // optional: close popup window after 2s
+        setMessage(`✓ ${res.name} verknüpft.\nKehre zum Pi-Dashboard zurück — die Verbindung wird automatisch hergestellt.`);
+        // Auto-close popup after a moment so the parent (Pi UI) can pick it up
         setTimeout(() => {
           if (window.opener) window.close();
-        }, 2000);
+        }, 2500);
       } catch (e: any) {
         setStatus("error");
         setMessage(e.message || String(e));
@@ -81,19 +61,13 @@ function PairCallback() {
               : "border-border bg-card"
         }`}
       >
-        <p className="font-mono text-sm">{message}</p>
+        <p className="font-mono text-sm whitespace-pre-line">{message}</p>
         {name && (
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-2">
             Gerät: {name}
           </p>
         )}
       </div>
-      {status === "error" && (
-        <p className="text-xs text-muted-foreground">
-          Tipp: Stell sicher, dass du im selben WLAN wie der Pi bist und die URL
-          erreichbar ist: <code className="text-primary">{search.local}</code>
-        </p>
-      )}
     </div>
   );
 }
