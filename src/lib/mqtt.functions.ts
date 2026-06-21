@@ -6,13 +6,38 @@ import {
   type MqttMessage,
 } from "./mock-data";
 
-// NOTE: On the Pi, replace these with a real `mqtt.js` client connecting to
-// the detected broker container (e.g. mqtt://<bridge-ip>:1883). The contract
-// shape (MqttMessage) stays identical so the UI doesn't change.
+// On the Pi, real broker discovery comes from the Docker socket and the
+// poll/publish endpoints open short-lived `mqtt://` connections. On the
+// Cloudflare Worker (landing page demo), everything falls through to mock
+// data — the marketing site stays self-contained.
 
 export const listMqttBrokers = createServerFn({ method: "GET" })
   .middleware([requirePiAuth])
   .handler(async () => {
+    const { isPiRuntime } = await import("./pi-runtime.server");
+    if (isPiRuntime()) {
+      try {
+        const { listRealContainers } = await import("./system.server");
+        const cs = await listRealContainers();
+        return cs
+          .filter(
+            (c) =>
+              c.isMqtt ||
+              /mosquitto|emqx|hivemq|nanomq|vernemq/i.test(c.image) ||
+              c.ports.includes("1883") ||
+              c.ports.includes("8883"),
+          )
+          .map((c) => ({
+            id: c.id,
+            name: c.name,
+            image: c.image,
+            status: c.status,
+            port: c.ports.find((p) => p === "1883" || p === "8883") ?? "1883",
+          }));
+      } catch {
+        /* fall through to mock */
+      }
+    }
     return mockContainers
       .filter(
         (c) =>
@@ -29,11 +54,24 @@ export const listMqttBrokers = createServerFn({ method: "GET" })
       }));
   });
 
-/** Returns a small batch of new mock messages each poll. Real impl streams via WS. */
 export const pollMqttMessages = createServerFn({ method: "GET" })
   .middleware([requirePiAuth])
   .inputValidator((d: { brokerId: string; topicFilter?: string }) => d)
   .handler(async ({ data }): Promise<{ messages: MqttMessage[] }> => {
+    const { isPiRuntime } = await import("./pi-runtime.server");
+    if (isPiRuntime()) {
+      try {
+        const { drainMqtt } = await import("./mqtt.server");
+        const messages = await drainMqtt(
+          data.brokerId,
+          data.topicFilter ?? "#",
+        );
+        return { messages };
+      } catch {
+        return { messages: [] };
+      }
+    }
+    // mock demo stream
     const broker = mockContainers.find((c) => c.id === data.brokerId);
     if (!broker || broker.status !== "running") return { messages: [] };
     const count = 1 + Math.floor(Math.random() * 3);
@@ -72,5 +110,20 @@ export const publishMqttMessage = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data }) => {
+    const { isPiRuntime } = await import("./pi-runtime.server");
+    if (isPiRuntime()) {
+      try {
+        const { publishMqtt } = await import("./mqtt.server");
+        await publishMqtt(data.brokerId, {
+          topic: data.topic,
+          payload: data.payload,
+          qos: data.qos ?? 0,
+          retained: data.retained ?? false,
+        });
+        return { ok: true, echo: data };
+      } catch (e) {
+        return { ok: false, echo: data, error: (e as Error).message };
+      }
+    }
     return { ok: true, echo: data };
   });
