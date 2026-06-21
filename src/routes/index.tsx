@@ -349,10 +349,120 @@ function HowItWorks() {
         </div>
 
         <div className="mt-12 grid sm:grid-cols-3 gap-4">
-          <Bullet icon={<Shield className="h-4 w-4" />} title="Outbound only" body="No open ports on your home network. Ever." />
+          <Bullet icon={<Shield className="h-4 w-4" />} title="Outbound only" body="No DDNS, no port 80/443 forwarding, no firewall rules. Your Pi looks like a normal browser." />
           <Bullet icon={<Radio className="h-4 w-4" />} title="Your data, your Pi" body="MQTT, sensor history, scenes — stays on device." />
           <Bullet icon={<MessageSquare className="h-4 w-4" />} title="Per-user Telegram bot" body="One bot per user, scoped to your devices only." />
         </div>
+      </div>
+    </section>
+  );
+}
+
+/* -------------------- No DNS Hustle -------------------- */
+
+function NoDnsHustle() {
+  return (
+    <section className="relative py-24 border-t border-border">
+      <div className="absolute inset-0 grid-bg opacity-20 pointer-events-none" />
+      <div className="relative mx-auto max-w-6xl px-5">
+        <SectionLabel icon={<EyeOff className="h-3.5 w-3.5" />}>the smart part</SectionLabel>
+        <h2
+          className="mt-4 font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight max-w-4xl"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          No port forwarding. No dynamic DNS.{" "}
+          <span className="text-primary text-glow-mint">No exposed Pi.</span>
+        </h2>
+        <p className="mt-4 text-muted-foreground max-w-2xl">
+          Most "remote your home" guides end in a swamp of router screens, DuckDNS scripts,
+          NGINX reverse proxies, and a Pi sitting on the public internet praying nobody
+          notices. pi-hub flips that: your Pi opens a quiet outbound HTTPS connection to the
+          cloud and waits. Commands ride back on the same wire. Your router never sees an
+          inbound packet.
+        </p>
+
+        <div className="mt-12 grid md:grid-cols-3 gap-4">
+          <CompareCard
+            tone="bad"
+            icon={<Router className="h-5 w-5" />}
+            title="The old way"
+            lines={[
+              "Open ports 80/443 on router",
+              "Set up DuckDNS or No-IP",
+              "Renew Let's Encrypt by hand",
+              "Pray your ISP allows it",
+            ]}
+          />
+          <CompareCard
+            tone="good"
+            icon={<Lock className="h-5 w-5" />}
+            title="pi-hub way"
+            lines={[
+              "Run one install script",
+              "Pi long-polls cloud (outbound)",
+              "Cloud serves the HTTPS endpoint",
+              "Done. From any network.",
+            ]}
+          />
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 flex flex-col justify-between">
+            <div>
+              <div className="inline-flex items-center gap-2 text-primary">
+                <EyeOff className="h-5 w-5" />
+                <span className="font-mono text-[11px] uppercase tracking-widest">net result</span>
+              </div>
+              <p className="mt-3 font-display text-xl font-bold leading-snug" style={{ fontFamily: "var(--font-display)" }}>
+                Your Pi stays invisible on the internet.
+              </p>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground font-mono">
+              · zero attack surface at home<br />
+              · works behind CGNAT &amp; double-NAT<br />
+              · survives ISP IP rotations
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CompareCard({
+  tone,
+  icon,
+  title,
+  lines,
+}: {
+  tone: "good" | "bad";
+  icon: React.ReactNode;
+  title: string;
+  lines: string[];
+}) {
+  const isGood = tone === "good";
+  return (
+    <div
+      className={`rounded-2xl border p-5 backdrop-blur ${
+        isGood ? "border-primary/40 bg-card/70" : "border-coral/30 bg-card/40"
+      }`}
+    >
+      <div className={`flex items-center gap-2 ${isGood ? "text-primary" : "text-coral"}`}>
+        {icon}
+        <span className="font-mono text-[11px] uppercase tracking-widest">{title}</span>
+      </div>
+      <ul className="mt-4 space-y-2 font-mono text-[12px]">
+        {lines.map((l) => (
+          <li key={l} className="flex gap-2">
+            <span className={isGood ? "text-primary" : "text-coral/70"}>
+              {isGood ? "✓" : "✗"}
+            </span>
+            <span className={isGood ? "text-foreground/90" : "text-muted-foreground line-through decoration-coral/40"}>
+              {l}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
       </div>
     </section>
   );
