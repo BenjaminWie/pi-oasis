@@ -115,17 +115,42 @@ export const deleteDevice = createServerFn({ method: "POST" })
 
 // === Commands ================================================================
 
+const commandSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("status"),
+    deviceId: z.string().uuid(),
+    payload: z.object({}).optional().default({}),
+  }),
+  z.object({
+    kind: z.literal("container_action"),
+    deviceId: z.string().uuid(),
+    payload: z.object({
+      name: z.string().min(1).max(128).regex(/^[a-zA-Z0-9_.\-]+$/),
+      action: z.enum(["start", "stop", "restart"]),
+    }),
+  }),
+  z.object({
+    kind: z.literal("mqtt_publish"),
+    deviceId: z.string().uuid(),
+    payload: z.object({
+      topic: z.string().min(1).max(512),
+      payload: z.string().max(64 * 1024).optional().default(""),
+      broker: z.string().regex(/^[a-zA-Z0-9_.\-:]{1,253}$/).optional(),
+      port: z.number().int().min(1).max(65535).optional(),
+    }),
+  }),
+  z.object({
+    kind: z.literal("mqtt_subscribe"),
+    deviceId: z.string().uuid(),
+    payload: z.object({
+      topic: z.string().min(1).max(512),
+    }),
+  }),
+]);
+
 export const enqueueCommand = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    z
-      .object({
-        deviceId: z.string().uuid(),
-        kind: z.enum(["status", "container_action", "mqtt_publish", "mqtt_subscribe"]),
-        payload: z.record(z.string(), z.any()).optional().default({}),
-      })
-      .parse,
-  )
+  .inputValidator(commandSchema.parse)
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("agent_commands")
