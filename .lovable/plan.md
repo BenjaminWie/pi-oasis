@@ -1,53 +1,77 @@
 ## Goal
 
-When pi-hub is installed on a Raspberry Pi, the dashboard should show **real** data (real containers, real CPU/RAM/temp, real MQTT brokers). The hosted landing at `pi-hub.benniwie.com` keeps using the mock data as a marketing demo — nothing the public sees changes.
+Stop the remaining mocks (PIN change, terminal, Pi overview cards), wire local↔cloud as one flow (sign in once on the Pi → auto-pair, auto-bridge), and make the Telegram bot listen to voice notes.
 
-Also: stop fighting the broken TanStack Start production build and make the installed Pi service run `vite dev` under PM2, which is what actually works on your hardware (you proved it).
+## 1. Replace mocked dashboard interactions
 
-## What changes
+### a) PIN change + reset
+- New table `public.pi_pin_state` is not needed — keep the PIN on the Pi (single-device secret). Replace the `.env` PIN with a hashed PIN stored in `~/.pi-hub/state.json` (created on first install).
+- `src/lib/auth.functions.ts`:
+  - `verifyPin` reads the hash from `~/.pi-hub/state.json` (fallback to `PI_DASHBOARD_PIN` env if file missing).
+  - New `changePin({ currentPin, newPin })` — verifies current, writes new bcrypt-ish hash (scrypt from `node:crypto`).
+  - New `resetPinWithFactoryToken({ factoryToken, newPin })` — `factoryToken` is the random hex written to `~/.pi-hub/state.json` on first install and printed by `scripts/install.sh` so the user can recover when they forget the PIN.
+- `src/routes/_authenticated/settings.tsx`: wire the "Change PIN" button to a modal calling `changePin`; add "Forgot PIN? Reset with factory token" link.
 
-### 1. Real data on the Pi (server functions)
+### b) Terminal — real command execution
+- New server fn `runTerminalCommand({ cmd })` gated by `requirePiAuth`. On Pi runtime only, runs an allow-listed command set (`docker ps|logs|stats`, `df`, `free`, `uptime`, `journalctl -u pi-hub -n 50`, `vcgencmd ...`) via `execFile` with a 5 s timeout. Free-form shell access is **not** exposed (PTY + node-pty is too heavy for the Pi 4 dev-server setup).
+- Add a `gemini <prompt>` branch that calls the Lovable AI Gateway (`google/gemini-3-flash-preview`) with a small system prompt that frames it as a Pi sysadmin assistant.
+- `src/routes/_authenticated/terminal.tsx`: replace `fakeRespond` with `useServerFn(runTerminalCommand)`; render multi-line output in the existing scrollback. On non-Pi runtime, the server fn returns a friendly "preview mode" message and the existing demo replies for the landing site.
 
-Replace the mock returns in `src/lib/system.functions.ts` and `src/lib/mqtt.functions.ts` with real implementations, gated by a single helper `isPiRuntime()` that checks for `/proc/stat` + `/var/run/docker.sock`. When the helper returns `false` (Cloudflare Worker serving the landing, or local `vite dev` on your laptop), the server fn returns the existing mock data — so the landing demo is untouched.
+### c) Overview header values
+- `src/routes/_authenticated/settings.tsx`: replace the hard-coded "pi-cluster-01 / 6.6.31-rpi / v2.0.4-β" rows with values from `getSystemStats` + a new `getHostInfo` server fn (reads `os.release()`, `os.platform()`, package.json version).
+- Trusted-devices section: real list backed by `~/.pi-hub/state.json` (each successful `verifyPin` with `trust: true` records a row keyed by a cookie ID). "Revoke all" wipes that list and forces re-PIN.
 
-Real implementations:
-- **`getSystemStats`**: read `/proc/stat` (CPU%), `/proc/meminfo` (RAM), `/proc/uptime`, `os.hostname()`, and `vcgencmd measure_temp` (with `/sys/class/thermal/thermal_zone0/temp` fallback).
-- **`listContainers` / `getContainer` / `containerAction`**: use `dockerode` against `/var/run/docker.sock`. Container logs via `container.logs({ tail: 200, stdout: true, stderr: true })`.
-- **`listMqttBrokers`**: filter the real container list by image (`eclipse-mosquitto`, `emqx`, `hivemq`, `vernemq`) and exposed port 1883.
-- **`pollMqttMessages` / `publishMqttMessage`**: open a short-lived `mqtt.connect("mqtt://host:1883")` per request, subscribe to filter, drain buffered messages, then close. Keep a small in-memory ring buffer keyed by broker+filter so the existing 1-second polling UI still works.
+## 2. Local ↔ cloud one-click bridge
 
-The `dockerode` and `mqtt` packages are added as deps but imported with dynamic `await import()` inside `.handler()`, so they never get bundled into the Cloudflare landing build.
+Today the Pi-installed pi-hub and the standalone `agent/` are two processes; pairing means copy-pasting a code. Collapse it to one flow.
 
-### 2. PM2 runs `vite dev` (the thing that works)
+### a) In-process agent
+- New `src/lib/cloud-bridge.server.ts` boots on the Pi at server startup (gated by `isPiRuntime()`). When `~/.pi-hub/cloud.json` exists it long-polls `${cloudUrl}/api/public/agent/poll` and executes commands via the existing `system.server.ts` (docker, mqtt) + `runTerminalCommand`. Heartbeats every 30 s with a snapshot.
+- Boot hook: in `src/start.ts` (or `src/server.ts`), call `cloudBridge.startIfConfigured()` once after the server is ready. Cheap idle (sleeping fetch).
 
-You already discovered that the production build's server entry path is unstable on the Pi and `npm run dev` works reliably. Make that the supported path:
+### b) One-click pair from the local Pi UI
+- New settings card "Cloud bridge" on `_authenticated/settings.tsx` with one button: **"Sign in to cloud & enable remote access"**.
+- Flow:
+  1. Click opens a popup / new tab to `${PUBLIC_CLOUD_URL}/auth?return=pair&local=<localOrigin>` (uses the published `pi-hub.lovable.app` URL, configurable via `PI_HUB_CLOUD_URL` env).
+  2. The cloud `/auth` page (existing Supabase email + Google flow) signs the user in, then on success redirects to `/_authenticated/pair-callback?local=<localOrigin>`.
+  3. `pair-callback.tsx` calls a new server fn `mintLocalPairing()` → creates a `devices` row for `hostname`, returns `{ deviceId, deviceToken, cloudUrl }`, then POSTs that bundle to `${local}/api/public/cloud-bridge/install` (with a short-lived signed nonce so a stranger can't post one).
+  4. New server route `src/routes/api/public/cloud-bridge/install.ts` runs on the Pi: validates the nonce (HMAC against the local PIN-secret) **and** confirms `request.headers.origin === local`, then writes `~/.pi-hub/cloud.json` and starts the bridge. Returns `{ ok: true, name }`.
+  5. Popup closes; the local UI shows "✓ Bridged as <name>".
+- Anti-CSRF for step 4: before opening the popup, the local UI calls `createPairingNonce()` (Pi-local server fn, returns a one-shot 5-min nonce signed with the existing `PI_DASHBOARD_SECRET`) and passes it in the URL. The cloud forwards it verbatim in step 3's POST; the Pi verifies HMAC + single-use.
+- The PIN cookie still gates the UI; bridge install does not require a Supabase session on the Pi itself.
 
-- `ecosystem.config.cjs`: switch from `script: "dist/server/server.js"` to `script: "npm"`, `args: "run dev -- --host 0.0.0.0 --port 3000"`, `interpreter: "none"`, drop the 192 MB memory cap (dev server needs ~400 MB on a Pi 4), `max_memory_restart: "600M"`.
-- `scripts/install.sh`: skip `npm run build` and the "verify build artifact" step entirely. The install ends after `npm install` + `.env` creation. ARMv8.0 esbuild rebuild logic stays — `vite dev` still uses esbuild.
-- `scripts/start.sh`: change to `exec npx vite dev --host 0.0.0.0 --port "${PORT:-3000}"` so foreground starts also work without a build.
-- `public/install.sh`: update the printed "Run it now" section to lead with PM2 + dev mode and drop the systemd path (which had the NVM PATH issue you hit).
-- `README.md` / `DEPLOY.md`: one short paragraph explaining why we run dev mode on the Pi (TanStack Start production entry path is brittle on ARM; dev mode is fast enough and stable).
+### c) Cloud activation
+- Lovable Cloud is already enabled in this project; the published URL is `pi-hub.lovable.app`. No new infra. The local Pi just needs the published URL — defaults to `https://pi-hub.lovable.app`, overridable via `.env`.
 
-### 3. Landing page (unchanged behavior)
+## 3. Telegram voice messages
 
-- `src/routes/index.tsx`: no code change. The "demo" chat + terminal animations are already hardcoded JSX, not server-fn data.
-- The `_authenticated/*` routes still ship in the Cloudflare bundle, but no one reaches them without a PIN. If a curious visitor does sign in on the hosted site, `isPiRuntime()` returns false there and they see the existing mock data — same as today.
+Wire `message.voice` and `message.audio` in `src/routes/api/public/telegram/webhook.$userId.ts`:
 
-## Technical notes
+1. Detect `update.message.voice` (or `audio`) instead of `text`.
+2. Call `https://api.telegram.org/bot<token>/getFile?file_id=...` → download from `https://api.telegram.org/file/bot<token>/<file_path>` (OGG/Opus).
+3. Transcribe via Lovable AI Gateway `/v1/audio/transcriptions` with `openai/gpt-4o-mini-transcribe`, model name forwarded multipart; filename `voice.ogg`. Language: omit (auto-detect) so German users get German transcripts.
+4. Echo the transcript back ("🎙 verstanden: «…»") and run it through the existing text-command dispatcher (`/status`, `/containers`, `/mqtt …`).
+5. If the transcript doesn't match a slash-command, send it through Lovable AI (`google/gemini-3-flash-preview`) with a short system prompt: "You are a Pi home-automation assistant. Map the user's request to one of: status | containers | mqtt pub <topic> <msg>. Respond with just the command, or 'unclear'." Execute the mapped command.
+6. Persist the transcript in `telegram_audit.command` so the existing audit page shows it.
 
-- `dockerode` and `mqtt` are pure-JS / Node-stream packages. They work under Node on the Pi. They are NOT loaded on Cloudflare because the dynamic `import()` only runs inside `.handler()` after the `isPiRuntime()` check returns true — Vite's Worker SSR bundler will tree-shake the unused branch and these deps only need to resolve at runtime on the Pi.
-- `vcgencmd` is shelled out with `child_process.execFile` (300 ms timeout). Falls back to thermal_zone0 if missing (non-Pi Linux).
-- Per-request MQTT connect/disconnect is intentional: keeps memory flat on a 1 GB Pi and avoids needing a connection registry. Connection setup on localhost is ~5 ms.
-- No changes to auth, routing, RLS, or Lovable Cloud.
+`LOVABLE_API_KEY` is already provisioned (used by other AI calls) — read inside the handler.
+
+## 4. Out of scope / not changed
+
+- `agent/index.mjs` stays as an option for users who want the standalone agent, but `README.md` is updated to recommend the one-click in-process bridge.
+- No new Supabase tables; we reuse `devices`, `agent_commands`, `telegram_audit`.
+- Landing-page demo behavior unchanged.
 
 ## Files touched
 
-- `src/lib/system.functions.ts` — real impls + mock fallback
-- `src/lib/mqtt.functions.ts` — real impls + mock fallback
-- `src/lib/pi-runtime.server.ts` — new, `isPiRuntime()` helper
-- `ecosystem.config.cjs` — run `npm run dev`
-- `scripts/install.sh` — drop build step
-- `scripts/start.sh` — exec vite dev
-- `public/install.sh` — updated next-steps text
-- `README.md`, `DEPLOY.md` — short note on dev-mode-on-Pi
-- `package.json` — add `dockerode`, `mqtt`
+- `src/lib/auth.functions.ts`, new `src/lib/pin-store.server.ts`, `src/lib/pi-auth.server.ts`
+- `src/lib/terminal.functions.ts` (new), `src/routes/_authenticated/terminal.tsx`
+- `src/routes/_authenticated/settings.tsx` (PIN modal, host info, trusted devices, Cloud-bridge card)
+- `src/lib/host-info.functions.ts` (new)
+- `src/lib/cloud-bridge.server.ts` (new), boot hook in `src/start.ts`
+- `src/lib/cloud-pairing.functions.ts` (new — `createPairingNonce`, `mintLocalPairing`)
+- `src/routes/_authenticated/pair-callback.tsx` (new, cloud-side)
+- `src/routes/api/public/cloud-bridge/install.ts` (new, Pi-side)
+- `src/routes/api/public/telegram/webhook.$userId.ts` (voice + AI intent mapping)
+- `scripts/install.sh` (prints factory PIN-reset token after writing `~/.pi-hub/state.json`)
+- `README.md` (one-click bridge section)
