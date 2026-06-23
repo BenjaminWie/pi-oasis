@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Delete } from "lucide-react";
-import { verifyPin } from "@/lib/auth.functions";
+import { toast } from "sonner";
+import { verifyPin, changePin, resetPinWithFactoryToken } from "@/lib/auth.functions";
 import { auth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/login")({
@@ -14,10 +15,23 @@ const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "del"] as co
 function LoginPage() {
   const navigate = useNavigate();
   const verify = useServerFn(verifyPin);
+  const changeFn = useServerFn(changePin);
+  const resetFn = useServerFn(resetPinWithFactoryToken);
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [trust, setTrust] = useState(true);
+  const [modal, setModal] = useState<null | "change" | "reset">(null);
+
+  const completeLogin = async (newPin: string) => {
+    const res = await verify({ data: { pin: newPin, trust } });
+    if (res.ok) {
+      auth.setToken(res.token);
+      navigate({ to: "/overview" });
+    } else {
+      setError("PIN gespeichert, aber Login fehlgeschlagen");
+    }
+  };
 
   const onKey = async (k: string) => {
     setError(null);
@@ -118,6 +132,220 @@ function LoginPage() {
       </label>
 
       <div className="h-6 mt-4 text-xs text-status-crit font-mono">{error}</div>
+
+      <div className="flex gap-6 mt-2 text-[10px] uppercase tracking-[0.3em]">
+        <button
+          onClick={() => setModal("change")}
+          className="text-muted-foreground hover:text-primary transition-colors"
+        >
+          Change PIN
+        </button>
+        <span className="text-border">·</span>
+        <button
+          onClick={() => setModal("reset")}
+          className="text-muted-foreground hover:text-primary transition-colors"
+        >
+          Forgot PIN?
+        </button>
+      </div>
+
+      {modal === "change" && (
+        <ChangePinModal
+          onClose={() => setModal(null)}
+          submit={async (cur, neu) => {
+            // Mint token via current PIN, then change.
+            const v = await verify({ data: { pin: cur, trust: false } });
+            if (!v.ok) return { ok: false as const, error: "Aktuelle PIN falsch" };
+            auth.setToken(v.token);
+            const r = await changeFn({ data: { currentPin: cur, newPin: neu } });
+            if (!r.ok) return r;
+            toast.success("PIN geändert");
+            await completeLogin(neu);
+            return { ok: true as const };
+          }}
+        />
+      )}
+      {modal === "reset" && (
+        <ResetPinModal
+          onClose={() => setModal(null)}
+          submit={async (tok, neu) => {
+            const r = await resetFn({ data: { factoryToken: tok, newPin: neu } });
+            if (!r.ok) return r;
+            toast.success("PIN zurückgesetzt");
+            await completeLogin(neu);
+            return { ok: true as const };
+          }}
+        />
+      )}
     </main>
+  );
+}
+
+type SubmitResult = { ok: true } | { ok: false; error?: string };
+
+function ModalShell({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card border border-border rounded-3xl p-5 w-full max-w-sm space-y-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-xs uppercase tracking-widest text-muted-foreground">{title}</h3>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ChangePinModal({
+  onClose,
+  submit,
+}: {
+  onClose: () => void;
+  submit: (cur: string, neu: string) => Promise<SubmitResult>;
+}) {
+  const [cur, setCur] = useState("");
+  const [neu, setNeu] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const onSubmit = async () => {
+    setErr(null);
+    if (!/^\d{4,8}$/.test(neu)) return setErr("Neue PIN muss 4–8 Ziffern sein");
+    if (neu !== confirm) return setErr("PINs stimmen nicht überein");
+    setBusy(true);
+    try {
+      const r = await submit(cur, neu);
+      if (!r.ok) setErr(r.error || "Fehler");
+      else onClose();
+    } catch (e: any) {
+      setErr(e.message || String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <ModalShell title="Change PIN" onClose={onClose}>
+      <input
+        value={cur}
+        onChange={(e) => setCur(e.target.value)}
+        placeholder="Aktuelle PIN"
+        type="password"
+        inputMode="numeric"
+        maxLength={8}
+        className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm"
+      />
+      <input
+        value={neu}
+        onChange={(e) => setNeu(e.target.value)}
+        placeholder="Neue PIN (4–8 Ziffern)"
+        type="password"
+        inputMode="numeric"
+        maxLength={8}
+        className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm"
+      />
+      <input
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+        placeholder="Neue PIN bestätigen"
+        type="password"
+        inputMode="numeric"
+        maxLength={8}
+        className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm"
+      />
+      {err && <p className="text-xs text-destructive">{err}</p>}
+      <button
+        onClick={onSubmit}
+        disabled={busy}
+        className="w-full bg-primary text-primary-foreground py-2 rounded-lg text-xs font-bold uppercase tracking-widest disabled:opacity-40"
+      >
+        {busy ? "…" : "Speichern & Login"}
+      </button>
+    </ModalShell>
+  );
+}
+
+function ResetPinModal({
+  onClose,
+  submit,
+}: {
+  onClose: () => void;
+  submit: (tok: string, neu: string) => Promise<SubmitResult>;
+}) {
+  const [tok, setTok] = useState("");
+  const [neu, setNeu] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const onSubmit = async () => {
+    setErr(null);
+    if (tok.length < 16) return setErr("Factory-Token zu kurz");
+    if (!/^\d{4,8}$/.test(neu)) return setErr("Neue PIN muss 4–8 Ziffern sein");
+    if (neu !== confirm) return setErr("PINs stimmen nicht überein");
+    setBusy(true);
+    try {
+      const r = await submit(tok, neu);
+      if (!r.ok) setErr(r.error || "Fehler");
+      else onClose();
+    } catch (e: any) {
+      setErr(e.message || String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <ModalShell title="Reset PIN" onClose={onClose}>
+      <p className="text-xs text-muted-foreground">
+        Factory-Token findest du auf dem Pi unter <code>~/.pi-hub/state.json</code> oder
+        im Output von <code>./scripts/install.sh</code>.
+      </p>
+      <input
+        value={tok}
+        onChange={(e) => setTok(e.target.value)}
+        placeholder="Factory-Token (32 hex)"
+        className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-xs"
+      />
+      <input
+        value={neu}
+        onChange={(e) => setNeu(e.target.value)}
+        placeholder="Neue PIN (4–8 Ziffern)"
+        type="password"
+        inputMode="numeric"
+        maxLength={8}
+        className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm"
+      />
+      <input
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+        placeholder="Neue PIN bestätigen"
+        type="password"
+        inputMode="numeric"
+        maxLength={8}
+        className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm"
+      />
+      {err && <p className="text-xs text-destructive">{err}</p>}
+      <button
+        onClick={onSubmit}
+        disabled={busy}
+        className="w-full bg-primary text-primary-foreground py-2 rounded-lg text-xs font-bold uppercase tracking-widest disabled:opacity-40"
+      >
+        {busy ? "…" : "Zurücksetzen & Login"}
+      </button>
+    </ModalShell>
   );
 }

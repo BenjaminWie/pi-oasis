@@ -1,21 +1,27 @@
-Add a new section to the landing page (`src/routes/index.tsx`) that clearly sells the architecture benefit: the Pi never needs an open port, public IP, or dynamic DNS because it long-polls the cloud outbound-only.
+# Add Change PIN to the Login view
 
-### What to change
+The login screen (`/login`) currently only accepts a 4-digit PIN to unlock. There is no entry point to change the PIN unless the user is already authenticated and on `/settings`. This plan adds the change/reset flow directly to the login view, and tightens a couple of related interactions.
 
-1. **New section between Hero and ChatDemo** (or inside HowItWorks) — a concise "No DNS hustle" block with:
-   - Headline like "No port forwarding. No dynamic DNS. No exposed Pi."
-   - One-paragraph explanation: Pi opens an outbound HTTPS long-poll to the cloud. Commands ride back on the same connection. Your router and ISP can't tell the difference from a normal browser request.
-   - Visual: a simple 3-step diagram (Pi → cloud → your phone) with arrows emphasizing outbound-only.
-   - A small call-out badge: "Your Pi stays invisible on the internet."
+## What changes for the user
 
-2. **Tweak the existing HowItWorks section** — add a bullet or sub-line under "Outbound only" that explicitly calls out: "No DDNS, no port 80/443 forwarding, no firewall rules."
+1. Under the PIN keypad on `/login`, two new small text links:
+   - **Change PIN** — opens a modal asking for current PIN + new PIN (4–8 digits, confirm field). Submits to the existing `changePin` server fn. Because `changePin` requires auth, the modal first calls `verifyPin` with the current PIN to mint a token, stores it via `auth.setToken`, then calls `changePin`. On success: toast + auto-fill the new PIN into the keypad dots and continue the normal login.
+   - **Forgot PIN?** — opens a modal asking for the factory token + new PIN. Calls the existing `resetPinWithFactoryToken` server fn (no auth required). On success: same auto-login behaviour.
 
-3. **Tweak the existing Hero paragraph** — add one short sentence after the existing geek/everyone-else lines: "And because your Pi talks out, not in, you skip every router tutorial you were dreading."
+2. The existing settings page modals stay; this just adds a second entry point.
 
-### Why this matters for the user
-- The current landing page already says "no open ports" but doesn't explicitly name the pain everyone knows: setting up DuckDNS, port forwarding, reverse proxies, or exposing a home server to the internet.
-- Naming the problem directly ("DNS hustles") makes the solution feel more valuable.
-- This is copy + minor layout changes only — no backend logic.
+## Technical details
 
-### Files to touch
-- `src/routes/index.tsx` — add the new section and tweak existing copy
+- File touched: `src/routes/login.tsx` only (plus tiny shared modal extraction if useful — otherwise inline).
+- Reuse existing server fns from `src/lib/auth.functions.ts`: `verifyPin`, `changePin`, `resetPinWithFactoryToken`. No backend changes.
+- Add a confirm-new-PIN field (currently the settings modal lacks it — easy bug). Apply the same field to the settings `ChangePinModal` for consistency.
+- Numeric `inputMode`, `maxLength=8`, mask with `type="password"`.
+- After a successful change/reset, call `verifyPin` with the new PIN + `trust` flag from the login checkbox to issue a token and navigate to `/overview`, so the user is logged in immediately.
+- Error states: show inline red text, never throw to the route boundary.
+- No changes to routing, auth middleware, or styling tokens.
+
+## Out of scope
+
+- Cloud bridge, terminal, MQTT wiring.
+- Redesign of the keypad.
+- Rate-limiting the PIN change endpoint (already gated by `requirePiAuth` for change, factory token for reset).
