@@ -289,17 +289,21 @@ function ModalShell({ title, onClose, children }: any) {
 function ChangePinModal({ onClose, submit }: any) {
   const [cur, setCur] = useState("");
   const [neu, setNeu] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
   return (
     <ModalShell title="Change PIN" onClose={onClose}>
-      <input value={cur} onChange={(e) => setCur(e.target.value)} placeholder="Aktuelle PIN" inputMode="numeric" className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm" />
-      <input value={neu} onChange={(e) => setNeu(e.target.value)} placeholder="Neue PIN (4–8 Ziffern)" inputMode="numeric" className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm" />
+      <input value={cur} onChange={(e) => setCur(e.target.value)} placeholder="Aktuelle PIN" type="password" inputMode="numeric" maxLength={8} className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm" />
+      <input value={neu} onChange={(e) => setNeu(e.target.value)} placeholder="Neue PIN (4–8 Ziffern)" type="password" inputMode="numeric" maxLength={8} className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm" />
+      <input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Neue PIN bestätigen" type="password" inputMode="numeric" maxLength={8} className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm" />
       {err && <p className="text-xs text-destructive">{err}</p>}
       {ok && <p className="text-xs text-status-ok">PIN geändert.</p>}
       <button
         onClick={async () => {
           setErr(null);
+          if (!/^\d{4,8}$/.test(neu)) return setErr("Neue PIN muss 4–8 Ziffern sein");
+          if (neu !== confirm) return setErr("PINs stimmen nicht überein");
           const r = await submit(cur, neu);
           if (r.ok) {
             setOk(true);
