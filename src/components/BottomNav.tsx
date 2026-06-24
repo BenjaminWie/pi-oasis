@@ -1,11 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Activity, TerminalSquare, Settings as SettingsIcon, Radio } from "lucide-react";
+import { Activity, TerminalSquare, Settings as SettingsIcon, Radio, Puzzle } from "lucide-react";
 import { listMqttBrokers } from "@/lib/mqtt.functions";
 
 const baseTabs = [
   { to: "/overview", label: "Overview", icon: Activity },
+  { to: "/plugins", label: "Plugins", icon: Puzzle },
   { to: "/terminal", label: "Terminal", icon: TerminalSquare },
   { to: "/settings", label: "System", icon: SettingsIcon },
 ] as const;
@@ -30,6 +31,7 @@ export function BottomNav() {
         { to: "/mqtt", label: "MQTT", icon: Radio } as const,
         baseTabs[1],
         baseTabs[2],
+        baseTabs[3],
       ]
     : [...baseTabs];
 
