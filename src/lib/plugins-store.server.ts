@@ -52,6 +52,8 @@ export type DecisionAction =
   | "manual_on"
   | "manual_off";
 
+export type DecisionInputs = Record<string, string | number | boolean | null>;
+
 export interface PluginDecision {
   id: string;
   pluginId: string;
@@ -59,7 +61,7 @@ export interface PluginDecision {
   action: DecisionAction;
   reason: string;
   simulated: boolean;
-  inputs?: Record<string, unknown>;
+  inputs?: DecisionInputs;
 }
 
 export interface ManualOverride {
