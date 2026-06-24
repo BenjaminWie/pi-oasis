@@ -146,3 +146,25 @@ echo "  recommended (PM2):   pm2 start ecosystem.config.cjs && pm2 save"
 echo
 echo "  Local URL:  http://$(hostname).local:3000  (or http://$(hostname -I | awk '{print $1}'):3000)"
 echo "  Cloud pair: open Settings → 'In Cloud anmelden & Bridge aktivieren'"
+
+# --- optional services for the plugin system (smart pump etc.) ---
+echo
+echo "Optional services for Plugins (Smart Pump, etc.):"
+for svc in mosquitto influxd node-red; do
+  if command -v "$svc" >/dev/null 2>&1; then
+    echo "  ✓ $svc detected"
+  else
+    case "$svc" in
+      mosquitto) hint="sudo apt install -y mosquitto mosquitto-clients" ;;
+      influxd)   hint="https://docs.influxdata.com/influxdb/v2/install/?t=Raspberry+Pi" ;;
+      node-red)  hint="bash <(curl -sL https://raw.githubusercontent.com/node-red/linux-installers/master/deb/update-nodejs-and-nodered)" ;;
+    esac
+    echo "  · $svc missing — $hint"
+  fi
+done
+
+if [ -z "${LOVABLE_API_KEY:-}" ] && ! grep -q '^LOVABLE_API_KEY=' .env 2>/dev/null; then
+  echo
+  echo "  ℹ Smart Pump uses the AI planner if LOVABLE_API_KEY is set in .env."
+  echo "    Without it, it falls back to a deterministic rule (early-morning, skip on rain)."
+fi

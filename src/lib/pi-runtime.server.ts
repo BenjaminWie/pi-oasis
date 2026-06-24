@@ -42,6 +42,9 @@ function maybeStartBridge() {
   import("./cloud-bridge.server")
     .then((m) => m.ensureCloudBridgeStarted())
     .catch((e) => console.error("[pi-runtime] bridge start failed", e));
+  import("./plugin-runner.server")
+    .then((m) => m.ensurePluginRunnerStarted())
+    .catch((e) => console.error("[pi-runtime] plugin runner start failed", e));
 }
 
 export function hasProcStats(): boolean {

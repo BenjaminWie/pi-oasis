@@ -20,9 +20,11 @@ import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
 import { Route as CloudAuditRouteImport } from './routes/_cloud/audit'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticated/plugins'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
 import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
+import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
 import { Route as ApiPublicCloudBridgeClaimRouteImport } from './routes/api/public/cloud-bridge/claim'
 import { Route as ApiPublicAgentResultRouteImport } from './routes/api/public/agent/result'
@@ -84,6 +86,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedPluginsRoute = AuthenticatedPluginsRouteImport.update({
+  id: '/plugins',
+  path: '/plugins',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedOverviewRoute = AuthenticatedOverviewRouteImport.update({
   id: '/overview',
   path: '/overview',
@@ -98,6 +105,11 @@ const CloudDevicesIdRoute = CloudDevicesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => CloudDevicesRoute,
+} as any)
+const AuthenticatedPluginsIdRoute = AuthenticatedPluginsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedPluginsRoute,
 } as any)
 const AuthenticatedContainerIdRoute =
   AuthenticatedContainerIdRouteImport.update({
@@ -144,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
+  '/plugins': typeof AuthenticatedPluginsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
   '/audit': typeof CloudAuditRoute
@@ -151,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/pair-callback': typeof CloudPairCallbackRoute
   '/telegram': typeof CloudTelegramRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
+  '/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/devices/$id': typeof CloudDevicesIdRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
@@ -165,6 +179,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
+  '/plugins': typeof AuthenticatedPluginsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
   '/audit': typeof CloudAuditRoute
@@ -172,6 +187,7 @@ export interface FileRoutesByTo {
   '/pair-callback': typeof CloudPairCallbackRoute
   '/telegram': typeof CloudTelegramRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
+  '/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/devices/$id': typeof CloudDevicesIdRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
@@ -189,6 +205,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
+  '/_authenticated/plugins': typeof AuthenticatedPluginsRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
   '/_cloud/audit': typeof CloudAuditRoute
@@ -196,6 +213,7 @@ export interface FileRoutesById {
   '/_cloud/pair-callback': typeof CloudPairCallbackRoute
   '/_cloud/telegram': typeof CloudTelegramRoute
   '/_authenticated/container/$id': typeof AuthenticatedContainerIdRoute
+  '/_authenticated/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/_cloud/devices/$id': typeof CloudDevicesIdRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
@@ -212,6 +230,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/mqtt'
     | '/overview'
+    | '/plugins'
     | '/settings'
     | '/terminal'
     | '/audit'
@@ -219,6 +238,7 @@ export interface FileRouteTypes {
     | '/pair-callback'
     | '/telegram'
     | '/container/$id'
+    | '/plugins/$id'
     | '/devices/$id'
     | '/api/public/agent/heartbeat'
     | '/api/public/agent/poll'
@@ -233,6 +253,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/mqtt'
     | '/overview'
+    | '/plugins'
     | '/settings'
     | '/terminal'
     | '/audit'
@@ -240,6 +261,7 @@ export interface FileRouteTypes {
     | '/pair-callback'
     | '/telegram'
     | '/container/$id'
+    | '/plugins/$id'
     | '/devices/$id'
     | '/api/public/agent/heartbeat'
     | '/api/public/agent/poll'
@@ -256,6 +278,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/mqtt'
     | '/_authenticated/overview'
+    | '/_authenticated/plugins'
     | '/_authenticated/settings'
     | '/_authenticated/terminal'
     | '/_cloud/audit'
@@ -263,6 +286,7 @@ export interface FileRouteTypes {
     | '/_cloud/pair-callback'
     | '/_cloud/telegram'
     | '/_authenticated/container/$id'
+    | '/_authenticated/plugins/$id'
     | '/_cloud/devices/$id'
     | '/api/public/agent/heartbeat'
     | '/api/public/agent/poll'
@@ -365,6 +389,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/plugins': {
+      id: '/_authenticated/plugins'
+      path: '/plugins'
+      fullPath: '/plugins'
+      preLoaderRoute: typeof AuthenticatedPluginsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/overview': {
       id: '/_authenticated/overview'
       path: '/overview'
@@ -385,6 +416,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/devices/$id'
       preLoaderRoute: typeof CloudDevicesIdRouteImport
       parentRoute: typeof CloudDevicesRoute
+    }
+    '/_authenticated/plugins/$id': {
+      id: '/_authenticated/plugins/$id'
+      path: '/$id'
+      fullPath: '/plugins/$id'
+      preLoaderRoute: typeof AuthenticatedPluginsIdRouteImport
+      parentRoute: typeof AuthenticatedPluginsRoute
     }
     '/_authenticated/container/$id': {
       id: '/_authenticated/container/$id'
@@ -438,9 +476,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedPluginsRouteChildren {
+  AuthenticatedPluginsIdRoute: typeof AuthenticatedPluginsIdRoute
+}
+
+const AuthenticatedPluginsRouteChildren: AuthenticatedPluginsRouteChildren = {
+  AuthenticatedPluginsIdRoute: AuthenticatedPluginsIdRoute,
+}
+
+const AuthenticatedPluginsRouteWithChildren =
+  AuthenticatedPluginsRoute._addFileChildren(AuthenticatedPluginsRouteChildren)
+
 interface AuthenticatedRouteChildren {
   AuthenticatedMqttRoute: typeof AuthenticatedMqttRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
+  AuthenticatedPluginsRoute: typeof AuthenticatedPluginsRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTerminalRoute: typeof AuthenticatedTerminalRoute
   AuthenticatedContainerIdRoute: typeof AuthenticatedContainerIdRoute
@@ -449,6 +499,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMqttRoute: AuthenticatedMqttRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
+  AuthenticatedPluginsRoute: AuthenticatedPluginsRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTerminalRoute: AuthenticatedTerminalRoute,
   AuthenticatedContainerIdRoute: AuthenticatedContainerIdRoute,
