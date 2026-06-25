@@ -1,11 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Activity, TerminalSquare, Settings as SettingsIcon, Radio, Puzzle } from "lucide-react";
+import { Activity, TerminalSquare, Settings as SettingsIcon, Radio, Puzzle, Zap } from "lucide-react";
 import { listMqttBrokers } from "@/lib/mqtt.functions";
 
 const baseTabs = [
   { to: "/overview", label: "Overview", icon: Activity },
+  { to: "/events", label: "Events", icon: Zap },
   { to: "/plugins", label: "Plugins", icon: Puzzle },
   { to: "/terminal", label: "Terminal", icon: TerminalSquare },
   { to: "/settings", label: "System", icon: SettingsIcon },
@@ -32,6 +33,7 @@ export function BottomNav() {
         baseTabs[1],
         baseTabs[2],
         baseTabs[3],
+        baseTabs[4],
       ]
     : [...baseTabs];
 
