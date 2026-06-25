@@ -8,13 +8,15 @@
 // (also in RAM) so a brief cloud outage doesn't lose events; on overflow we
 // drop the oldest and bump `dropped`.
 
+export type IngestMetricValue = number | string | boolean;
+
 export interface IngestEvent {
   id: number;
   component: string;
   device: string;
   status: "healthy" | "warning" | "critical" | "info";
   timestamp: string;
-  metrics: Record<string, unknown>;
+  metrics: Record<string, IngestMetricValue>;
   receivedAt: string;
   forward: "pending" | "ok" | "skipped" | "failed";
 }
@@ -34,7 +36,7 @@ export function pushEvent(input: {
   device: string;
   status: IngestEvent["status"];
   timestamp: string;
-  metrics: Record<string, unknown>;
+  metrics: Record<string, IngestMetricValue>;
 }): IngestEvent {
   const ev: IngestEvent = {
     id: nextId++,
