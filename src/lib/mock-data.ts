@@ -132,11 +132,14 @@ const mqttTopics = [
 export function generateMockMqttMessage(): MqttMessage {
   const topic = mqttTopics[Math.floor(Math.random() * mqttTopics.length)];
   let payload: string;
-  if (topic.includes("temperature")) payload = JSON.stringify({ value: +(18 + Math.random() * 6).toFixed(1), unit: "C" });
-  else if (topic.includes("humidity")) payload = JSON.stringify({ value: Math.round(40 + Math.random() * 30), unit: "%" });
+  if (topic.includes("temperature"))
+    payload = JSON.stringify({ value: +(18 + Math.random() * 6).toFixed(1), unit: "C" });
+  else if (topic.includes("humidity"))
+    payload = JSON.stringify({ value: Math.round(40 + Math.random() * 30), unit: "%" });
   else if (topic.includes("motion")) payload = JSON.stringify({ motion: Math.random() > 0.5 });
   else if (topic.includes("door")) payload = Math.random() > 0.5 ? "open" : "closed";
-  else if (topic.includes("power")) payload = JSON.stringify({ watts: Math.round(80 + Math.random() * 220) });
+  else if (topic.includes("power"))
+    payload = JSON.stringify({ watts: Math.round(80 + Math.random() * 220) });
   else payload = JSON.stringify({ state: "ok", battery: Math.round(60 + Math.random() * 40) });
   return {
     id: Math.random().toString(36).slice(2, 10),

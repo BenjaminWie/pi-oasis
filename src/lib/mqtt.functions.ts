@@ -1,10 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requirePiAuth } from "./pi-auth-middleware";
-import {
-  generateMockMqttMessage,
-  mockContainers,
-  type MqttMessage,
-} from "./mock-data";
+import { generateMockMqttMessage, mockContainers, type MqttMessage } from "./mock-data";
 
 // On the Pi, real broker discovery comes from the Docker socket and the
 // poll/publish endpoints open short-lived `mqtt://` connections. On the
@@ -62,10 +58,7 @@ export const pollMqttMessages = createServerFn({ method: "GET" })
     if (isPiRuntime()) {
       try {
         const { drainMqtt } = await import("./mqtt.server");
-        const messages = await drainMqtt(
-          data.brokerId,
-          data.topicFilter ?? "#",
-        );
+        const messages = await drainMqtt(data.brokerId, data.topicFilter ?? "#");
         return { messages };
       } catch {
         return { messages: [] };

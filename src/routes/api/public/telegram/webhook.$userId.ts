@@ -14,7 +14,9 @@ async function transcribeVoice(botToken: string, fileId: string): Promise<string
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) return null;
   try {
-    const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
+    const fileRes = await fetch(
+      `https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`,
+    );
     const fileJson: any = await fileRes.json();
     if (!fileRes.ok || !fileJson.ok) return null;
     const filePath = fileJson.result.file_path as string;
@@ -126,7 +128,9 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             if (!text.startsWith("/")) {
               const mapped = await mapVoiceToCommand(text);
               if (!mapped) {
-                await reply("🤖 Konnte daraus keinen Befehl ableiten. Versuch z.B. „Status“ oder „Container“.");
+                await reply(
+                  "🤖 Konnte daraus keinen Befehl ableiten. Versuch z.B. „Status“ oder „Container“.",
+                );
                 return jsonResponse({ ok: true });
               }
               text = mapped;
@@ -160,7 +164,9 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
               telegram_link_code: null,
             })
             .eq("id", userId);
-          await reply("✅ Verknüpft. Befehle: /devices /status /containers /mqtt pub <topic> <msg> · oder einfach Sprachnachricht");
+          await reply(
+            "✅ Verknüpft. Befehle: /devices /status /containers /mqtt pub <topic> <msg> · oder einfach Sprachnachricht",
+          );
           return jsonResponse({ ok: true });
         }
 
@@ -230,7 +236,9 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             cs.length === 0
               ? "Keine Container-Daten. /status für frische Daten."
               : `*${dev.name}*\n` +
-                  cs.map((c: any) => `${c.status === "running" ? "🟢" : "⚪"} ${c.name}`).join("\n"),
+                  cs
+                    .map((c: any) => `${c.status === "running" ? "🟢" : "⚪"} ${c.name}`)
+                    .join("\n"),
           );
           return jsonResponse({ ok: true });
         }

@@ -55,7 +55,8 @@ function MqttPage() {
   });
 
   const publish = useMutation({
-    mutationFn: () => pubFn({ data: { brokerId: brokerId!, topic: pubTopic, payload: pubPayload } }),
+    mutationFn: () =>
+      pubFn({ data: { brokerId: brokerId!, topic: pubTopic, payload: pubPayload } }),
     onSuccess: () => setShowPublish(false),
   });
 
@@ -194,7 +195,9 @@ function MqttPage() {
                 </span>
                 <span className="text-primary truncate">{m.topic}</span>
               </div>
-              <div className={`text-status-ok/80 mt-1 ${isOpen ? "whitespace-pre-wrap" : "truncate"}`}>
+              <div
+                className={`text-status-ok/80 mt-1 ${isOpen ? "whitespace-pre-wrap" : "truncate"}`}
+              >
                 {isOpen ? pretty : m.payload}
               </div>
             </button>

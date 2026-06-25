@@ -28,13 +28,14 @@ function PairCallback() {
     (async () => {
       try {
         const hostname =
-          search.hostname ||
-          (search.local ? new URL(search.local).hostname : "pi-hub");
+          search.hostname || (search.local ? new URL(search.local).hostname : "pi-hub");
         const res = await mint({ data: { nonce: search.nonce, hostname } });
         if (!res.ok) throw new Error("Pairing fehlgeschlagen");
         setName(res.name);
         setStatus("ok");
-        setMessage(`✓ ${res.name} verknüpft.\nKehre zum Pi-Dashboard zurück — die Verbindung wird automatisch hergestellt.`);
+        setMessage(
+          `✓ ${res.name} verknüpft.\nKehre zum Pi-Dashboard zurück — die Verbindung wird automatisch hergestellt.`,
+        );
         // Auto-close popup after a moment so the parent (Pi UI) can pick it up
         setTimeout(() => {
           if (window.opener) window.close();

@@ -119,10 +119,10 @@ function TerminalPage() {
           Shell · allow-listed
         </div>
         <div className="flex items-center gap-2">
-          <div className={`size-2 rounded-full ${busy ? "bg-status-warn animate-pulse" : "bg-status-ok animate-pulse"}`} />
-          <span className="font-mono text-xs text-status-ok/90">
-            {busy ? "running…" : "ready"}
-          </span>
+          <div
+            className={`size-2 rounded-full ${busy ? "bg-status-warn animate-pulse" : "bg-status-ok animate-pulse"}`}
+          />
+          <span className="font-mono text-xs text-status-ok/90">{busy ? "running…" : "ready"}</span>
         </div>
       </header>
 
@@ -131,13 +131,14 @@ function TerminalPage() {
         className="flex-1 bg-black/80 p-4 font-mono text-[11px] leading-relaxed rounded-2xl border border-border overflow-auto"
       >
         {lines.map((l, i) => (
-          <div key={i} className={l.who === "user" ? "text-primary" : "text-status-ok/80 whitespace-pre-wrap"}>
+          <div
+            key={i}
+            className={l.who === "user" ? "text-primary" : "text-status-ok/80 whitespace-pre-wrap"}
+          >
             {l.who === "user" ? `pi@hub:~$ ${l.text}` : l.text}
           </div>
         ))}
-        {listening && (
-          <div className="text-status-warn italic mt-2">● listening… speak now</div>
-        )}
+        {listening && <div className="text-status-warn italic mt-2">● listening… speak now</div>}
       </div>
 
       <div className="mt-3 flex items-center gap-2 bg-card/80 backdrop-blur-md border border-border p-2 rounded-3xl">

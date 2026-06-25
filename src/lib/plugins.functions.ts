@@ -48,9 +48,8 @@ export const getPlugin = createServerFn({ method: "GET" })
       decisions: PluginDecision[];
       simState: { on: boolean; sinceIso: string } | null;
     }> => {
-      const { getPluginStore, getPlanStore, listDecisionsStore, getSimStateStore } = await import(
-        "./plugins-store.server"
-      );
+      const { getPluginStore, getPlanStore, listDecisionsStore, getSimStateStore } =
+        await import("./plugins-store.server");
       const plugin = await getPluginStore(data.id);
       if (!plugin) return { plugin: null, plan: null, decisions: [], simState: null };
       const [plan, decisions, simState] = await Promise.all([
@@ -76,12 +75,7 @@ export const createSmartPump = createServerFn({ method: "POST" })
 export const updatePlugin = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
   .inputValidator(
-    (d: {
-      id: string;
-      name?: string;
-      enabled?: boolean;
-      config?: Partial<SmartPumpConfig>;
-    }) => d,
+    (d: { id: string; name?: string; enabled?: boolean; config?: Partial<SmartPumpConfig> }) => d,
   )
   .handler(async ({ data }) => {
     const { updatePluginStore } = await import("./plugins-store.server");
@@ -122,9 +116,8 @@ export const manualAction = createServerFn({ method: "POST" })
     return d;
   })
   .handler(async ({ data }) => {
-    const { queueOverrideStore, recordDecisionStore, getPluginStore } = await import(
-      "./plugins-store.server"
-    );
+    const { queueOverrideStore, recordDecisionStore, getPluginStore } =
+      await import("./plugins-store.server");
     const plugin = await getPluginStore(data.id);
     if (!plugin) return { ok: false as const, error: "plugin not found" };
     const minutes = Math.max(1, Math.min(120, Number(data.minutes) || 10));

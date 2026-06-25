@@ -95,7 +95,9 @@ function OverviewPage() {
             Scanning Docker socket…
           </div>
         )}
-        {containers.data?.map((c) => <ContainerCard key={c.id} c={c} />)}
+        {containers.data?.map((c) => (
+          <ContainerCard key={c.id} c={c} />
+        ))}
       </section>
     </div>
   );

@@ -30,7 +30,7 @@ function DevicesPage() {
       qc.invalidateQueries({ queryKey: ["devices"] });
       setShowForm(false);
       setName("");
-      navigate({ to: "/cloud/devices/$id", params: { id: d.id } });
+      navigate({ to: "/devices/$id", params: { id: d.id } });
     },
   });
 
@@ -70,13 +70,12 @@ function DevicesPage() {
 
       <div className="space-y-3">
         {devices.map((d: any) => {
-          const online =
-            d.lastSeenAt && Date.now() - new Date(d.lastSeenAt).getTime() < 120_000;
+          const online = d.lastSeenAt && Date.now() - new Date(d.lastSeenAt).getTime() < 120_000;
           const snap = d.snapshot || {};
           return (
             <Link
               key={d.id}
-              to="/cloud/devices/$id"
+              to="/devices/$id"
               params={{ id: d.id }}
               className="block rounded-2xl border border-border bg-card p-4"
             >
@@ -99,9 +98,7 @@ function DevicesPage() {
                 </div>
               )}
               {!d.paired && d.pairing && (
-                <div className="text-[10px] text-primary font-mono">
-                  CODE: {d.pairing.code}
-                </div>
+                <div className="text-[10px] text-primary font-mono">CODE: {d.pairing.code}</div>
               )}
             </Link>
           );

@@ -54,7 +54,6 @@ The unit pins `ExecStart` to the resolved build artifact and does NOT auto-build
 at runtime — earlier versions did, which caused restart loops when the build
 output landed at a different path than expected.
 
-
 Open `http://raspberrypi.local:3000` from your phone, tap Share → Add to
 Home Screen. Demo PIN is **1234** until you change it in Settings.
 
@@ -84,7 +83,8 @@ export const listContainers = createServerFn({ method: "GET" }).handler(async ()
     uptime: c.Status,
     ports: c.Ports.map((p) => String(p.PublicPort ?? p.PrivatePort)),
     network: Object.keys(c.NetworkSettings?.Networks ?? {})[0] ?? "bridge",
-    cpu: 0, mem: 0,
+    cpu: 0,
+    mem: 0,
   }));
 });
 
@@ -93,7 +93,9 @@ export const getSystemStats = createServerFn({ method: "GET" }).handler(async ()
   const totalKb = parseInt(meminfo.match(/MemTotal:\s+(\d+)/)?.[1] ?? "0", 10);
   const freeKb = parseInt(meminfo.match(/MemAvailable:\s+(\d+)/)?.[1] ?? "0", 10);
   const tempC = parseFloat(
-    execSync("vcgencmd measure_temp").toString().replace(/[^\d.]/g, "")
+    execSync("vcgencmd measure_temp")
+      .toString()
+      .replace(/[^\d.]/g, ""),
   );
   return {
     hostname: execSync("hostname").toString().trim(),

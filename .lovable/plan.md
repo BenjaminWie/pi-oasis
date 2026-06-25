@@ -36,11 +36,13 @@ Pi runtime (every 60s)
 ## Backend (Lovable Cloud)
 
 New tables (with proper GRANTs + RLS scoped to `auth.uid()`):
+
 - `plugins` — id, user_id, kind (`smart_pump`), name, config jsonb, enabled, created_at.
 - `plugin_plans` — id, plugin_id, plan jsonb, rationale text, valid_until, created_at.
 - `plugin_decisions` — id, plugin_id, decided_at, action (`on|off|skip|manual_on|manual_off`), reason text, inputs jsonb, simulated bool.
 
 Server functions (`src/lib/plugins.functions.ts`):
+
 - `listPlugins`, `getPlugin`, `createPlugin`, `updatePluginConfig`, `deletePlugin`.
 - `runPumpPlanner({ pluginId })` — cloud-side, calls Lovable AI (`google/gemini-3-flash-preview`) with a websearch tool that pulls Open-Meteo forecast for the configured lat/lon (no key needed). Writes `plugin_plans` row.
 - `listDecisions({ pluginId, limit })` — for timeline.
@@ -49,6 +51,7 @@ Server functions (`src/lib/plugins.functions.ts`):
 ## Pi runtime
 
 New `src/lib/plugin-runner.server.ts` started from `pi-runtime.server.ts`:
+
 - Tick every 60s for each enabled plugin owned by the paired user.
 - Smart pump tick: load latest valid plan → read `stat/<topic>/POWER` (cached from MQTT subscription) → apply plan rules + manual overrides → publish `cmnd/<topic>/POWER ON|OFF` unless `simulated`.
 - Writes decision row via cloud bridge; writes a point to local InfluxDB (`pi_hub` bucket, measurement `pump`, fields `state`, `reason_code`).

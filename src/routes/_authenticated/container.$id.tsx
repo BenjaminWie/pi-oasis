@@ -21,8 +21,7 @@ function ContainerDetail() {
   });
 
   const m = useMutation({
-    mutationFn: (action: "start" | "stop" | "restart") =>
-      actFn({ data: { id, action } }),
+    mutationFn: (action: "start" | "stop" | "restart") => actFn({ data: { id, action } }),
     onSuccess: () => q.refetch(),
   });
 

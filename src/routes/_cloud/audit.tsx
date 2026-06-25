@@ -21,14 +21,9 @@ function AuditPage() {
       <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-3">
         Telegram-Aktivität
       </h2>
-      {data.length === 0 && (
-        <p className="text-xs text-muted-foreground">Noch keine Einträge.</p>
-      )}
+      {data.length === 0 && <p className="text-xs text-muted-foreground">Noch keine Einträge.</p>}
       {data.map((row: any) => (
-        <div
-          key={row.id}
-          className="rounded-lg border border-border bg-card p-3 text-xs font-mono"
-        >
+        <div key={row.id} className="rounded-lg border border-border bg-card p-3 text-xs font-mono">
           <div className="flex justify-between">
             <span className="text-primary">{row.command}</span>
             <span className="text-muted-foreground text-[10px]">
@@ -36,9 +31,7 @@ function AuditPage() {
             </span>
           </div>
           {row.result && (
-            <p className="text-[10px] text-muted-foreground mt-1 truncate">
-              {row.result}
-            </p>
+            <p className="text-[10px] text-muted-foreground mt-1 truncate">{row.result}</p>
           )}
         </div>
       ))}

@@ -53,7 +53,16 @@ async function execCommand(cmd: any) {
       const port = Number(cmd.payload.port ?? 1883);
       await exec(
         "mosquitto_pub",
-        ["-h", host, "-p", String(port), "-t", String(cmd.payload.topic), "-m", String(cmd.payload.payload || "")],
+        [
+          "-h",
+          host,
+          "-p",
+          String(port),
+          "-t",
+          String(cmd.payload.topic),
+          "-m",
+          String(cmd.payload.payload || ""),
+        ],
         { timeout: 5000 },
       );
       return { ok: true, result: { topic: cmd.payload.topic } };

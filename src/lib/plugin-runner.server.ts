@@ -52,12 +52,8 @@ async function applyAction(
 }
 
 async function tickPlugin(pluginId: string) {
-  const {
-    getPluginStore,
-    takeOverrideStore,
-    recordDecisionStore,
-    getSimStateStore,
-  } = await import("./plugins-store.server");
+  const { getPluginStore, takeOverrideStore, recordDecisionStore, getSimStateStore } =
+    await import("./plugins-store.server");
   const plugin = await getPluginStore(pluginId);
   if (!plugin || !plugin.enabled) return;
 
@@ -74,8 +70,7 @@ async function tickPlugin(pluginId: string) {
 
   const now = Date.now();
   const inWindow = plan.windows.find(
-    (w) =>
-      new Date(w.startIso).getTime() <= now && now < new Date(w.endIso).getTime(),
+    (w) => new Date(w.startIso).getTime() <= now && now < new Date(w.endIso).getTime(),
   );
   const current = await getSimStateStore(pluginId);
   const currentlyOn = !!current?.on;
@@ -142,9 +137,7 @@ async function loop() {
       const plugins = await listPluginsStore();
       for (const p of plugins) {
         if (!p.enabled) continue;
-        await tickPlugin(p.id).catch((e) =>
-          console.error("[plugin-runner] tick failed", p.id, e),
-        );
+        await tickPlugin(p.id).catch((e) => console.error("[plugin-runner] tick failed", p.id, e));
       }
     } catch (e) {
       console.error("[plugin-runner] loop error", e);

@@ -1,12 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  getDevice,
-  enqueueCommand,
-  deleteDevice,
-  regeneratePairing,
-} from "@/lib/cloud.functions";
+import { getDevice, enqueueCommand, deleteDevice, regeneratePairing } from "@/lib/cloud.functions";
 import { ArrowLeft, RefreshCw, Trash2, Play, Square, RotateCcw } from "lucide-react";
 
 export const Route = createFileRoute("/_cloud/devices/$id")({
@@ -39,13 +34,12 @@ function DevicePage() {
 
   const d = data.device;
   const snap = (d.last_snapshot as any) || {};
-  const online =
-    d.last_seen_at && Date.now() - new Date(d.last_seen_at).getTime() < 120_000;
+  const online = d.last_seen_at && Date.now() - new Date(d.last_seen_at).getTime() < 120_000;
   const paired = !!d.device_token_hash;
 
   return (
     <div className="px-5 space-y-4">
-      <Link to="/cloud/devices" className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+      <Link to="/devices" className="inline-flex items-center gap-1 text-xs text-muted-foreground">
         <ArrowLeft size={14} /> zurück
       </Link>
 
@@ -67,17 +61,13 @@ function DevicePage() {
 
       {!paired ? (
         <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-          <h3 className="text-xs uppercase tracking-widest text-muted-foreground">
-            Pairing-Code
-          </h3>
+          <h3 className="text-xs uppercase tracking-widest text-muted-foreground">Pairing-Code</h3>
           <div className="text-3xl font-mono font-bold text-primary tracking-widest text-center py-3">
             {d.pairing_code || "—"}
           </div>
-          <p className="text-[10px] text-muted-foreground">
-            Auf dem Pi ausführen:
-          </p>
+          <p className="text-[10px] text-muted-foreground">Auf dem Pi ausführen:</p>
           <pre className="text-[10px] bg-background border border-border rounded p-2 overflow-x-auto font-mono">
-{`pi-agent register \\
+            {`pi-agent register \\
   --url ${typeof window !== "undefined" ? window.location.origin : "https://..."} \\
   --code ${d.pairing_code}`}
           </pre>
@@ -100,8 +90,14 @@ function DevicePage() {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <SnapRow label="CPU" value={snap.cpu != null ? Math.round(snap.cpu) + " %" : "—"} />
               <SnapRow label="RAM" value={snap.ram != null ? Math.round(snap.ram) + " %" : "—"} />
-              <SnapRow label="Temp" value={snap.temp != null ? Math.round(snap.temp) + " °C" : "—"} />
-              <SnapRow label="Disk" value={snap.disk != null ? Math.round(snap.disk) + " %" : "—"} />
+              <SnapRow
+                label="Temp"
+                value={snap.temp != null ? Math.round(snap.temp) + " °C" : "—"}
+              />
+              <SnapRow
+                label="Disk"
+                value={snap.disk != null ? Math.round(snap.disk) + " %" : "—"}
+              />
             </div>
             <button
               onClick={() => cmd.mutate({ kind: "status" })}
@@ -128,19 +124,28 @@ function DevicePage() {
                     <ActionBtn
                       icon={Play}
                       onClick={() =>
-                        cmd.mutate({ kind: "container_action", payload: { name: c.name, action: "start" } })
+                        cmd.mutate({
+                          kind: "container_action",
+                          payload: { name: c.name, action: "start" },
+                        })
                       }
                     />
                     <ActionBtn
                       icon={Square}
                       onClick={() =>
-                        cmd.mutate({ kind: "container_action", payload: { name: c.name, action: "stop" } })
+                        cmd.mutate({
+                          kind: "container_action",
+                          payload: { name: c.name, action: "stop" },
+                        })
                       }
                     />
                     <ActionBtn
                       icon={RotateCcw}
                       onClick={() =>
-                        cmd.mutate({ kind: "container_action", payload: { name: c.name, action: "restart" } })
+                        cmd.mutate({
+                          kind: "container_action",
+                          payload: { name: c.name, action: "restart" },
+                        })
                       }
                     />
                   </div>
@@ -158,7 +163,10 @@ function DevicePage() {
             </h3>
             <div className="space-y-1 text-[11px] font-mono">
               {data.commands.map((c: any) => (
-                <div key={c.id} className="flex justify-between gap-2 border-b border-border/40 py-1">
+                <div
+                  key={c.id}
+                  className="flex justify-between gap-2 border-b border-border/40 py-1"
+                >
                   <span>{c.kind}</span>
                   <span
                     className={
@@ -185,7 +193,7 @@ function DevicePage() {
         onClick={async () => {
           if (!confirm("Gerät wirklich entfernen?")) return;
           await del({ data: { id } });
-          navigate({ to: "/cloud/devices" });
+          navigate({ to: "/devices" });
         }}
         className="w-full rounded-lg border border-destructive/40 text-destructive py-2 text-xs uppercase tracking-widest flex items-center justify-center gap-1"
       >
@@ -198,9 +206,7 @@ function DevicePage() {
 function SnapRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between font-mono">
-      <span className="text-muted-foreground text-[10px] uppercase tracking-widest">
-        {label}
-      </span>
+      <span className="text-muted-foreground text-[10px] uppercase tracking-widest">{label}</span>
       <span>{value}</span>
     </div>
   );
@@ -208,10 +214,7 @@ function SnapRow({ label, value }: { label: string; value: string }) {
 
 function ActionBtn({ icon: Icon, onClick }: any) {
   return (
-    <button
-      onClick={onClick}
-      className="rounded border border-border px-2 py-1 hover:bg-muted"
-    >
+    <button onClick={onClick} className="rounded border border-border px-2 py-1 hover:bg-muted">
       <Icon size={11} />
     </button>
   );
