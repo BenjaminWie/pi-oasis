@@ -1,86 +1,108 @@
-# Plugins + Smart Pump (reference plugin)
+## Goal
 
-Introduce a plugin system on pi-hub. Ship one reference plugin — **Smart Pump** — that decides when to switch a Tasmota plug on/off based on weather data the cloud AI fetches. Use a hybrid loop: cloud builds a plan, Pi executes it locally. Include a simulator so it works before any hardware is wired.
-
-## User-visible surface
-
-1. New bottom-nav entry **Plugins** → `/plugins` listing installed plugins with status (running, last decision, next check).
-2. `/plugins/$id` plugin detail page:
-   - Live state header (current plan, next evaluation in Xs, manual **Run now** / **Force ON 10 min** / **Force OFF** buttons).
-   - **Decision timeline** — newest first, one row per evaluation: timestamp, action (ON / OFF / SKIP), one-line AI reason ("Skip — 6mm rain forecast next 12h"), expandable to show the inputs used.
-   - Chart strip: last 24h plug state + weather snapshot (rain mm, temp), pulled from InfluxDB.
-   - Config form: MQTT topic for the plug (`cmnd/<device>/POWER`, `stat/<device>/POWER`), location (lat/lon), max minutes per day, min hours between runs, dry-run toggle.
-   - **Simulator** panel — flip "Simulated plug" on to bypass MQTT publish; the plugin logs decisions and pretends the plug toggled. Used to test without the broker/plug.
-3. `/plugins` "Add plugin" button — for v1 just instantiates the Smart Pump template; the registry is built so more can be added later.
+Let Node-RED on the Pi push structured pump/component events (the JSON shape you posted) into pi-hub, have pi-hub forward them straight to the cloud (Lovable Cloud / Supabase) for storage + UI, and keep **nothing on the SD card** — only RAM buffers with a hard cap.
 
 ## Architecture
 
 ```text
-Cloud (every 6h or on demand)
-  └─ pump-planner serverFn  ──►  Lovable AI + websearch (weather)
-                                  │
-                                  ▼
-                          plugin_plans row (JSONB plan: windows, thresholds, ttl)
-                                  │
-                          cloud bridge long-poll
-                                  ▼
-Pi runtime (every 60s)
-  └─ plugin-runner ── reads active plan ── checks current MQTT state ──
-                      decides ON/OFF/SKIP ── publishes via MQTT (or sim) ──
-                      writes decision row + Influx point
+Node-RED (Pi)
+   │ HTTP POST  http://127.0.0.1:<piPort>/api/public/ingest/event
+   │ Header:    Authorization: Bearer <INGEST_TOKEN>   (loopback only)
+   ▼
+pi-hub local server (TanStack server route)
+   │ - verify token (hashed, compared timing-safe)
+   │ - validate JSON with zod
+   │ - push into in-memory ring buffer (max 200, no fs writes)
+   │ - fan out: (a) cloud forwarder  (b) plugin decision log  (c) SSE to UI
+   ▼
+Cloud forwarder (existing cloud-bridge channel)
+   │ HTTPS to Lovable Cloud relay (already authenticated as device)
+   ▼
+Supabase: new table `device_events` (RLS by user_id via device_id join)
 ```
 
-- **Plan** is a small JSON the cloud AI emits: allowed run windows today, max minutes, abort conditions ("rain >2mm in next 6h cancels"), and a one-line `rationale`. Pi only evaluates this plan + live readings — no AI call on the Pi.
-- **Decisions** are local to the Pi and mirrored to the cloud via the existing bridge so the timeline works from anywhere.
+No `fs.writeFile`, no SQLite, no Influx writes from this path. The Pi-local store (`~/.pi-hub/plugins.json`) is **not** touched by ingest.
 
-## Backend (Lovable Cloud)
+## Security model
 
-New tables (with proper GRANTs + RLS scoped to `auth.uid()`):
-- `plugins` — id, user_id, kind (`smart_pump`), name, config jsonb, enabled, created_at.
-- `plugin_plans` — id, plugin_id, plan jsonb, rationale text, valid_until, created_at.
-- `plugin_decisions` — id, plugin_id, decided_at, action (`on|off|skip|manual_on|manual_off`), reason text, inputs jsonb, simulated bool.
+- **Loopback-only ingress**: the new route only accepts requests whose remote address is `127.0.0.1` / `::1`. Node-RED runs on the same Pi, so this is enforceable and means the token never crosses the LAN.
+- **Bearer token**: generated once via `generate_secret` and stored as `PI_INGEST_TOKEN` (runtime secret). Node-RED reads it from an env var injected by systemd — never hardcoded in a flow export.
+- **Hashed compare**: server stores `sha256(token)` and compares with `timingSafeEqual`.
+- **Schema validation**: strict zod schema for the payload you posted (`component`, `device`, `timestamp`, `status`, `metrics`). Unknown fields rejected.
+- **Rate limit**: 20 req/s per device in memory; excess returns 429.
+- **TLS to cloud**: forwarder uses the existing HTTPS cloud-bridge, which already authenticates as the paired device (device_token). No new outbound credential.
+- **No PII**: events are device telemetry; the cloud row only stores `device_id`, `component`, `status`, `metrics` JSON, `occurred_at`.
 
-Server functions (`src/lib/plugins.functions.ts`):
-- `listPlugins`, `getPlugin`, `createPlugin`, `updatePluginConfig`, `deletePlugin`.
-- `runPumpPlanner({ pluginId })` — cloud-side, calls Lovable AI (`google/gemini-3-flash-preview`) with a websearch tool that pulls Open-Meteo forecast for the configured lat/lon (no key needed). Writes `plugin_plans` row.
-- `listDecisions({ pluginId, limit })` — for timeline.
-- `manualAction({ pluginId, action })` — writes a `manual_*` decision the Pi runner picks up on next tick.
+## Zero-SD-write guarantees
 
-## Pi runtime
+- Ring buffer is a plain JS array capped at 200 entries, lives in the server process RAM.
+- Cloud forwarder is fire-and-forget with retry-in-memory (max 50 queued); on overflow it drops oldest and increments a `dropped` counter shown in the UI.
+- `tmpfs` recommendation in `scripts/install.sh`: mount `/var/log/pi-hub` as tmpfs so any accidental log line also stays in RAM. systemd unit gets `LogsDirectory=` removed and `StandardOutput=null` for the ingest path.
+- Node-RED side: the imported flow has the file-write nodes removed and `Context Store` set to `memoryOnly` for any state the flow keeps.
 
-New `src/lib/plugin-runner.server.ts` started from `pi-runtime.server.ts`:
-- Tick every 60s for each enabled plugin owned by the paired user.
-- Smart pump tick: load latest valid plan → read `stat/<topic>/POWER` (cached from MQTT subscription) → apply plan rules + manual overrides → publish `cmnd/<topic>/POWER ON|OFF` unless `simulated`.
-- Writes decision row via cloud bridge; writes a point to local InfluxDB (`pi_hub` bucket, measurement `pump`, fields `state`, `reason_code`).
+## Files
 
-## Node-RED (optional, gated)
+**New**
+- `src/routes/api/public/ingest/event.ts` — loopback-only POST handler (zod, token, ring buffer push, forward).
+- `src/lib/ingest-buffer.server.ts` — in-memory ring buffer + SSE pub/sub + cloud forwarder queue.
+- `src/routes/api/public/ingest/stream.ts` — SSE endpoint the UI subscribes to (auth via Supabase bearer, scoped to device).
+- `src/routes/_authenticated/events.tsx` — live event feed UI with status pill, filter by component/device, "Forwarded to cloud ✓ / queued / dropped" indicator.
+- `supabase/migrations/<ts>_device_events.sql` — `device_events` table + RLS + GRANTs (scoped via existing `devices.user_id`).
+- `docs/node-red-ingest.md` — short doc: example HTTP Request node config, env var setup, systemd snippet.
 
-Out of scope to "inject flows" in v1 — too much surface area for the first cut. We expose a stub: if Node-RED admin API is reachable on the Pi, the plugin detail page shows a "Open in Node-RED" button that deep-links to the flow editor. Actual flow injection lands in a follow-up once the core loop is proven.
+**Edited**
+- `src/lib/cloud-bridge.server.ts` — add `forwardEvent(payload)` that piggybacks on the existing relay channel (or POSTs to a new `/api/public/cloud-bridge/event` cloud route).
+- `src/routes/api/public/cloud-bridge/claim.ts` (or sibling) — new `event.ts` cloud-side route that authenticates the device token and inserts into `device_events`.
+- `scripts/install.sh` — mint `PI_INGEST_TOKEN` on first run, print Node-RED setup hint, optionally configure tmpfs for `/var/log/pi-hub`.
+- `src/components/BottomNav.tsx` — add "Events" tab.
 
-## Simulator (so we can ship without hardware)
+## DB
 
-- Plugin config has `simulated: true` by default.
-- When set, plugin-runner skips MQTT publish, instead toggles an in-memory `simState`, and the UI's "current state" row reads from a server fn that returns simulated state if no MQTT broker is configured.
-- Lets us demo the full timeline + AI plan flow today.
+```sql
+create table public.device_events (
+  id uuid primary key default gen_random_uuid(),
+  device_id uuid not null references public.devices(id) on delete cascade,
+  component text not null,
+  device_label text not null,
+  status text not null check (status in ('healthy','warning','critical','info')),
+  metrics jsonb not null default '{}'::jsonb,
+  occurred_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+create index on public.device_events(device_id, occurred_at desc);
 
-## Install script
+grant select on public.device_events to authenticated;
+grant all on public.device_events to service_role;
+alter table public.device_events enable row level security;
 
-Extend `scripts/install.sh` to detect Mosquitto / InfluxDB / Node-RED and print a "missing — run `apt install ...`" hint per service. No auto-install in this pass.
+create policy "Users read events for own devices"
+on public.device_events for select to authenticated
+using (exists (
+  select 1 from public.devices d
+  where d.id = device_events.device_id and d.user_id = auth.uid()
+));
+```
 
-## Out of scope (follow-ups)
+Writes happen only via the cloud-side public route using `supabaseAdmin` after device-token verification — RLS stays clean.
 
-- Node-RED flow injection.
-- Generic rule-builder plugin kind.
-- Multi-plug / zone support.
-- Soil moisture or other sensor inputs.
-- Plugin marketplace / 3rd-party plugins.
+## UI
 
-## Technical notes
+`/events` route:
+- Header with live SSE counter (events/min) and "Forwarded ✓ / Queued N / Dropped N".
+- List grouped by component, each row: time, device, status pill (green/amber/red), key metrics inline (`395 W · 231 V · 0.45 kWh`).
+- Click row → side sheet with full payload JSON and "raw" toggle.
+- Filter chips by component and status.
+- Empty state shows the exact `curl` Node-RED equivalent so the user can test from the Pi.
 
-- Weather: Open-Meteo `https://api.open-meteo.com/v1/forecast?...&hourly=precipitation,temperature_2m` — free, no key. Called from the cloud planner only.
-- AI: Lovable AI Gateway via existing pattern; structured output for the plan (`Output.object` with a tight Zod schema).
-- Manual buttons write a `manual_*` decision row with `valid_until = now()+10min`; runner honors the latest unconsumed manual action before evaluating the plan.
-- All MQTT topic + lat/lon inputs validated server-side (Zod) before persisting.
-- Files touched/created:
-  - new: `src/routes/_authenticated/plugins.tsx`, `src/routes/_authenticated/plugins.$id.tsx`, `src/lib/plugins.functions.ts`, `src/lib/plugin-runner.server.ts`, `src/lib/weather.server.ts`, `supabase/migrations/<ts>_plugins.sql`.
-  - edited: `src/components/BottomNav.tsx`, `src/lib/pi-runtime.server.ts` (boot the runner), `scripts/install.sh` (service detection).
+## Verification
+
+1. `curl -H "Authorization: Bearer $PI_INGEST_TOKEN" -X POST http://127.0.0.1:<port>/api/public/ingest/event -d '<sample payload>'` from the Pi → 200, appears in `/events` instantly via SSE, row in `device_events` within ~1s.
+2. Same curl from another LAN host → 403 (loopback gate).
+3. Wrong token → 401, timing-safe.
+4. `lsof -p <pi-hub pid> | grep plugins.json` after 100 events → no writes; `iostat` on the SD shows no extra writes attributable to pi-hub.
+5. Kill the cloud relay for 30s, send 60 events → buffer holds them, reconnect drains, "Dropped 0".
+
+## Out of scope (call out for follow-up)
+
+- Auto-installing the Node-RED flow JSON (only doc + sample import for now).
+- Long-term retention / charts in cloud (we just store rows; charting is a later plugin).
