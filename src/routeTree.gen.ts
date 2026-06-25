@@ -26,6 +26,8 @@ import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/m
 import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
 import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
+import { Route as ApiPublicIngestEventRouteImport } from './routes/api/public/ingest/event'
+import { Route as ApiPublicCloudBridgeEventRouteImport } from './routes/api/public/cloud-bridge/event'
 import { Route as ApiPublicCloudBridgeClaimRouteImport } from './routes/api/public/cloud-bridge/claim'
 import { Route as ApiPublicAgentResultRouteImport } from './routes/api/public/agent/result'
 import { Route as ApiPublicAgentRegisterRouteImport } from './routes/api/public/agent/register'
@@ -117,6 +119,17 @@ const AuthenticatedContainerIdRoute =
     path: '/container/$id',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicIngestEventRoute = ApiPublicIngestEventRouteImport.update({
+  id: '/api/public/ingest/event',
+  path: '/api/public/ingest/event',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCloudBridgeEventRoute =
+  ApiPublicCloudBridgeEventRouteImport.update({
+    id: '/api/public/cloud-bridge/event',
+    path: '/api/public/cloud-bridge/event',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCloudBridgeClaimRoute =
   ApiPublicCloudBridgeClaimRouteImport.update({
     id: '/api/public/cloud-bridge/claim',
@@ -171,6 +184,8 @@ export interface FileRoutesByFullPath {
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
+  '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
+  '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRoutesByTo {
@@ -194,6 +209,8 @@ export interface FileRoutesByTo {
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
+  '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
+  '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRoutesById {
@@ -220,6 +237,8 @@ export interface FileRoutesById {
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
+  '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
+  '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRouteTypes {
@@ -245,6 +264,8 @@ export interface FileRouteTypes {
     | '/api/public/agent/register'
     | '/api/public/agent/result'
     | '/api/public/cloud-bridge/claim'
+    | '/api/public/cloud-bridge/event'
+    | '/api/public/ingest/event'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -268,6 +289,8 @@ export interface FileRouteTypes {
     | '/api/public/agent/register'
     | '/api/public/agent/result'
     | '/api/public/cloud-bridge/claim'
+    | '/api/public/cloud-bridge/event'
+    | '/api/public/ingest/event'
     | '/api/public/telegram/webhook/$userId'
   id:
     | '__root__'
@@ -293,6 +316,8 @@ export interface FileRouteTypes {
     | '/api/public/agent/register'
     | '/api/public/agent/result'
     | '/api/public/cloud-bridge/claim'
+    | '/api/public/cloud-bridge/event'
+    | '/api/public/ingest/event'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesById: FileRoutesById
 }
@@ -307,6 +332,8 @@ export interface RootRouteChildren {
   ApiPublicAgentRegisterRoute: typeof ApiPublicAgentRegisterRoute
   ApiPublicAgentResultRoute: typeof ApiPublicAgentResultRoute
   ApiPublicCloudBridgeClaimRoute: typeof ApiPublicCloudBridgeClaimRoute
+  ApiPublicCloudBridgeEventRoute: typeof ApiPublicCloudBridgeEventRoute
+  ApiPublicIngestEventRoute: typeof ApiPublicIngestEventRoute
   ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
 }
 
@@ -431,6 +458,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContainerIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/ingest/event': {
+      id: '/api/public/ingest/event'
+      path: '/api/public/ingest/event'
+      fullPath: '/api/public/ingest/event'
+      preLoaderRoute: typeof ApiPublicIngestEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cloud-bridge/event': {
+      id: '/api/public/cloud-bridge/event'
+      path: '/api/public/cloud-bridge/event'
+      fullPath: '/api/public/cloud-bridge/event'
+      preLoaderRoute: typeof ApiPublicCloudBridgeEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cloud-bridge/claim': {
       id: '/api/public/cloud-bridge/claim'
       path: '/api/public/cloud-bridge/claim'
@@ -548,6 +589,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAgentRegisterRoute: ApiPublicAgentRegisterRoute,
   ApiPublicAgentResultRoute: ApiPublicAgentResultRoute,
   ApiPublicCloudBridgeClaimRoute: ApiPublicCloudBridgeClaimRoute,
+  ApiPublicCloudBridgeEventRoute: ApiPublicCloudBridgeEventRoute,
+  ApiPublicIngestEventRoute: ApiPublicIngestEventRoute,
   ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
 }
 export const routeTree = rootRouteImport
