@@ -92,15 +92,26 @@ fi
 # --- env ---
 if [ ! -f .env ]; then
   SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+  INGEST=$(node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))")
   cat > .env <<EOF
 SESSION_SECRET=$SECRET
 PORT=3000
 HOST=0.0.0.0
 PI_DASHBOARD_PIN=1234
 PI_DASHBOARD_SECRET=$SECRET
+PI_INGEST_TOKEN=$INGEST
 VITE_PI_HUB_CLOUD_URL=https://pi-hub.benniwie.com
 EOF
   echo "→ wrote .env (PIN: 1234 — change in Settings)"
+  echo
+  echo "  Node-RED ingest token (use in HTTP Request 'Authorization: Bearer …'):"
+  echo "    $INGEST"
+  echo "  → see docs/node-red-ingest.md for the full flow"
+elif ! grep -q '^PI_INGEST_TOKEN=' .env; then
+  INGEST=$(node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))")
+  echo "PI_INGEST_TOKEN=$INGEST" >> .env
+  echo "→ added PI_INGEST_TOKEN to .env"
+  echo "    $INGEST"
 fi
 
 # --- pi-hub state (PIN hash + factory reset token) ---

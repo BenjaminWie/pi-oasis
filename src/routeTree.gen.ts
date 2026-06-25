@@ -23,6 +23,7 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticated/plugins'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
+import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
 import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
 import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
@@ -103,6 +104,11 @@ const AuthenticatedMqttRoute = AuthenticatedMqttRouteImport.update({
   path: '/mqtt',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedEventsRoute = AuthenticatedEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const CloudDevicesIdRoute = CloudDevicesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -167,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
+  '/events': typeof AuthenticatedEventsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/plugins': typeof AuthenticatedPluginsRouteWithChildren
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
+  '/events': typeof AuthenticatedEventsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/plugins': typeof AuthenticatedPluginsRouteWithChildren
@@ -220,6 +228,7 @@ export interface FileRoutesById {
   '/_cloud': typeof CloudRouteWithChildren
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
+  '/_authenticated/events': typeof AuthenticatedEventsRoute
   '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
   '/_authenticated/plugins': typeof AuthenticatedPluginsRouteWithChildren
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/login'
+    | '/events'
     | '/mqtt'
     | '/overview'
     | '/plugins'
@@ -272,6 +282,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/login'
+    | '/events'
     | '/mqtt'
     | '/overview'
     | '/plugins'
@@ -299,6 +310,7 @@ export interface FileRouteTypes {
     | '/_cloud'
     | '/auth'
     | '/login'
+    | '/_authenticated/events'
     | '/_authenticated/mqtt'
     | '/_authenticated/overview'
     | '/_authenticated/plugins'
@@ -437,6 +449,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMqttRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/events': {
+      id: '/_authenticated/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof AuthenticatedEventsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_cloud/devices/$id': {
       id: '/_cloud/devices/$id'
       path: '/$id'
@@ -529,6 +548,7 @@ const AuthenticatedPluginsRouteWithChildren =
   AuthenticatedPluginsRoute._addFileChildren(AuthenticatedPluginsRouteChildren)
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedEventsRoute: typeof AuthenticatedEventsRoute
   AuthenticatedMqttRoute: typeof AuthenticatedMqttRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
   AuthenticatedPluginsRoute: typeof AuthenticatedPluginsRouteWithChildren
@@ -538,6 +558,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedEventsRoute: AuthenticatedEventsRoute,
   AuthenticatedMqttRoute: AuthenticatedMqttRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
   AuthenticatedPluginsRoute: AuthenticatedPluginsRouteWithChildren,
