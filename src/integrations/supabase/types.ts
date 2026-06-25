@@ -100,49 +100,8 @@ export type Database = {
             referencedRelation: "devices";
             referencedColumns: ["id"];
           },
-        ]
-      }
-      device_events: {
-        Row: {
-          component: string
-          created_at: string
-          device_id: string
-          device_label: string
-          id: string
-          metrics: Json
-          occurred_at: string
-          status: string
-        }
-        Insert: {
-          component: string
-          created_at?: string
-          device_id: string
-          device_label: string
-          id?: string
-          metrics?: Json
-          occurred_at: string
-          status: string
-        }
-        Update: {
-          component?: string
-          created_at?: string
-          device_id?: string
-          device_label?: string
-          id?: string
-          metrics?: Json
-          occurred_at?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "device_events_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+        ];
+      };
       devices: {
         Row: {
           created_at: string;
