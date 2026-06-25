@@ -14,7 +14,7 @@ const Body = z
     device: z.string().min(1).max(64),
     timestamp: z.string(),
     status: z.enum(["healthy", "warning", "critical", "info"]),
-    metrics: z.record(z.string(), z.unknown()).default({}),
+    metrics: z.record(z.string(), z.union([z.number(), z.string(), z.boolean()])).default({}),
   })
   .strict();
 
