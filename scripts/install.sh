@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup on the Pi (or any Linux box with Node 20+).
+# Robust setup for the Pi (or any Linux box with Node 20+).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -49,7 +49,7 @@ MSG
 }
 
 rebuild_esbuild_binaries() {
-  ensure_go || exit 1
+  ensure_go || return 1
   export GOBIN="$PWD/.esbuild-bin"
   mkdir -p "$GOBIN"
 
@@ -77,16 +77,39 @@ rebuild_esbuild_binaries() {
   echo "✓ esbuild rebuilt for ${#PKGS[@]} package(s)"
 }
 
+# --- memory check & cleanup ---
+MEM_TOTAL=$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo "0")
+SWAP_TOTAL=$(awk '/SwapTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo "0")
+if [ "$MEM_TOTAL" -lt 1500000 ] && [ "$SWAP_TOTAL" -lt 500000 ]; then
+  MEM_MB=$((MEM_TOTAL / 1024))
+  echo "WARN: Low memory detected (${MEM_MB}MB) and no swap found."
+  echo "      The build process might crash. Consider creating a swap file:"
+  echo "      sudo fallocate -l 1G /swapfile && sudo chmod 600 /swapfile && \\"
+  echo "      sudo mkswap /swapfile && sudo swapon /swapfile"
+  echo
+fi
+
+echo "→ cleaning up build artifacts and old modules"
+rm -rf node_modules .output .esbuild-bin dist 2>/dev/null || true
+
 # --- deps ---
 echo "→ installing dependencies"
+# Use --legacy-peer-deps to avoid conflict between nitro and lovable config
+# Use --jobs=1 on low-memory Pis to avoid OOM
+# Use --no-audit --no-fund to save memory and time
+INSTALL_FLAGS="--legacy-peer-deps --no-audit --no-fund"
+if [ "$MEM_TOTAL" -lt 1500000 ]; then
+  INSTALL_FLAGS="$INSTALL_FLAGS --jobs=1"
+fi
+
 if [ "$NEEDS_ESBUILD_REBUILD" = "1" ]; then
   # Skip postinstall hooks (esbuild's would SIGILL), then patch in our binaries.
-  npm install --ignore-scripts
+  npm install $INSTALL_FLAGS --ignore-scripts
   rebuild_esbuild_binaries
   # Now run the rest of the postinstalls (lifecycle scripts) with our binaries in place.
   npm rebuild --ignore-scripts=false || true
 else
-  npm install
+  npm install $INSTALL_FLAGS
 fi
 
 # --- env ---
@@ -99,6 +122,7 @@ HOST=0.0.0.0
 PI_DASHBOARD_PIN=1234
 PI_DASHBOARD_SECRET=$SECRET
 VITE_PI_HUB_CLOUD_URL=https://pi-hub.benniwie.com
+VITE_PI_SLIM_MODE=true
 EOF
   echo "→ wrote .env (PIN: 1234 — change in Settings)"
 fi
@@ -135,9 +159,9 @@ if [ ! -f "$STATE_FILE" ]; then
   echo
 fi
 
-# NOTE: we no longer run `npm run build` here. The TanStack Start prod server
-# entry path is unstable across versions on ARM, which caused restart loops.
-# pi-hub runs under `vite dev` via PM2 instead — see ecosystem.config.cjs.
+# Build the production assets
+echo "→ building production assets"
+npm run build
 
 echo
 echo "✓ install done"
