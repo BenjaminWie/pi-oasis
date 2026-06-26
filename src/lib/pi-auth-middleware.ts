@@ -8,7 +8,13 @@ export const requirePiAuth = createMiddleware({ type: "function" }).server(async
   const { getRequestHeader } = await import("@tanstack/react-start/server");
   const { verifyPiToken } = await import("./pi-auth.server");
   const token = getRequestHeader("x-pi-auth") || null;
-  if (!verifyPiToken(token)) {
+  const { hasProcStats } = await import("./pi-runtime.server");
+  // Bypass auth ONLY in dev mode or when NOT on a Pi (preview mode)
+  // On a real Pi (production), hasProcStats() is true and we MUST verify the token.
+  const isDev = process.env.NODE_ENV === "development";
+  const isOnPi = hasProcStats();
+
+  if (isOnPi && !isDev && !verifyPiToken(token)) {
     throw new Response("Unauthorized", { status: 401 });
   }
   return next();

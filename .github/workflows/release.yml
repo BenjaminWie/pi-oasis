@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies (Host)
+        run: npm install --legacy-peer-deps
+
+      - name: Build project
+        run: npm run build
+
+      - name: Rebuild production dependencies for arm64
+        run: |
+          # Use a multi-arch container to install ONLY production dependencies for arm64
+          docker run --rm -v ${{ github.workspace }}:/app -w /app --platform linux/arm64 node:20-bookworm-slim /bin/bash -c "
+            apt-get update && apt-get install -y python3 make g++ gcc &&
+            npm install --legacy-peer-deps --omit=dev --platform=linux --arch=arm64 &&
+            npm rebuild --platform=linux --arch=arm64
+          "
+
+      - name: Prepare release bundle
+        run: |
+          mkdir -p release-bundle
+          cp -r .output release-bundle/
+          cp package.json release-bundle/
+          cp package-lock.json release-bundle/
+          cp ecosystem.config.cjs release-bundle/
+          cp -r scripts release-bundle/
+          # node_modules now only contains production dependencies built for arm64
+          cp -r node_modules release-bundle/
+          # Remove dev-only scripts
+          rm release-bundle/scripts/dev.sh || true
+          tar -czf pi-hub-linux-arm64.tar.gz -C release-bundle .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: pi-hub-linux-arm64.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
