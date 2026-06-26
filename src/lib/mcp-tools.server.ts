@@ -6,6 +6,7 @@
 // component module-scope — always inside a handler.
 
 import { z } from "zod";
+import { createHash } from "node:crypto";
 
 export type Scope = "read" | "control";
 
@@ -214,7 +215,6 @@ export function findTool(name: string): ToolDef | null {
 
 // ---- token verification + audit -------------------------------------------
 
-import { createHash } from "node:crypto";
 
 function sha256Hex(s: string): string {
   return createHash("sha256").update(s).digest("hex");
