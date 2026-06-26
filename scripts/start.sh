@@ -1,20 +1,17 @@
 #!/usr/bin/env bash
-# Start the pi-hub dev server. Requires a prior ./scripts/install.sh.
-#
-# We intentionally run `vite dev` rather than a production build:
-# TanStack Start's prod server entry path is unstable across versions on ARM,
-# which caused restart loops. Dev mode is fast enough on a Pi 4.
+# Start the pi-hub production server. Requires a prior ./scripts/install.sh and build.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 [ -f .env ] && set -a && . ./.env && set +a
-PORT="${PORT:-3000}"
-HOST="${HOST:-0.0.0.0}"
+export PORT="${PORT:-3000}"
+export HOST="${HOST:-0.0.0.0}"
+export NODE_ENV=production
 
-if [ ! -d node_modules ]; then
-  echo "ERROR: node_modules missing. Run ./scripts/install.sh first." >&2
-  exit 1
+if [ ! -f .output/server/index.mjs ]; then
+  echo "ERROR: Production build missing (.output/server/index.mjs). Running build..." >&2
+  npm run build
 fi
 
-echo "→ pi-hub dev server on http://$HOST:$PORT"
-exec npx vite dev --host "$HOST" --port "$PORT"
+echo "→ pi-hub production server on http://$HOST:$PORT"
+exec node .output/server/index.mjs
