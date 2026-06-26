@@ -67,6 +67,59 @@ async function execCommand(cmd: any) {
       );
       return { ok: true, result: { topic: cmd.payload.topic } };
     }
+    if (cmd.kind === "plugin_list") {
+      const { listPluginsStore } = await import("./plugins-store.server");
+      return { ok: true, result: { plugins: await listPluginsStore() } };
+    }
+    if (cmd.kind === "plugin_get") {
+      const {
+        getPluginStore,
+        getPlanStore,
+        listDecisionsStore,
+        getSimStateStore,
+      } = await import("./plugins-store.server");
+      const id = String(cmd.payload?.id ?? "");
+      const plugin = await getPluginStore(id);
+      if (!plugin) return { ok: false, result: { error: "plugin not found" } };
+      const [plan, decisions, simState] = await Promise.all([
+        getPlanStore(id),
+        listDecisionsStore(id, 50),
+        getSimStateStore(id),
+      ]);
+      return { ok: true, result: { plugin, plan, decisions, simState } };
+    }
+    if (cmd.kind === "plugin_run_planner") {
+      const { getPluginStore, setPlanStore } = await import("./plugins-store.server");
+      const plugin = await getPluginStore(String(cmd.payload?.id ?? ""));
+      if (!plugin) return { ok: false, result: { error: "plugin not found" } };
+      const { buildPlan } = await import("./ai-planner.server");
+      const plan = await buildPlan(plugin);
+      await setPlanStore(plan);
+      return { ok: true, result: { plan } };
+    }
+    if (cmd.kind === "plugin_manual") {
+      const { queueOverrideStore, recordDecisionStore, getPluginStore } = await import(
+        "./plugins-store.server"
+      );
+      const id = String(cmd.payload?.id ?? "");
+      const action = cmd.payload?.action === "off" ? "off" : "on";
+      const minutes = Math.max(1, Math.min(120, Number(cmd.payload?.minutes) || 10));
+      const plugin = await getPluginStore(id);
+      if (!plugin) return { ok: false, result: { error: "plugin not found" } };
+      await queueOverrideStore({
+        pluginId: id,
+        action,
+        validUntilIso: new Date(Date.now() + minutes * 60_000).toISOString(),
+        consumed: false,
+      });
+      await recordDecisionStore({
+        pluginId: id,
+        action: action === "on" ? "manual_on" : "manual_off",
+        reason: `MCP override — ${action.toUpperCase()} for ${minutes}m`,
+        simulated: plugin.config.simulated,
+      });
+      return { ok: true, result: { ok: true, action, minutes } };
+    }
     return { ok: false, result: { error: "unknown kind " + cmd.kind } };
   } catch (e: any) {
     return { ok: false, result: { error: String(e?.message || e) } };
