@@ -214,11 +214,9 @@ export function findTool(name: string): ToolDef | null {
 
 // ---- token verification + audit -------------------------------------------
 
+import { createHash } from "node:crypto";
+
 function sha256Hex(s: string): string {
-  // Node crypto present on Workers via nodejs_compat
-  // (we import lazily so this module stays bundle-friendly)
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { createHash } = require("node:crypto");
   return createHash("sha256").update(s).digest("hex");
 }
 
