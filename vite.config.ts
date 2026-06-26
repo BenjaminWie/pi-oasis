@@ -20,7 +20,7 @@ export default defineConfig({
           // On the Pi, we want to keep native modules as externals because they
           // are built for the specific architecture and can't be easily bundled.
           nodeExternals({
-            include: ["dockerode", "node-pty", "mqtt"],
+            include: ["dockerode", "mqtt"],
           }),
         ],
       },
