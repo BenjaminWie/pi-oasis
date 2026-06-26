@@ -1,108 +1,95 @@
-## Goal
+# Hosted MCP Server for Pi-Hub
 
-Let Node-RED on the Pi push structured pump/component events (the JSON shape you posted) into pi-hub, have pi-hub forward them straight to the cloud (Lovable Cloud / Supabase) for storage + UI, and keep **nothing on the SD card** — only RAM buffers with a hard cap.
+Expose your pump, plugins, MQTT and events to any AI (ChatGPT, Gemini, Claude, Alexa, Google Assistant) through one secure, hosted MCP endpoint in the Lovable Cloud. The MCP server never talks to the Pi directly — it enqueues commands into the existing `agent_commands` queue that your Pi already long-polls, so we reuse all current security boundaries and add no new inbound ports on the Pi.
 
 ## Architecture
 
 ```text
-Node-RED (Pi)
-   │ HTTP POST  http://127.0.0.1:<piPort>/api/public/ingest/event
-   │ Header:    Authorization: Bearer <INGEST_TOKEN>   (loopback only)
-   ▼
-pi-hub local server (TanStack server route)
-   │ - verify token (hashed, compared timing-safe)
-   │ - validate JSON with zod
-   │ - push into in-memory ring buffer (max 200, no fs writes)
-   │ - fan out: (a) cloud forwarder  (b) plugin decision log  (c) SSE to UI
-   ▼
-Cloud forwarder (existing cloud-bridge channel)
-   │ HTTPS to Lovable Cloud relay (already authenticated as device)
-   ▼
-Supabase: new table `device_events` (RLS by user_id via device_id join)
+ChatGPT / Gemini / Claude Desktop ─┐
+Alexa Skill / Google Action       ─┼─► https://pi-hub.benniwie.com/api/mcp
+Any MCP client                    ─┘        │ (Bearer <mcp_token>)
+                                            ▼
+                              Lovable Cloud MCP server
+                                            │  validates token → resolves device
+                                            ▼
+                              agent_commands (Supabase, RLS)
+                                            │
+                                            ▼
+                              Pi long-poll  → executes → posts result
+                                            │
+                                            ▼
+                              MCP tool returns result to caller
 ```
 
-No `fs.writeFile`, no SQLite, no Influx writes from this path. The Pi-local store (`~/.pi-hub/plugins.json`) is **not** touched by ingest.
+## What gets built
 
-## Security model
+### 1. Secure hosted MCP endpoint
+- New route `src/routes/api/mcp.ts` using `mcp-tanstack-start` (`POST` only, `GET`/`DELETE` → 405).
+- `withMcpAuth` extractor reads `Authorization: Bearer <token>`, looks the token up in a new `mcp_tokens` table (hashed with scrypt, like the PIN store), and resolves `{ userId, deviceId, scopes }`. No token → null → 401.
+- All tool executions go through one helper that enqueues an `agent_commands` row for the resolved device and waits up to ~25 s for the Pi to post the result (reuses `result.ts`). Timeouts return a structured "pi_offline" error instead of hanging the model.
+- Every call is written to a new `mcp_audit` table (tool name, args hash, latency, status) so you can review what any AI did.
 
-- **Loopback-only ingress**: the new route only accepts requests whose remote address is `127.0.0.1` / `::1`. Node-RED runs on the same Pi, so this is enforceable and means the token never crosses the LAN.
-- **Bearer token**: generated once via `generate_secret` and stored as `PI_INGEST_TOKEN` (runtime secret). Node-RED reads it from an env var injected by systemd — never hardcoded in a flow export.
-- **Hashed compare**: server stores `sha256(token)` and compares with `timingSafeEqual`.
-- **Schema validation**: strict zod schema for the payload you posted (`component`, `device`, `timestamp`, `status`, `metrics`). Unknown fields rejected.
-- **Rate limit**: 20 req/s per device in memory; excess returns 429.
-- **TLS to cloud**: forwarder uses the existing HTTPS cloud-bridge, which already authenticates as the paired device (device_token). No new outbound credential.
-- **No PII**: events are device telemetry; the cloud row only stores `device_id`, `component`, `status`, `metrics` JSON, `occurred_at`.
+### 2. MCP tools exposed
+Read-only (safe by default):
+- `list_plugins`, `get_plugin(id)` — current config, plan, last decisions
+- `get_pump_status` — last MQTT state, runtime today, daily cap remaining
+- `get_weather_plan(plugin_id)` — current AI plan + rationale
+- `list_recent_events(limit)` — from the in-memory ingest buffer / `device_events`
+- `list_containers`, `get_host_info`
 
-## Zero-SD-write guarantees
+Write (require `scope: control` on the token):
+- `set_pump(state, duration_s?)` — manual override with safety clamp (max 600 s)
+- `update_plugin_config(id, patch)` — validated via existing `validateConfig`
+- `run_planner_now(plugin_id)` — triggers fresh AI plan
+- `mqtt_publish(topic, payload)` — restricted to an allow-list of topics per device
+- `create_smart_pump(config)`
 
-- Ring buffer is a plain JS array capped at 200 entries, lives in the server process RAM.
-- Cloud forwarder is fire-and-forget with retry-in-memory (max 50 queued); on overflow it drops oldest and increments a `dropped` counter shown in the UI.
-- `tmpfs` recommendation in `scripts/install.sh`: mount `/var/log/pi-hub` as tmpfs so any accidental log line also stays in RAM. systemd unit gets `LogsDirectory=` removed and `StandardOutput=null` for the ingest path.
-- Node-RED side: the imported flow has the file-write nodes removed and `Context Store` set to `memoryOnly` for any state the flow keeps.
+Each tool's Zod schema is the contract the AI sees. Inputs are validated server-side again before enqueueing.
 
-## Files
+### 3. Per-user token management UI
+- New page `src/routes/_cloud/mcp.tsx`:
+  - "Create MCP token" → choose device + scopes (`read`, `control`), optional expiry.
+  - Shows the token **once**, then only a prefix + last-used timestamp.
+  - Copy buttons for: raw token, ChatGPT custom-GPT MCP config snippet, Claude Desktop `claude_desktop_config.json` snippet, Gemini function-calling base URL.
+  - Revoke / rotate.
+- Audit log viewer (last 200 MCP calls, filter by tool/status).
 
-**New**
-- `src/routes/api/public/ingest/event.ts` — loopback-only POST handler (zod, token, ring buffer push, forward).
-- `src/lib/ingest-buffer.server.ts` — in-memory ring buffer + SSE pub/sub + cloud forwarder queue.
-- `src/routes/api/public/ingest/stream.ts` — SSE endpoint the UI subscribes to (auth via Supabase bearer, scoped to device).
-- `src/routes/_authenticated/events.tsx` — live event feed UI with status pill, filter by component/device, "Forwarded to cloud ✓ / queued / dropped" indicator.
-- `supabase/migrations/<ts>_device_events.sql` — `device_events` table + RLS + GRANTs (scoped via existing `devices.user_id`).
-- `docs/node-red-ingest.md` — short doc: example HTTP Request node config, env var setup, systemd snippet.
+### 4. Voice bridges
+Two thin adapters that translate voice-platform requests into MCP tool calls, so we don't duplicate business logic:
 
-**Edited**
-- `src/lib/cloud-bridge.server.ts` — add `forwardEvent(payload)` that piggybacks on the existing relay channel (or POSTs to a new `/api/public/cloud-bridge/event` cloud route).
-- `src/routes/api/public/cloud-bridge/claim.ts` (or sibling) — new `event.ts` cloud-side route that authenticates the device token and inserts into `device_events`.
-- `scripts/install.sh` — mint `PI_INGEST_TOKEN` on first run, print Node-RED setup hint, optionally configure tmpfs for `/var/log/pi-hub`.
-- `src/components/BottomNav.tsx` — add "Events" tab.
+- **Alexa Custom Skill** — `src/routes/api/public/voice/alexa.ts`
+  - Verifies Alexa request signature + timestamp (per Amazon's published cert chain).
+  - Account linking uses the same MCP token (entered once in the Alexa app) → resolves device.
+  - Intents: `TurnOnPumpIntent` (with optional `duration` slot), `TurnOffPumpIntent`, `PumpStatusIntent`, `WaterPlanIntent` → mapped to MCP tools.
+  - Returns SSML responses ("Pump running for 2 minutes").
 
-## DB
+- **Google Assistant / Home** — `src/routes/api/public/voice/google.ts` with a Conversational Action webhook (same pattern, Google OAuth account linking → token).
 
-```sql
-create table public.device_events (
-  id uuid primary key default gen_random_uuid(),
-  device_id uuid not null references public.devices(id) on delete cascade,
-  component text not null,
-  device_label text not null,
-  status text not null check (status in ('healthy','warning','critical','info')),
-  metrics jsonb not null default '{}'::jsonb,
-  occurred_at timestamptz not null,
-  created_at timestamptz not null default now()
-);
-create index on public.device_events(device_id, occurred_at desc);
+- **Telegram voice** already exists; we extend its intent map to call the same internal tool helpers, so voice → Telegram → MCP-equivalent path is consistent.
 
-grant select on public.device_events to authenticated;
-grant all on public.device_events to service_role;
-alter table public.device_events enable row level security;
+### 5. Safety rails
+- Per-token rate limit (token-bucket in memory + persisted counter): default 30 calls/min, 5 control calls/min.
+- Control tools require an explicit `confirm: true` flag when `duration_s > 120` or topic isn't in allow-list.
+- Daily pump-runtime cap from the smart-pump plugin is enforced server-side; MCP `set_pump` cannot exceed it.
+- All secrets (`MCP_*`) live as Lovable Cloud secrets, never in the client bundle.
+- HTTPS only (Lovable hosts it), CORS locked to allow only the MCP `POST` content-types.
+- No service-role key ever crosses the MCP boundary; everything goes through the user-scoped Supabase client + RLS.
 
-create policy "Users read events for own devices"
-on public.device_events for select to authenticated
-using (exists (
-  select 1 from public.devices d
-  where d.id = device_events.device_id and d.user_id = auth.uid()
-));
-```
+### 6. Docs
+- `docs/mcp.md` with copy-paste configs for: ChatGPT (custom GPT → "MCP server" connector), Claude Desktop, Gemini (function calling / Extensions), Alexa skill setup, Google Action setup.
+- README pointer + a "Connect an AI" CTA on the cloud dashboard.
 
-Writes happen only via the cloud-side public route using `supabaseAdmin` after device-token verification — RLS stays clean.
+## Database
 
-## UI
+New migration:
+- `mcp_tokens(id, user_id, device_id, name, token_hash, scopes text[], expires_at, last_used_at, created_at)` — RLS: owner read/insert/delete, no update of `token_hash`.
+- `mcp_audit(id, user_id, device_id, token_id, tool, status, latency_ms, error, created_at)` — RLS: owner read-only; inserts via service role from the MCP route.
+- Both with `GRANT`s for `authenticated` (and `service_role` for inserts) per project rules.
 
-`/events` route:
-- Header with live SSE counter (events/min) and "Forwarded ✓ / Queued N / Dropped N".
-- List grouped by component, each row: time, device, status pill (green/amber/red), key metrics inline (`395 W · 231 V · 0.45 kWh`).
-- Click row → side sheet with full payload JSON and "raw" toggle.
-- Filter chips by component and status.
-- Empty state shows the exact `curl` Node-RED equivalent so the user can test from the Pi.
+## Out of scope (ask if you want them)
+- Streaming SSE responses from MCP tools (current plan returns final result only).
+- Public marketplace listing of the MCP server.
+- Multi-device fan-out in a single tool call.
 
-## Verification
-
-1. `curl -H "Authorization: Bearer $PI_INGEST_TOKEN" -X POST http://127.0.0.1:<port>/api/public/ingest/event -d '<sample payload>'` from the Pi → 200, appears in `/events` instantly via SSE, row in `device_events` within ~1s.
-2. Same curl from another LAN host → 403 (loopback gate).
-3. Wrong token → 401, timing-safe.
-4. `lsof -p <pi-hub pid> | grep plugins.json` after 100 events → no writes; `iostat` on the SD shows no extra writes attributable to pi-hub.
-5. Kill the cloud relay for 30s, send 60 events → buffer holds them, reconnect drains, "Dropped 0".
-
-## Out of scope (call out for follow-up)
-
-- Auto-installing the Node-RED flow JSON (only doc + sample import for now).
-- Long-term retention / charts in cloud (we just store rows; charting is a later plugin).
+## Open question
+Default token scope when you create one in the UI: **read-only** (safer, you opt-in to control per token) or **read + control** (one token does everything)? I'll go with read-only by default unless you say otherwise.
