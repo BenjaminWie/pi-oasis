@@ -19,6 +19,7 @@ export WARN="⚠"
 export ERROR="✖"
 export STEP="→"
 
+# Default repository - CHANGE THIS if you fork the repo!
 REPO="benniwie/pi-hub"
 INSTALL_DIR="/opt/pi-hub"
 
