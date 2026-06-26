@@ -7,6 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { isSlimMode } from "@/lib/utils";
 
 import appCss from "../styles.css?url";
 
@@ -110,10 +111,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
+  const slim = isSlimMode();
   return (
-    <html lang="en" className="dark">
+    <html
+      lang="en"
+      className={`dark ${slim ? "slim-mode" : ""}`}
+      data-slim={slim ? "true" : "false"}
+    >
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.VITE_PI_SLIM_MODE = "${slim}";`,
+          }}
+        />
       </head>
       <body>
         {children}

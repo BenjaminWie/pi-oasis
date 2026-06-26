@@ -24,17 +24,11 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticated/plugins'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
-import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
-import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
-import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
-import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
 import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
 import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
 import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
 import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
-import { Route as ApiPublicIngestEventRouteImport } from './routes/api/public/ingest/event'
-import { Route as ApiPublicCloudBridgeEventRouteImport } from './routes/api/public/cloud-bridge/event'
 import { Route as ApiPublicCloudBridgeClaimRouteImport } from './routes/api/public/cloud-bridge/claim'
 import { Route as ApiPublicAgentResultRouteImport } from './routes/api/public/agent/result'
 import { Route as ApiPublicAgentRegisterRouteImport } from './routes/api/public/agent/register'
@@ -115,11 +109,6 @@ const AuthenticatedMqttRoute = AuthenticatedMqttRouteImport.update({
   path: '/mqtt',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedEventsRoute = AuthenticatedEventsRouteImport.update({
-  id: '/events',
-  path: '/events',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const ApiPublicMcpRoute = ApiPublicMcpRouteImport.update({
   id: '/api/public/mcp',
   path: '/api/public/mcp',
@@ -146,17 +135,6 @@ const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
   path: '/api/public/voice/alexa',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicIngestEventRoute = ApiPublicIngestEventRouteImport.update({
-  id: '/api/public/ingest/event',
-  path: '/api/public/ingest/event',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicCloudBridgeEventRoute =
-  ApiPublicCloudBridgeEventRouteImport.update({
-    id: '/api/public/cloud-bridge/event',
-    path: '/api/public/cloud-bridge/event',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicCloudBridgeClaimRoute =
   ApiPublicCloudBridgeClaimRouteImport.update({
     id: '/api/public/cloud-bridge/claim',
@@ -213,8 +191,6 @@ export interface FileRoutesByFullPath {
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
-  '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
-  '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -241,8 +217,6 @@ export interface FileRoutesByTo {
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
-  '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
-  '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -272,8 +246,6 @@ export interface FileRoutesById {
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
-  '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
-  '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -302,8 +274,6 @@ export interface FileRouteTypes {
     | '/api/public/agent/register'
     | '/api/public/agent/result'
     | '/api/public/cloud-bridge/claim'
-    | '/api/public/cloud-bridge/event'
-    | '/api/public/ingest/event'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesByTo: FileRoutesByTo
@@ -330,8 +300,6 @@ export interface FileRouteTypes {
     | '/api/public/agent/register'
     | '/api/public/agent/result'
     | '/api/public/cloud-bridge/claim'
-    | '/api/public/cloud-bridge/event'
-    | '/api/public/ingest/event'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   id:
@@ -360,8 +328,6 @@ export interface FileRouteTypes {
     | '/api/public/agent/register'
     | '/api/public/agent/result'
     | '/api/public/cloud-bridge/claim'
-    | '/api/public/cloud-bridge/event'
-    | '/api/public/ingest/event'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesById: FileRoutesById
@@ -378,8 +344,6 @@ export interface RootRouteChildren {
   ApiPublicAgentRegisterRoute: typeof ApiPublicAgentRegisterRoute
   ApiPublicAgentResultRoute: typeof ApiPublicAgentResultRoute
   ApiPublicCloudBridgeClaimRoute: typeof ApiPublicCloudBridgeClaimRoute
-  ApiPublicCloudBridgeEventRoute: typeof ApiPublicCloudBridgeEventRoute
-  ApiPublicIngestEventRoute: typeof ApiPublicIngestEventRoute
   ApiPublicVoiceAlexaRoute: typeof ApiPublicVoiceAlexaRoute
   ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -491,13 +455,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMqttRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/events': {
-      id: '/_authenticated/events'
-      path: '/events'
-      fullPath: '/events'
-      preLoaderRoute: typeof AuthenticatedEventsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/api/public/mcp': {
       id: '/api/public/mcp'
       path: '/api/public/mcp'
@@ -531,20 +488,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/voice/alexa'
       fullPath: '/api/public/voice/alexa'
       preLoaderRoute: typeof ApiPublicVoiceAlexaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/ingest/event': {
-      id: '/api/public/ingest/event'
-      path: '/api/public/ingest/event'
-      fullPath: '/api/public/ingest/event'
-      preLoaderRoute: typeof ApiPublicIngestEventRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cloud-bridge/event': {
-      id: '/api/public/cloud-bridge/event'
-      path: '/api/public/cloud-bridge/event'
-      fullPath: '/api/public/cloud-bridge/event'
-      preLoaderRoute: typeof ApiPublicCloudBridgeEventRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cloud-bridge/claim': {
@@ -667,11 +610,19 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAgentRegisterRoute: ApiPublicAgentRegisterRoute,
   ApiPublicAgentResultRoute: ApiPublicAgentResultRoute,
   ApiPublicCloudBridgeClaimRoute: ApiPublicCloudBridgeClaimRoute,
-  ApiPublicCloudBridgeEventRoute: ApiPublicCloudBridgeEventRoute,
-  ApiPublicIngestEventRoute: ApiPublicIngestEventRoute,
   ApiPublicVoiceAlexaRoute: ApiPublicVoiceAlexaRoute,
   ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
