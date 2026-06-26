@@ -14,6 +14,14 @@ one `systemctl restart` away from any change.
 
 ## One-time install on the Pi
 
+For the fastest experience, use the bootstrap script:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/benniwie/pi-hub/main/scripts/bootstrap.sh | bash
+```
+
+Alternatively, you can install manually:
+
 ```bash
 # 1) node + git
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -

@@ -16,6 +16,15 @@ const ALLOWED = new Set([
   "journalctl",
   "ps",
   "clear",
+  "ls",
+  "cat",
+  "tail",
+  "grep",
+  "ip",
+  "ping",
+  "whoami",
+  "uname",
+  "pm2",
 ]);
 
 function previewReply(input: string): string {
@@ -28,8 +37,11 @@ function previewReply(input: string): string {
   }
   if (t.startsWith("df"))
     return `Filesystem  Size  Used  Avail  Use%\n/dev/root   29G   18G   10G   64%`;
+  if (t.startsWith("pm2 list")) {
+    return `┌────┬─────────┬─────────┬─────────┬─────────┬──────────┬────────┬──────┬──────────┬──────────┬──────────┐\n│ id │ name    │ mode    │ ↺       │ status  │ cpu      │ mem    │ user │ watching │ [v]      │ [p]      │\n├────┼─────────┼─────────┼─────────┼─────────┼──────────┼────────┼──────┼──────────┼──────────┼──────────┤\n│ 0  │ pi-hub  │ fork    │ 0       │ online  │ 0.1%     │ 45.2mb │ pi   │ disabled │ 1.0.0    │ 3000     │\n└────┴─────────┴─────────┴─────────┴─────────┴──────────┴────────┴──────┴──────────┴──────────┴──────────┘`;
+  }
   if (t === "help")
-    return `available: gemini <prompt>, docker {ps|logs|stats}, df, free, uptime, hostname, vcgencmd, journalctl, ps, clear`;
+    return `available: gemini <prompt>, docker {ps|logs|stats}, pm2 {list|logs|show}, df, free, uptime, hostname, vcgencmd, journalctl, ps, ls, cat, tail, grep, ip, ping, whoami, uname, clear`;
   return `(preview) command not executed — runs live when installed on a Pi.`;
 }
 
@@ -106,10 +118,13 @@ export const runTerminalCommand = createServerFn({ method: "POST" })
           "Available commands:\n" +
           "  gemini <prompt>          — ask the AI sysadmin\n" +
           "  docker ps|logs|stats     — container info\n" +
-          "  df / free / uptime       — system\n" +
+          "  pm2 list|logs|show       — process management\n" +
+          "  df / free / uptime       — system resource usage\n" +
+          "  ls / cat / tail / grep   — file inspection\n" +
+          "  ip / ping                — network info\n" +
           "  hostname / vcgencmd ...  — host info\n" +
           "  journalctl -u <unit>     — service logs\n" +
-          "  ps aux                   — processes\n",
+          "  ps aux / whoami / uname  — system info\n",
       };
     }
 
@@ -132,6 +147,12 @@ export const runTerminalCommand = createServerFn({ method: "POST" })
     if (head === "journalctl" && !tokens.includes("-n")) tokens.push("-n", "50");
     if (head === "docker" && tokens[1] === "logs" && !tokens.includes("--tail")) {
       tokens.push("--tail", "100");
+    }
+    if (head === "pm2" && tokens[1] === "logs" && !tokens.includes("--lines")) {
+      tokens.push("--lines", "50");
+    }
+    if (head === "tail" && !tokens.includes("-n")) {
+      tokens.push("-n", "50");
     }
 
     return { output: await runShell(tokens) };

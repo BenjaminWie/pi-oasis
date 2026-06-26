@@ -17,18 +17,21 @@ Site: **https://pi-hub.benniwie.com**
 
 ---
 
-## Run on your Pi (3 commands)
+## Run on your Pi (One-liner)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/benniwie/pi-hub/main/scripts/bootstrap.sh | bash
+```
+
+> This script automatically detects your architecture (arm64), installs Node.js and PM2 if missing, downloads the latest pre-built release, and sets up Pi Hub as a background service. It's designed to be fast and low-memory.
+
+### Alternative (Manual Clone)
 
 ```bash
 git clone <this-repo> pi-hub && cd pi-hub
 ./scripts/install.sh
 ./scripts/start.sh                # → http://<pi>.local:3000
 ```
-
-> On ARMv8.0 boards (Pi 3, Pi 4, CM4) the installer detects the CPU and rebuilds
-> `esbuild` from source via Go to work around a known `SIGILL` in the prebuilt
-> `linux-arm64` binary. This adds ~1–2 minutes to the first install. Pi 5 and
-> x86 hosts are unaffected.
 
 ### Run as a background service (recommended: PM2)
 
