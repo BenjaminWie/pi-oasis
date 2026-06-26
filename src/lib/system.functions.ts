@@ -62,9 +62,7 @@ export const getContainer = createServerFn({ method: "GET" })
 
 export const containerAction = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
-  .inputValidator(
-    (d: { id: string; action: "start" | "stop" | "restart" }) => d,
-  )
+  .inputValidator((d: { id: string; action: "start" | "stop" | "restart" }) => d)
   .handler(async ({ data }) => {
     const { isPiRuntime } = await import("./pi-runtime.server");
     if (!isPiRuntime()) return { ok: true, id: data.id, action: data.action };

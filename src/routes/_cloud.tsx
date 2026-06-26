@@ -41,6 +41,9 @@ function CloudLayout() {
   }
 
   const tabs = [
+    { to: "/devices", label: "Geräte", icon: Server },
+    { to: "/telegram", label: "Telegram", icon: MessageCircle },
+    { to: "/audit", label: "Audit", icon: ScrollText },
     { to: "/cloud/devices", label: "Geräte", icon: Server },
     { to: "/cloud/mcp", label: "MCP", icon: Bot },
     { to: "/cloud/telegram", label: "Telegram", icon: MessageCircle },

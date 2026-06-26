@@ -73,10 +73,7 @@ async function readTempC(): Promise<number> {
     /* fall through */
   }
   try {
-    const text = await fs.readFile(
-      "/sys/class/thermal/thermal_zone0/temp",
-      "utf8",
-    );
+    const text = await fs.readFile("/sys/class/thermal/thermal_zone0/temp", "utf8");
     const milli = parseInt(text.trim(), 10);
     if (Number.isFinite(milli)) return +(milli / 1000).toFixed(1);
   } catch {
@@ -139,9 +136,7 @@ export async function listRealContainers(): Promise<ContainerSummary[]> {
   const cs = await docker().listContainers({ all: true });
   return cs.map((c) => {
     const ports = Array.from(
-      new Set(
-        (c.Ports ?? []).map((p) => String(p.PublicPort ?? p.PrivatePort)),
-      ),
+      new Set((c.Ports ?? []).map((p) => String(p.PublicPort ?? p.PrivatePort))),
     ).filter(Boolean);
     const looksMqtt =
       /mosquitto|emqx|hivemq|nanomq|vernemq/i.test(c.Image) ||
@@ -194,9 +189,7 @@ export async function runContainerAction(
   action: "start" | "stop" | "restart",
 ): Promise<void> {
   const cs = await docker().listContainers({ all: true });
-  const match = cs.find(
-    (c) => c.Id.slice(0, 12) === idPrefix || c.Id.startsWith(idPrefix),
-  );
+  const match = cs.find((c) => c.Id.slice(0, 12) === idPrefix || c.Id.startsWith(idPrefix));
   if (!match) throw new Error(`container ${idPrefix} not found`);
   const c = docker().getContainer(match.Id);
   if (action === "start") await c.start();

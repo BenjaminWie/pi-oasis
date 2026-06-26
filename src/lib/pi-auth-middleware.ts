@@ -4,14 +4,12 @@
 // to outgoing server-fn calls automatically.
 import { createMiddleware } from "@tanstack/react-start";
 
-export const requirePiAuth = createMiddleware({ type: "function" }).server(
-  async ({ next }) => {
-    const { getRequestHeader } = await import("@tanstack/react-start/server");
-    const { verifyPiToken } = await import("./pi-auth.server");
-    const token = getRequestHeader("x-pi-auth") || null;
-    if (!verifyPiToken(token)) {
-      throw new Response("Unauthorized", { status: 401 });
-    }
-    return next();
-  },
-);
+export const requirePiAuth = createMiddleware({ type: "function" }).server(async ({ next }) => {
+  const { getRequestHeader } = await import("@tanstack/react-start/server");
+  const { verifyPiToken } = await import("./pi-auth.server");
+  const token = getRequestHeader("x-pi-auth") || null;
+  if (!verifyPiToken(token)) {
+    throw new Response("Unauthorized", { status: 401 });
+  }
+  return next();
+});

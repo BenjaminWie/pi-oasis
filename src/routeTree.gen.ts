@@ -24,6 +24,9 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticated/plugins'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
+import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
+import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
+import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
 import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
 import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
 import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
@@ -191,7 +194,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
-  '/events': typeof AuthenticatedEventsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/plugins': typeof AuthenticatedPluginsRouteWithChildren
@@ -220,7 +222,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
-  '/events': typeof AuthenticatedEventsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/plugins': typeof AuthenticatedPluginsRouteWithChildren
@@ -252,7 +253,6 @@ export interface FileRoutesById {
   '/_cloud': typeof CloudRouteWithChildren
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
-  '/_authenticated/events': typeof AuthenticatedEventsRoute
   '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
   '/_authenticated/plugins': typeof AuthenticatedPluginsRouteWithChildren
@@ -283,7 +283,6 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/login'
-    | '/events'
     | '/mqtt'
     | '/overview'
     | '/plugins'
@@ -312,7 +311,6 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/login'
-    | '/events'
     | '/mqtt'
     | '/overview'
     | '/plugins'
@@ -343,7 +341,6 @@ export interface FileRouteTypes {
     | '/_cloud'
     | '/auth'
     | '/login'
-    | '/_authenticated/events'
     | '/_authenticated/mqtt'
     | '/_authenticated/overview'
     | '/_authenticated/plugins'
@@ -607,7 +604,6 @@ const AuthenticatedPluginsRouteWithChildren =
   AuthenticatedPluginsRoute._addFileChildren(AuthenticatedPluginsRouteChildren)
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedEventsRoute: typeof AuthenticatedEventsRoute
   AuthenticatedMqttRoute: typeof AuthenticatedMqttRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
   AuthenticatedPluginsRoute: typeof AuthenticatedPluginsRouteWithChildren
@@ -617,7 +613,6 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedEventsRoute: AuthenticatedEventsRoute,
   AuthenticatedMqttRoute: AuthenticatedMqttRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
   AuthenticatedPluginsRoute: AuthenticatedPluginsRouteWithChildren,

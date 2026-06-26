@@ -22,12 +22,12 @@ sudo ../scripts/install-agent-systemd.sh
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `pi-agent register` | Pair this Pi with a Cloud user account |
-| `pi-agent run` | Daemon: long-poll Cloud, execute commands |
-| `pi-agent status` | One-shot local snapshot, prints JSON |
-| `pi-agent unlink` | Delete config |
+| Command             | Purpose                                   |
+| ------------------- | ----------------------------------------- |
+| `pi-agent register` | Pair this Pi with a Cloud user account    |
+| `pi-agent run`      | Daemon: long-poll Cloud, execute commands |
+| `pi-agent status`   | One-shot local snapshot, prints JSON      |
+| `pi-agent unlink`   | Delete config                             |
 
 ## What it can do
 

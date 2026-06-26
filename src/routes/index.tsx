@@ -1,7 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Check, Copy, Mic, Terminal, Cpu, Cloud, MessageSquare, Shield, Radio, Home, Router, EyeOff, Lock } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Mic,
+  Terminal,
+  Cpu,
+  Cloud,
+  MessageSquare,
+  Shield,
+  Radio,
+  Home,
+  Router,
+  EyeOff,
+  Lock,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -33,11 +47,13 @@ function NavBar() {
         <Link to="/" className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-primary glow-mint" />
           <span className="font-mono text-sm tracking-widest text-primary">pi-hub</span>
-          <span className="font-mono text-[10px] text-muted-foreground hidden sm:inline">// v1</span>
+          <span className="font-mono text-[10px] text-muted-foreground hidden sm:inline">
+            // v1
+          </span>
         </Link>
         <nav className="flex items-center gap-2">
           <Link
-            to="/cloud/devices"
+            to="/devices"
             className="hidden sm:inline-flex px-3 py-1.5 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground transition"
           >
             Dashboard
@@ -63,7 +79,9 @@ function Hero() {
       <div className="absolute inset-0 scanlines opacity-[0.18] pointer-events-none" />
       <div
         className="absolute -top-40 left-1/2 -translate-x-1/2 h-[560px] w-[900px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(closest-side, oklch(0.89 0.16 160 / 0.18), transparent 70%)" }}
+        style={{
+          background: "radial-gradient(closest-side, oklch(0.89 0.16 160 / 0.18), transparent 70%)",
+        }}
       />
 
       <div className="relative mx-auto max-w-6xl px-5 pt-20 pb-24 lg:pt-28 lg:pb-32">
@@ -84,8 +102,7 @@ function Hero() {
           className="mt-6 font-display text-4xl sm:text-5xl lg:text-7xl font-bold leading-[1.05] tracking-tight max-w-4xl"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Your home,{" "}
-          <span className="text-primary text-glow-mint">in your terminal</span>
+          Your home, <span className="text-primary text-glow-mint">in your terminal</span>
           <br className="hidden sm:block" /> — and in your kitchen.
         </motion.h1>
 
@@ -105,8 +122,8 @@ function Hero() {
           </p>
           <p className="text-sm text-muted-foreground/80">
             And because your Pi talks <span className="text-primary font-mono">out</span>, not in,
-            you skip every router tutorial you were dreading — no port forwarding, no DuckDNS,
-            no public IP.
+            you skip every router tutorial you were dreading — no port forwarding, no DuckDNS, no
+            public IP.
           </p>
         </motion.div>
 
@@ -127,7 +144,7 @@ function Hero() {
                 Install on my Pi
               </a>
               <Link
-                to="/cloud/devices"
+                to="/devices"
                 className="inline-flex items-center gap-2 rounded-md border border-border px-5 py-3 text-sm font-mono uppercase tracking-widest hover:border-primary hover:text-primary transition"
               >
                 Open dashboard
@@ -192,9 +209,7 @@ function TerminalCard() {
         <span className="h-2.5 w-2.5 rounded-full bg-coral/80" />
         <span className="h-2.5 w-2.5 rounded-full bg-primary/40" />
         <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-        <span className="ml-3 text-[11px] font-mono text-muted-foreground">
-          ~/pi-hub · zsh
-        </span>
+        <span className="ml-3 text-[11px] font-mono text-muted-foreground">~/pi-hub · zsh</span>
       </div>
       <div className="p-5 font-mono text-[13px] leading-relaxed min-h-[230px]">
         {lines.slice(0, shown).map((l, i) => (
@@ -208,9 +223,7 @@ function TerminalCard() {
             <span className={l.p === "$" ? "text-primary" : "text-muted-foreground"}>{l.p}</span>
             <span
               className={
-                l.t.startsWith("✓") || l.t.startsWith("●")
-                  ? "text-primary"
-                  : "text-foreground/90"
+                l.t.startsWith("✓") || l.t.startsWith("●") ? "text-primary" : "text-foreground/90"
               }
             >
               {l.t}
@@ -234,7 +247,10 @@ function ChatDemo() {
     { from: "user", text: "Yeah, and is the dryer finished?" },
     { from: "agent", text: "Dryer cycle ended 4 min ago. Energy: 0.42 kWh." },
     { from: "user", text: "Arm night mode in 20." },
-    { from: "agent", text: "Scheduled. I'll lock doors, dim hallway to 5%, and mute Telegram alerts." },
+    {
+      from: "agent",
+      text: "Scheduled. I'll lock doors, dim hallway to 5%, and mute Telegram alerts.",
+    },
   ];
 
   return (
@@ -251,8 +267,8 @@ function ChatDemo() {
           Telegram, web, or voice — <span className="text-primary text-glow-mint">same agent.</span>
         </h2>
         <p className="mt-4 text-muted-foreground max-w-2xl">
-          No menus. No 12-tap routines. Talk to your home like a competent roommate
-          that happens to speak fluent MQTT.
+          No menus. No 12-tap routines. Talk to your home like a competent roommate that happens to
+          speak fluent MQTT.
         </p>
 
         <div className="mt-12 grid lg:grid-cols-[1fr_auto] gap-8 items-center">
@@ -337,21 +353,49 @@ function HowItWorks() {
         </p>
 
         <div className="mt-14 grid md:grid-cols-3 gap-6 items-stretch">
-          <DiagramNode icon={<Home className="h-6 w-6" />} title="Your Pi" lines={["pi-agent.service", "MQTT · Docker · scripts"]} />
+          <DiagramNode
+            icon={<Home className="h-6 w-6" />}
+            title="Your Pi"
+            lines={["pi-agent.service", "MQTT · Docker · scripts"]}
+          />
           <DiagramArrow label="long-poll · HTTPS" />
-          <DiagramNode icon={<Cloud className="h-6 w-6" />} title="pi-hub cloud" lines={["queues commands", "no shell access"]} />
+          <DiagramNode
+            icon={<Cloud className="h-6 w-6" />}
+            title="pi-hub cloud"
+            lines={["queues commands", "no shell access"]}
+          />
         </div>
 
         <div className="mt-6 grid md:grid-cols-3 gap-6 items-stretch">
-          <DiagramNode icon={<MessageSquare className="h-6 w-6" />} title="Your Telegram" lines={["1 bot per user", "voice + text"]} />
+          <DiagramNode
+            icon={<MessageSquare className="h-6 w-6" />}
+            title="Your Telegram"
+            lines={["1 bot per user", "voice + text"]}
+          />
           <DiagramArrow label="webhook · per-user" reverse />
-          <DiagramNode icon={<Cloud className="h-6 w-6" />} title="pi-hub cloud" lines={["routes to your device", "audit log"]} />
+          <DiagramNode
+            icon={<Cloud className="h-6 w-6" />}
+            title="pi-hub cloud"
+            lines={["routes to your device", "audit log"]}
+          />
         </div>
 
         <div className="mt-12 grid sm:grid-cols-3 gap-4">
-          <Bullet icon={<Shield className="h-4 w-4" />} title="Outbound only" body="No DDNS, no port 80/443 forwarding, no firewall rules. Your Pi looks like a normal browser." />
-          <Bullet icon={<Radio className="h-4 w-4" />} title="Your data, your Pi" body="MQTT, sensor history, scenes — stays on device." />
-          <Bullet icon={<MessageSquare className="h-4 w-4" />} title="Per-user Telegram bot" body="One bot per user, scoped to your devices only." />
+          <Bullet
+            icon={<Shield className="h-4 w-4" />}
+            title="Outbound only"
+            body="No DDNS, no port 80/443 forwarding, no firewall rules. Your Pi looks like a normal browser."
+          />
+          <Bullet
+            icon={<Radio className="h-4 w-4" />}
+            title="Your data, your Pi"
+            body="MQTT, sensor history, scenes — stays on device."
+          />
+          <Bullet
+            icon={<MessageSquare className="h-4 w-4" />}
+            title="Per-user Telegram bot"
+            body="One bot per user, scoped to your devices only."
+          />
         </div>
       </div>
     </section>
@@ -374,11 +418,10 @@ function NoDnsHustle() {
           <span className="text-primary text-glow-mint">No exposed Pi.</span>
         </h2>
         <p className="mt-4 text-muted-foreground max-w-2xl">
-          Most "remote your home" guides end in a swamp of router screens, DuckDNS scripts,
-          NGINX reverse proxies, and a Pi sitting on the public internet praying nobody
-          notices. pi-hub flips that: your Pi opens a quiet outbound HTTPS connection to the
-          cloud and waits. Commands ride back on the same wire. Your router never sees an
-          inbound packet.
+          Most "remote your home" guides end in a swamp of router screens, DuckDNS scripts, NGINX
+          reverse proxies, and a Pi sitting on the public internet praying nobody notices. pi-hub
+          flips that: your Pi opens a quiet outbound HTTPS connection to the cloud and waits.
+          Commands ride back on the same wire. Your router never sees an inbound packet.
         </p>
 
         <div className="mt-12 grid md:grid-cols-3 gap-4">
@@ -410,14 +453,18 @@ function NoDnsHustle() {
                 <EyeOff className="h-5 w-5" />
                 <span className="font-mono text-[11px] uppercase tracking-widest">net result</span>
               </div>
-              <p className="mt-3 font-display text-xl font-bold leading-snug" style={{ fontFamily: "var(--font-display)" }}>
+              <p
+                className="mt-3 font-display text-xl font-bold leading-snug"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
                 Your Pi stays invisible on the internet.
               </p>
             </div>
             <p className="mt-3 text-xs text-muted-foreground font-mono">
-              · zero attack surface at home<br />
-              · works behind CGNAT &amp; double-NAT<br />
-              · survives ISP IP rotations
+              · zero attack surface at home
+              <br />
+              · works behind CGNAT &amp; double-NAT
+              <br />· survives ISP IP rotations
             </p>
           </div>
         </div>
@@ -451,10 +498,14 @@ function CompareCard({
       <ul className="mt-4 space-y-2 font-mono text-[12px]">
         {lines.map((l) => (
           <li key={l} className="flex gap-2">
-            <span className={isGood ? "text-primary" : "text-coral/70"}>
-              {isGood ? "✓" : "✗"}
-            </span>
-            <span className={isGood ? "text-foreground/90" : "text-muted-foreground line-through decoration-coral/40"}>
+            <span className={isGood ? "text-primary" : "text-coral/70"}>{isGood ? "✓" : "✗"}</span>
+            <span
+              className={
+                isGood
+                  ? "text-foreground/90"
+                  : "text-muted-foreground line-through decoration-coral/40"
+              }
+            >
               {l}
             </span>
           </li>
@@ -464,15 +515,27 @@ function CompareCard({
   );
 }
 
-
-function DiagramNode({ icon, title, lines }: { icon: React.ReactNode; title: string; lines: string[] }) {
+function DiagramNode({
+  icon,
+  title,
+  lines,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  lines: string[];
+}) {
   return (
     <div className="rounded-xl border border-primary/25 bg-background/60 backdrop-blur p-5 flex flex-col gap-2">
       <div className="flex items-center gap-3">
         <span className="h-9 w-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
           {icon}
         </span>
-        <span className="font-display font-bold text-lg" style={{ fontFamily: "var(--font-display)" }}>{title}</span>
+        <span
+          className="font-display font-bold text-lg"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          {title}
+        </span>
       </div>
       <div className="font-mono text-[12px] text-muted-foreground space-y-0.5">
         {lines.map((l) => (
@@ -548,7 +611,10 @@ function HouseholdBand() {
               <div className="h-10 w-10 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
                 {c.icon}
               </div>
-              <h3 className="mt-4 font-display text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>
+              <h3
+                className="mt-4 font-display text-lg font-bold"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
                 {c.title}
               </h3>
               <p className="mt-2 text-sm text-muted-foreground">{c.body}</p>
@@ -587,14 +653,17 @@ function FooterCta() {
             Create account
           </Link>
           <Link
-            to="/cloud/devices"
+            to="/devices"
             className="inline-flex items-center gap-2 rounded-md border border-border px-5 py-3 text-sm font-mono uppercase tracking-widest hover:border-primary hover:text-primary transition"
           >
             Open dashboard
           </Link>
         </div>
         <p className="mt-10 text-[11px] font-mono uppercase tracking-widest text-muted-foreground">
-          <a href={`https://${DOMAIN}`} className="hover:text-primary transition">{DOMAIN}</a> · self-hosted · made for tinkerers · loved by the household
+          <a href={`https://${DOMAIN}`} className="hover:text-primary transition">
+            {DOMAIN}
+          </a>{" "}
+          · self-hosted · made for tinkerers · loved by the household
         </p>
       </div>
     </section>

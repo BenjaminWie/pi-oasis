@@ -26,8 +26,10 @@ function previewReply(input: string): string {
   if (t.startsWith("docker ps")) {
     return `CONTAINER ID   IMAGE                              STATUS\n80a91          ghcr.io/home-assistant:stable     Up 12d\nc0092          jc21/nginx-proxy-manager:latest   Up 30d\nd7a44          linuxserver/plex:latest           Up 2h (unhealthy)`;
   }
-  if (t.startsWith("df")) return `Filesystem  Size  Used  Avail  Use%\n/dev/root   29G   18G   10G   64%`;
-  if (t === "help") return `available: gemini <prompt>, docker {ps|logs|stats}, df, free, uptime, hostname, vcgencmd, journalctl, ps, clear`;
+  if (t.startsWith("df"))
+    return `Filesystem  Size  Used  Avail  Use%\n/dev/root   29G   18G   10G   64%`;
+  if (t === "help")
+    return `available: gemini <prompt>, docker {ps|logs|stats}, df, free, uptime, hostname, vcgencmd, journalctl, ps, clear`;
   return `(preview) command not executed — runs live when installed on a Pi.`;
 }
 
