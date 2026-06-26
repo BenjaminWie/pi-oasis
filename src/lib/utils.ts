@@ -7,11 +7,13 @@ export function cn(...inputs: ClassValue[]) {
 
 export function isSlimMode() {
   if (typeof window !== "undefined") {
-    // On the client, look for the data attribute we set on the html tag during SSR.
-    // This is the most reliable way to sync SSR state to the client.
-    return document.documentElement.getAttribute("data-slim") === "true";
+    if (document.documentElement.getAttribute("data-slim") === "true") return true;
+    if (document.documentElement.classList.contains("slim-mode")) return true;
+    const win = window as any;
+    if (win.VITE_PI_SLIM_MODE === "true" || win.VITE_PI_SLIM_MODE === true) return true;
+    return false;
   }
-  // On the server, check process.env or the global we injected in server.ts
-  const val = (globalThis as any).VITE_PI_SLIM_MODE || (typeof process !== "undefined" ? process.env.VITE_PI_SLIM_MODE : undefined);
-  return val === "true" || val === true;
+
+  const v = (globalThis as any).VITE_PI_SLIM_MODE ?? (typeof process !== "undefined" ? process.env.VITE_PI_SLIM_MODE : undefined);
+  return v === "true" || v === true;
 }

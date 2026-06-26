@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup on the Pi (or any Linux box with Node 20+).
+# Robust setup for the Pi (or any Linux box with Node 20+).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -77,7 +77,7 @@ rebuild_esbuild_binaries() {
   echo "✓ esbuild rebuilt for ${#PKGS[@]} package(s)"
 }
 
-# --- swap check (low-memory optimization) ---
+# --- memory check & cleanup ---
 MEM_TOTAL=$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo "0")
 SWAP_TOTAL=$(awk '/SwapTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo "0")
 if [ "$MEM_TOTAL" -lt 1500000 ] && [ "$SWAP_TOTAL" -lt 500000 ]; then
@@ -89,17 +89,15 @@ if [ "$MEM_TOTAL" -lt 1500000 ] && [ "$SWAP_TOTAL" -lt 500000 ]; then
   echo
 fi
 
-# --- cleanup node_modules to avoid ENOTEMPTY errors ---
-if [ -d node_modules ]; then
-  echo "→ cleaning up old node_modules"
-  rm -rf node_modules
-fi
+echo "→ cleaning up build artifacts and old modules"
+rm -rf node_modules .output .esbuild-bin dist 2>/dev/null || true
 
 # --- deps ---
 echo "→ installing dependencies"
 # Use --legacy-peer-deps to avoid conflict between nitro and lovable config
 # Use --jobs=1 on low-memory Pis to avoid OOM
-INSTALL_FLAGS="--legacy-peer-deps"
+# Use --no-audit --no-fund to save memory and time
+INSTALL_FLAGS="--legacy-peer-deps --no-audit --no-fund"
 if [ "$MEM_TOTAL" -lt 1500000 ]; then
   INSTALL_FLAGS="$INSTALL_FLAGS --jobs=1"
 fi
@@ -124,6 +122,7 @@ HOST=0.0.0.0
 PI_DASHBOARD_PIN=1234
 PI_DASHBOARD_SECRET=$SECRET
 VITE_PI_HUB_CLOUD_URL=https://pi-hub.benniwie.com
+VITE_PI_SLIM_MODE=true
 EOF
   echo "→ wrote .env (PIN: 1234 — change in Settings)"
 fi

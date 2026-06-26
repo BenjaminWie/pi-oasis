@@ -13,8 +13,5 @@ export default defineConfig({
         external: ["dockerode", "node-pty", "ssh2", "mqtt"],
       },
     },
-    define: {
-      "process.env.VITE_PI_SLIM_MODE": JSON.stringify(process.env.VITE_PI_SLIM_MODE),
-    },
   },
 });

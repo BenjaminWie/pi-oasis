@@ -6,7 +6,6 @@ import { renderErrorPage } from "./lib/error-page";
 // Inject VITE_PI_SLIM_MODE into global scope for SSR
 if (typeof process !== "undefined") {
   (globalThis as any).VITE_PI_SLIM_MODE = process.env.VITE_PI_SLIM_MODE;
-  console.log("[server] Injected VITE_PI_SLIM_MODE:", (globalThis as any).VITE_PI_SLIM_MODE);
 }
 
 type ServerEntry = {
