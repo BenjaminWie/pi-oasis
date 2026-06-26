@@ -185,6 +185,89 @@ export type Database = {
         }
         Relationships: []
       }
+      mcp_audit: {
+        Row: {
+          created_at: string
+          device_id: string | null
+          error: string | null
+          id: string
+          latency_ms: number | null
+          status: string
+          token_id: string | null
+          tool: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string | null
+          error?: string | null
+          id?: string
+          latency_ms?: number | null
+          status: string
+          token_id?: string | null
+          tool: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string | null
+          error?: string | null
+          id?: string
+          latency_ms?: number | null
+          status?: string
+          token_id?: string | null
+          tool?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mcp_tokens: {
+        Row: {
+          created_at: string
+          device_id: string
+          expires_at: string | null
+          id: string
+          last_used_at: string | null
+          name: string
+          scopes: string[]
+          token_hash: string
+          token_prefix: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          name: string
+          scopes?: string[]
+          token_hash: string
+          token_prefix: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          scopes?: string[]
+          token_hash?: string
+          token_prefix?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_tokens_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
