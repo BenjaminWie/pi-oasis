@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { listDevices, createDevice } from "@/lib/cloud.functions";
+import { listDevices, createDevice } from "@/lib/cloud/cloud.functions";
 import { Plus, Cpu, HardDrive, Thermometer } from "lucide-react";
 
 export const Route = createFileRoute("/_cloud/devices")({
@@ -70,8 +70,7 @@ function DevicesPage() {
 
       <div className="space-y-3">
         {devices.map((d: any) => {
-          const online =
-            d.lastSeenAt && Date.now() - new Date(d.lastSeenAt).getTime() < 120_000;
+          const online = d.lastSeenAt && Date.now() - new Date(d.lastSeenAt).getTime() < 120_000;
           const snap = d.snapshot || {};
           return (
             <Link
@@ -99,9 +98,7 @@ function DevicesPage() {
                 </div>
               )}
               {!d.paired && d.pairing && (
-                <div className="text-[10px] text-primary font-mono">
-                  CODE: {d.pairing.code}
-                </div>
+                <div className="text-[10px] text-primary font-mono">CODE: {d.pairing.code}</div>
               )}
             </Link>
           );

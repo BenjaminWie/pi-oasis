@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getSystemStats, listContainers } from "@/lib/system.functions";
+import { getSystemStats, listContainers } from "@/lib/system/system.functions";
 import { StatGauge } from "@/components/StatGauge";
 import { ContainerCard } from "@/components/ContainerCard";
 
@@ -95,7 +95,9 @@ function OverviewPage() {
             Scanning Docker socket…
           </div>
         )}
-        {containers.data?.map((c) => <ContainerCard key={c.id} c={c} />)}
+        {containers.data?.map((c) => (
+          <ContainerCard key={c.id} c={c} />
+        ))}
       </section>
     </div>
   );

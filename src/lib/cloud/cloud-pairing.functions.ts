@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requirePiAuth } from "./pi-auth-middleware";
+import { requirePiAuth } from "../auth/pi-auth-middleware";
 import { z } from "zod";
 
 // === Pi-local: mint a single-use HMAC nonce ===============================
@@ -11,11 +11,11 @@ import { z } from "zod";
 export const createPairingNonce = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
   .handler(async () => {
-    const { hasProcStats } = await import("./pi-runtime.server");
+    const { hasProcStats } = await import("@/lib/core/pi-runtime.server");
     if (!hasProcStats()) {
       return { ok: false as const, error: "Pairing only available on the Pi runtime" };
     }
-    const { signPiToken } = await import("./pi-auth.server");
+    const { signPiToken } = await import("@/lib/auth/pi-auth.server");
     const nonce = signPiToken("cloud-pair", 600); // 10 min
     return { ok: true as const, nonce };
   });
@@ -74,7 +74,7 @@ export const claimCloudPairing = createServerFn({ method: "POST" })
     return d;
   })
   .handler(async ({ data }) => {
-    const { hasProcStats } = await import("./pi-runtime.server");
+    const { hasProcStats } = await import("@/lib/core/pi-runtime.server");
     if (!hasProcStats()) return { ok: false as const, error: "not on Pi" };
     const cloudUrl = (data.cloudUrl || "https://pi-hub.benniwie.com").replace(/\/+$/, "");
     try {
@@ -93,7 +93,7 @@ export const claimCloudPairing = createServerFn({ method: "POST" })
         deviceToken: string;
         name: string;
       };
-      const { setCloudConfig } = await import("./pin-store.server");
+      const { setCloudConfig } = await import("@/lib/auth/pin-store.server");
       await setCloudConfig({
         cloudUrl,
         deviceId: j.deviceId,
@@ -101,7 +101,7 @@ export const claimCloudPairing = createServerFn({ method: "POST" })
         name: j.name,
         installedAt: new Date().toISOString(),
       });
-      const { ensureCloudBridgeStarted } = await import("./cloud-bridge.server");
+      const { ensureCloudBridgeStarted } = await import("@/lib/cloud/cloud-bridge.server");
       ensureCloudBridgeStarted();
       return { ok: true as const, name: j.name };
     } catch (e: any) {
@@ -112,9 +112,9 @@ export const claimCloudPairing = createServerFn({ method: "POST" })
 export const disconnectCloudBridge = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
   .handler(async () => {
-    const { hasProcStats } = await import("./pi-runtime.server");
+    const { hasProcStats } = await import("@/lib/core/pi-runtime.server");
     if (!hasProcStats()) return { ok: false as const };
-    const { setCloudConfig } = await import("./pin-store.server");
+    const { setCloudConfig } = await import("@/lib/auth/pin-store.server");
     await setCloudConfig(null);
     return { ok: true as const };
   });

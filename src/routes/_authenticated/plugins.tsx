@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Puzzle, Plus, Droplets, Power, PowerOff } from "lucide-react";
-import { listPlugins, createSmartPump } from "@/lib/plugins.functions";
+import { listPlugins, createSmartPump } from "@/lib/plugins/plugins.functions";
 
 export const Route = createFileRoute("/_authenticated/plugins")({
   component: PluginsPage,
@@ -107,12 +107,14 @@ function PluginsPage() {
                 </div>
                 <span
                   className={`text-[10px] font-mono px-2 py-1 rounded-md ${
-                    p.enabled
-                      ? "bg-status-ok/15 text-status-ok"
-                      : "bg-muted text-muted-foreground"
+                    p.enabled ? "bg-status-ok/15 text-status-ok" : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  {p.enabled ? <Power className="size-3 inline" /> : <PowerOff className="size-3 inline" />}{" "}
+                  {p.enabled ? (
+                    <Power className="size-3 inline" />
+                  ) : (
+                    <PowerOff className="size-3 inline" />
+                  )}{" "}
                   {p.enabled ? "ON" : "OFF"}
                 </span>
               </div>
@@ -158,8 +160,8 @@ function NewPluginCard({
         />
       </div>
       <p className="text-[10px] text-muted-foreground">
-        Starts in <span className="text-primary">simulated</span> mode — no MQTT publish until you switch
-        it off in the plugin settings.
+        Starts in <span className="text-primary">simulated</span> mode — no MQTT publish until you
+        switch it off in the plugin settings.
       </p>
       <button
         disabled={busy}

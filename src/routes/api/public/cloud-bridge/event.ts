@@ -6,7 +6,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { bearer, jsonResponse, sha256 } from "@/lib/agent-api.server";
+import { bearer, jsonResponse, sha256 } from "@/lib/ai/agent-api.server";
 
 const Body = z
   .object({

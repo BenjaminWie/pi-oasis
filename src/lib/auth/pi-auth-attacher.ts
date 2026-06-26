@@ -5,10 +5,7 @@ import { createMiddleware } from "@tanstack/react-start";
 
 const KEY = "pi-dashboard.token";
 
-export const attachPiAuth = createMiddleware({ type: "function" }).client(
-  async ({ next }) => {
-    const token =
-      typeof window !== "undefined" ? window.localStorage.getItem(KEY) : null;
-    return next({ headers: token ? { "X-Pi-Auth": token } : {} });
-  },
-);
+export const attachPiAuth = createMiddleware({ type: "function" }).client(async ({ next }) => {
+  const token = typeof window !== "undefined" ? window.localStorage.getItem(KEY) : null;
+  return next({ headers: token ? { "X-Pi-Auth": token } : {} });
+});

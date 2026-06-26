@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Play, Square, RotateCcw, TerminalSquare } from "lucide-react";
-import { getContainer, containerAction } from "@/lib/system.functions";
+import { getContainer, containerAction } from "@/lib/system/system.functions";
 
 export const Route = createFileRoute("/_authenticated/container/$id")({
   component: ContainerDetail,
@@ -21,8 +21,7 @@ function ContainerDetail() {
   });
 
   const m = useMutation({
-    mutationFn: (action: "start" | "stop" | "restart") =>
-      actFn({ data: { id, action } }),
+    mutationFn: (action: "start" | "stop" | "restart") => actFn({ data: { id, action } }),
     onSuccess: () => q.refetch(),
   });
 

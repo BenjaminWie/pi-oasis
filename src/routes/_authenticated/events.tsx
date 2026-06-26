@@ -4,8 +4,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { Activity, Cloud, CloudOff, AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
-import { getIngestEvents, getIngestStatus } from "@/lib/events.functions";
+import {
+  Activity,
+  Cloud,
+  CloudOff,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  XCircle,
+} from "lucide-react";
+import { getIngestEvents, getIngestStatus } from "@/lib/cloud/events.functions";
 
 export const Route = createFileRoute("/_authenticated/events")({
   component: EventsPage,
@@ -81,11 +89,7 @@ function EventsPage() {
       </header>
 
       <div className="grid grid-cols-3 gap-2 mb-4 text-xs">
-        <StatCard
-          icon={Activity}
-          label="Buffered"
-          value={status.data?.stats.buffered ?? 0}
-        />
+        <StatCard icon={Activity} label="Buffered" value={status.data?.stats.buffered ?? 0} />
         <StatCard
           icon={status.data?.cloudPaired ? Cloud : CloudOff}
           label="Forwarded"
@@ -102,9 +106,9 @@ function EventsPage() {
 
       {!status.data?.tokenConfigured && (
         <div className="mb-4 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs">
-          <strong className="font-semibold">PI_INGEST_TOKEN nicht gesetzt.</strong>{" "}
-          Trag den Token in <code>.env</code> ein, dann Pi neu starten. Bis dahin werden
-          alle Posts mit 401 abgewiesen.
+          <strong className="font-semibold">PI_INGEST_TOKEN nicht gesetzt.</strong> Trag den Token
+          in <code>.env</code> ein, dann Pi neu starten. Bis dahin werden alle Posts mit 401
+          abgewiesen.
         </div>
       )}
 
@@ -125,10 +129,7 @@ function EventsPage() {
       </div>
 
       {list.length === 0 ? (
-        <EmptyState
-          tokenConfigured={!!status.data?.tokenConfigured}
-          components={components}
-        />
+        <EmptyState tokenConfigured={!!status.data?.tokenConfigured} components={components} />
       ) : (
         <ul className="space-y-2">
           {list.map((ev) => {
@@ -151,9 +152,7 @@ function EventsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="font-semibold text-sm truncate">
-                        {ev.device}
-                      </span>
+                      <span className="font-semibold text-sm truncate">{ev.device}</span>
                       <span className="text-[10px] text-muted-foreground tabular-nums">
                         {new Date(ev.timestamp).toLocaleTimeString()}
                       </span>
@@ -239,11 +238,10 @@ function EmptyState({
   return (
     <div className="rounded-xl border border-dashed border-border p-4 text-xs text-muted-foreground space-y-3">
       <p>
-        Noch keine Events. Konfigurier in Node-RED einen <strong>HTTP Request</strong>{" "}
-        Node:
+        Noch keine Events. Konfigurier in Node-RED einen <strong>HTTP Request</strong> Node:
       </p>
       <pre className="bg-background/60 p-2 rounded-lg overflow-x-auto text-[10px] text-foreground border border-border">
-{`POST http://127.0.0.1:3000/api/public/ingest/event
+        {`POST http://127.0.0.1:3000/api/public/ingest/event
 Header  Authorization: Bearer \${PI_INGEST_TOKEN}
 Body    ${sample}`}
       </pre>
@@ -255,9 +253,7 @@ Body    ${sample}`}
           </code>
         </p>
       )}
-      {components.length > 0 && (
-        <p>Bekannte Komponenten: {components.join(", ")}</p>
-      )}
+      {components.length > 0 && <p>Bekannte Komponenten: {components.join(", ")}</p>}
     </div>
   );
 }

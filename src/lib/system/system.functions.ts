@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requirePiAuth } from "./pi-auth-middleware";
+import { requirePiAuth } from "../auth/pi-auth-middleware";
 import {
   mockStats,
   mockContainers,
@@ -7,7 +7,7 @@ import {
   type ContainerStatus,
   type ContainerSummary,
   type SystemStats,
-} from "./mock-data";
+} from "../core/mock-data";
 
 // All real-system reads live in a sibling `.server.ts` module and are loaded
 // dynamically inside each handler. That keeps `dockerode`, `fs`, and
@@ -17,10 +17,10 @@ import {
 export const getSystemStats = createServerFn({ method: "GET" })
   .middleware([requirePiAuth])
   .handler(async (): Promise<SystemStats> => {
-    const { hasProcStats } = await import("./pi-runtime.server");
+    const { hasProcStats } = await import("@/lib/core/pi-runtime.server");
     if (!hasProcStats()) return jitterMock();
     try {
-      const { readRealSystemStats } = await import("./system.server");
+      const { readRealSystemStats } = await import("@/lib/system/system.server");
       return await readRealSystemStats();
     } catch {
       return jitterMock();
@@ -30,10 +30,10 @@ export const getSystemStats = createServerFn({ method: "GET" })
 export const listContainers = createServerFn({ method: "GET" })
   .middleware([requirePiAuth])
   .handler(async (): Promise<ContainerSummary[]> => {
-    const { isPiRuntime } = await import("./pi-runtime.server");
+    const { isPiRuntime } = await import("@/lib/core/pi-runtime.server");
     if (!isPiRuntime()) return mockContainers;
     try {
-      const { listRealContainers } = await import("./system.server");
+      const { listRealContainers } = await import("@/lib/system/system.server");
       return await listRealContainers();
     } catch {
       return mockContainers;
@@ -44,14 +44,14 @@ export const getContainer = createServerFn({ method: "GET" })
   .middleware([requirePiAuth])
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data }) => {
-    const { isPiRuntime } = await import("./pi-runtime.server");
+    const { isPiRuntime } = await import("@/lib/core/pi-runtime.server");
     if (!isPiRuntime()) {
       const c = mockContainers.find((x) => x.id === data.id);
       if (!c) return null;
       return { ...c, logs: mockLogs(c.name) };
     }
     try {
-      const { getRealContainer } = await import("./system.server");
+      const { getRealContainer } = await import("@/lib/system/system.server");
       return await getRealContainer(data.id);
     } catch {
       const c = mockContainers.find((x) => x.id === data.id);
@@ -60,26 +60,20 @@ export const getContainer = createServerFn({ method: "GET" })
     }
   });
 
+import { handleServerError, type ActionResponse } from "../core/errors";
+
 export const containerAction = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
-  .inputValidator(
-    (d: { id: string; action: "start" | "stop" | "restart" }) => d,
-  )
-  .handler(async ({ data }) => {
-    const { isPiRuntime } = await import("./pi-runtime.server");
-    if (!isPiRuntime()) return { ok: true, id: data.id, action: data.action };
-    try {
-      const { runContainerAction } = await import("./system.server");
+  .inputValidator((d: { id: string; action: "start" | "stop" | "restart" }) => d)
+  .handler(async ({ data }): Promise<ActionResponse<{ id: string; action: string }>> => {
+    return handleServerError(async () => {
+      const { isPiRuntime } = await import("@/lib/core/pi-runtime.server");
+      if (!isPiRuntime()) return { id: data.id, action: data.action };
+
+      const { runContainerAction } = await import("@/lib/system/system.server");
       await runContainerAction(data.id, data.action);
-      return { ok: true, id: data.id, action: data.action };
-    } catch (e) {
-      return {
-        ok: false,
-        id: data.id,
-        action: data.action,
-        error: (e as Error).message,
-      };
-    }
+      return { id: data.id, action: data.action };
+    });
   });
 
 function jitterMock(): SystemStats {

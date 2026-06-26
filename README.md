@@ -68,13 +68,13 @@ Native Node process, single binary. No Docker-in-Docker, no nginx reverse
 proxy, no DB server. State is a tiny JSON file at `~/.pi-hub/state.json`
 (PIN hash + trusted devices).
 
-| Concern        | How                                                            |
-|----------------|----------------------------------------------------------------|
-| Containers     | `dockerode` over `/var/run/docker.sock`                        |
-| System stats   | direct reads of `/proc/stat`, `/proc/meminfo`, `vcgencmd`      |
-| Terminal       | `node-pty` shell streamed over WS to `xterm.js`                |
-| MQTT inspector | `mqtt.js` subscribed to `#`, streamed to the browser           |
-| Voice          | Web Speech API (browser-native, no API key)                    |
+| Concern        | How                                                       |
+| -------------- | --------------------------------------------------------- |
+| Containers     | `dockerode` over `/var/run/docker.sock`                   |
+| System stats   | direct reads of `/proc/stat`, `/proc/meminfo`, `vcgencmd` |
+| Terminal       | `node-pty` shell streamed over WS to `xterm.js`           |
+| MQTT inspector | `mqtt.js` subscribed to `#`, streamed to the browser      |
+| Voice          | Web Speech API (browser-native, no API key)               |
 
 See [DEPLOY.md](./DEPLOY.md) for the mock-to-real wiring.
 

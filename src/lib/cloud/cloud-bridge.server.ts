@@ -8,7 +8,7 @@ let stopRequested = false;
 
 async function snapshot() {
   try {
-    const { readRealSystemStats, listRealContainers } = await import("./system.server");
+    const { readRealSystemStats, listRealContainers } = await import("@/lib/system/system.server");
     const [stats, containers] = await Promise.all([
       readRealSystemStats(),
       listRealContainers().catch(() => []),
@@ -38,7 +38,7 @@ async function execCommand(cmd: any) {
       return { ok: true, result: snap };
     }
     if (cmd.kind === "container_action") {
-      const { runContainerAction } = await import("./system.server");
+      const { runContainerAction } = await import("@/lib/system/system.server");
       await runContainerAction(cmd.payload.name, cmd.payload.action);
       return { ok: true, result: { name: cmd.payload.name, action: cmd.payload.action } };
     }
@@ -53,7 +53,16 @@ async function execCommand(cmd: any) {
       const port = Number(cmd.payload.port ?? 1883);
       await exec(
         "mosquitto_pub",
-        ["-h", host, "-p", String(port), "-t", String(cmd.payload.topic), "-m", String(cmd.payload.payload || "")],
+        [
+          "-h",
+          host,
+          "-p",
+          String(port),
+          "-t",
+          String(cmd.payload.topic),
+          "-m",
+          String(cmd.payload.payload || ""),
+        ],
         { timeout: 5000 },
       );
       return { ok: true, result: { topic: cmd.payload.topic } };
@@ -65,7 +74,7 @@ async function execCommand(cmd: any) {
 }
 
 async function loop() {
-  const { getCloudConfig } = await import("./pin-store.server");
+  const { getCloudConfig } = await import("@/lib/auth/pin-store.server");
   let lastHeartbeat = 0;
 
   while (!stopRequested) {

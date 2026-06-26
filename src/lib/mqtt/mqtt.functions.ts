@@ -1,10 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requirePiAuth } from "./pi-auth-middleware";
-import {
-  generateMockMqttMessage,
-  mockContainers,
-  type MqttMessage,
-} from "./mock-data";
+import { requirePiAuth } from "../auth/pi-auth-middleware";
+import { generateMockMqttMessage, mockContainers, type MqttMessage } from "../core/mock-data";
 
 // On the Pi, real broker discovery comes from the Docker socket and the
 // poll/publish endpoints open short-lived `mqtt://` connections. On the
@@ -14,10 +10,10 @@ import {
 export const listMqttBrokers = createServerFn({ method: "GET" })
   .middleware([requirePiAuth])
   .handler(async () => {
-    const { isPiRuntime } = await import("./pi-runtime.server");
+    const { isPiRuntime } = await import("@/lib/core/pi-runtime.server");
     if (isPiRuntime()) {
       try {
-        const { listRealContainers } = await import("./system.server");
+        const { listRealContainers } = await import("@/lib/system/system.server");
         const cs = await listRealContainers();
         return cs
           .filter(
@@ -58,14 +54,11 @@ export const pollMqttMessages = createServerFn({ method: "GET" })
   .middleware([requirePiAuth])
   .inputValidator((d: { brokerId: string; topicFilter?: string }) => d)
   .handler(async ({ data }): Promise<{ messages: MqttMessage[] }> => {
-    const { isPiRuntime } = await import("./pi-runtime.server");
+    const { isPiRuntime } = await import("@/lib/core/pi-runtime.server");
     if (isPiRuntime()) {
       try {
-        const { drainMqtt } = await import("./mqtt.server");
-        const messages = await drainMqtt(
-          data.brokerId,
-          data.topicFilter ?? "#",
-        );
+        const { drainMqtt } = await import("@/lib/mqtt/mqtt.server");
+        const messages = await drainMqtt(data.brokerId, data.topicFilter ?? "#");
         return { messages };
       } catch {
         return { messages: [] };
@@ -110,10 +103,10 @@ export const publishMqttMessage = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data }) => {
-    const { isPiRuntime } = await import("./pi-runtime.server");
+    const { isPiRuntime } = await import("@/lib/core/pi-runtime.server");
     if (isPiRuntime()) {
       try {
-        const { publishMqtt } = await import("./mqtt.server");
+        const { publishMqtt } = await import("@/lib/mqtt/mqtt.server");
         await publishMqtt(data.brokerId, {
           topic: data.topic,
           payload: data.payload,

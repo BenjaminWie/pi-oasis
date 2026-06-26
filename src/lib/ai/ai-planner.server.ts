@@ -2,8 +2,8 @@
 // Lovable AI Gateway. Falls back to a deterministic rule if LOVABLE_API_KEY
 // is missing or the call fails.
 
-import type { Plugin, PluginPlan } from "./plugins-store.server";
-import { fetchForecast, type WeatherForecast } from "./weather.server";
+import type { Plugin, PluginPlan } from "../plugins/plugins-store.server";
+import { fetchForecast, type WeatherForecast } from "../weather/weather.server";
 import { randomBytes } from "node:crypto";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";

@@ -43,6 +43,7 @@ No `fs.writeFile`, no SQLite, no Influx writes from this path. The Pi-local stor
 ## Files
 
 **New**
+
 - `src/routes/api/public/ingest/event.ts` — loopback-only POST handler (zod, token, ring buffer push, forward).
 - `src/lib/ingest-buffer.server.ts` — in-memory ring buffer + SSE pub/sub + cloud forwarder queue.
 - `src/routes/api/public/ingest/stream.ts` — SSE endpoint the UI subscribes to (auth via Supabase bearer, scoped to device).
@@ -51,6 +52,7 @@ No `fs.writeFile`, no SQLite, no Influx writes from this path. The Pi-local stor
 - `docs/node-red-ingest.md` — short doc: example HTTP Request node config, env var setup, systemd snippet.
 
 **Edited**
+
 - `src/lib/cloud-bridge.server.ts` — add `forwardEvent(payload)` that piggybacks on the existing relay channel (or POSTs to a new `/api/public/cloud-bridge/event` cloud route).
 - `src/routes/api/public/cloud-bridge/claim.ts` (or sibling) — new `event.ts` cloud-side route that authenticates the device token and inserts into `device_events`.
 - `scripts/install.sh` — mint `PI_INGEST_TOKEN` on first run, print Node-RED setup hint, optionally configure tmpfs for `/var/log/pi-hub`.
@@ -88,6 +90,7 @@ Writes happen only via the cloud-side public route using `supabaseAdmin` after d
 ## UI
 
 `/events` route:
+
 - Header with live SSE counter (events/min) and "Forwarded ✓ / Queued N / Dropped N".
 - List grouped by component, each row: time, device, status pill (green/amber/red), key metrics inline (`395 W · 231 V · 0.45 kWh`).
 - Click row → side sheet with full payload JSON and "raw" toggle.

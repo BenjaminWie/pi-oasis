@@ -14,14 +14,14 @@ const MAX_DECISIONS = 200;
 export type PluginKind = "smart_pump";
 
 export interface SmartPumpConfig {
-  brokerId: string | null;     // mqtt broker container id; null when simulated
-  cmndTopic: string;           // e.g. cmnd/tasmota_pump/POWER
-  statTopic: string;           // e.g. stat/tasmota_pump/POWER
+  brokerId: string | null; // mqtt broker container id; null when simulated
+  cmndTopic: string; // e.g. cmnd/tasmota_pump/POWER
+  statTopic: string; // e.g. stat/tasmota_pump/POWER
   lat: number;
   lon: number;
   maxMinutesPerDay: number;
   minHoursBetweenRuns: number;
-  runMinutes: number;          // duration of one watering cycle
+  runMinutes: number; // duration of one watering cycle
   simulated: boolean;
 }
 
@@ -45,12 +45,7 @@ export interface PluginPlan {
   source: "ai" | "fallback";
 }
 
-export type DecisionAction =
-  | "on"
-  | "off"
-  | "skip"
-  | "manual_on"
-  | "manual_off";
+export type DecisionAction = "on" | "off" | "skip" | "manual_on" | "manual_off";
 
 export type DecisionInputs = Record<string, string | number | boolean | null>;
 
@@ -191,10 +186,7 @@ export async function recordDecisionStore(
   return dec;
 }
 
-export async function listDecisionsStore(
-  pluginId: string,
-  limit = 50,
-): Promise<PluginDecision[]> {
+export async function listDecisionsStore(pluginId: string, limit = 50): Promise<PluginDecision[]> {
   const s = await load();
   return s.decisions.filter((d) => d.pluginId === pluginId).slice(0, limit);
 }
@@ -212,9 +204,7 @@ export async function takeOverrideStore(pluginId: string): Promise<ManualOverrid
   const s = await load();
   const o = s.overrides.find(
     (x) =>
-      x.pluginId === pluginId &&
-      !x.consumed &&
-      new Date(x.validUntilIso).getTime() > Date.now(),
+      x.pluginId === pluginId && !x.consumed && new Date(x.validUntilIso).getTime() > Date.now(),
   );
   if (!o) return null;
   o.consumed = true;
@@ -228,6 +218,8 @@ export async function setSimStateStore(pluginId: string, on: boolean): Promise<v
   await save(s);
 }
 
-export async function getSimStateStore(pluginId: string): Promise<{ on: boolean; sinceIso: string } | null> {
+export async function getSimStateStore(
+  pluginId: string,
+): Promise<{ on: boolean; sinceIso: string } | null> {
   return (await load()).simStates[pluginId] ?? null;
 }

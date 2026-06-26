@@ -1,8 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Activity, TerminalSquare, Settings as SettingsIcon, Radio, Puzzle, Zap } from "lucide-react";
-import { listMqttBrokers } from "@/lib/mqtt.functions";
+import {
+  Activity,
+  TerminalSquare,
+  Settings as SettingsIcon,
+  Radio,
+  Puzzle,
+  Zap,
+} from "lucide-react";
+import { listMqttBrokers } from "@/lib/mqtt/mqtt.functions";
 
 const baseTabs = [
   { to: "/overview", label: "Overview", icon: Activity },

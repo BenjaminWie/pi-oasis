@@ -1,8 +1,8 @@
 import { createStart, createMiddleware } from "@tanstack/react-start";
 
-import { renderErrorPage } from "./lib/error-page";
+import { renderErrorPage } from "@/lib/core/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
-import { attachPiAuth } from "@/lib/pi-auth-attacher";
+import { attachPiAuth } from "@/lib/auth/pi-auth-attacher";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
