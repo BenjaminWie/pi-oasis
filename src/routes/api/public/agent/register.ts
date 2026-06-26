@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { jsonResponse, newDeviceToken } from "@/lib/agent-api.server";
+import { jsonResponse, newDeviceToken } from "@/lib/ai/agent-api.server";
 
 const Body = z.object({
   code: z.string().min(4).max(16),

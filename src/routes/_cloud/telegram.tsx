@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { getProfile, linkTelegramBot, unlinkTelegramBot } from "@/lib/cloud.functions";
+import { getProfile, linkTelegramBot, unlinkTelegramBot } from "@/lib/cloud/cloud.functions";
 
 export const Route = createFileRoute("/_cloud/telegram")({
   component: TelegramPage,
@@ -41,15 +41,15 @@ function TelegramPage() {
 
   return (
     <div className="px-5 space-y-4">
-      <h2 className="text-xs uppercase tracking-widest text-muted-foreground">
-        Telegram-Bot
-      </h2>
+      <h2 className="text-xs uppercase tracking-widest text-muted-foreground">Telegram-Bot</h2>
 
       {!linked ? (
         <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
           <ol className="text-xs space-y-2 text-muted-foreground list-decimal list-inside">
             <li>In Telegram: @BotFather öffnen, /newbot, Anweisungen folgen</li>
-            <li>Token (Format <code className="text-primary">123:ABC...</code>) hier einfügen</li>
+            <li>
+              Token (Format <code className="text-primary">123:ABC...</code>) hier einfügen
+            </li>
             <li>Speichern → Webhook wird automatisch gesetzt</li>
           </ol>
           <input
@@ -70,15 +70,11 @@ function TelegramPage() {
       ) : (
         <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">
-              Bot
-            </span>
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Bot</span>
             <span className="font-mono text-primary">@{profile.telegram_bot_username}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">
-              Chat
-            </span>
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Chat</span>
             <span className="font-mono text-xs">
               {chatLinked ? "verknüpft" : "noch nicht verknüpft"}
             </span>
@@ -86,14 +82,18 @@ function TelegramPage() {
 
           {!chatLinked && (
             <div className="rounded-lg bg-background border border-border p-3 text-xs space-y-1">
-              <p className="text-muted-foreground">In Telegram an @{profile.telegram_bot_username}:</p>
+              <p className="text-muted-foreground">
+                In Telegram an @{profile.telegram_bot_username}:
+              </p>
               <p className="font-mono text-primary">/link {profile.telegram_link_code}</p>
             </div>
           )}
 
           <div className="text-[10px] text-muted-foreground space-y-1 pt-2">
             <p className="uppercase tracking-widest">Verfügbare Befehle</p>
-            <p className="font-mono">/devices · /status · /containers · /mqtt pub &lt;topic&gt; &lt;msg&gt;</p>
+            <p className="font-mono">
+              /devices · /status · /containers · /mqtt pub &lt;topic&gt; &lt;msg&gt;
+            </p>
           </div>
 
           <button

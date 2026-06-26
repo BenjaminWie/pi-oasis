@@ -3,7 +3,7 @@
 // token bundle. No auth header — the nonce IS the auth, single-use + 10min TTL.
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { jsonResponse } from "@/lib/agent-api.server";
+import { jsonResponse } from "@/lib/ai/agent-api.server";
 
 export const Route = createFileRoute("/api/public/cloud-bridge/claim")({
   server: {

@@ -27,7 +27,8 @@ let lastCpu = null;
 function readCpu() {
   // returns 0-100, sampled across calls
   const c = cpus();
-  let idle = 0, total = 0;
+  let idle = 0,
+    total = 0;
   for (const x of c) {
     for (const k of Object.keys(x.times)) total += x.times[k];
     idle += x.times.idle;
@@ -70,10 +71,9 @@ function readDisk() {
 
 function listContainers() {
   try {
-    const out = execSync(
-      "docker ps -a --format '{{.Names}}|{{.State}}|{{.Image}}'",
-      { timeout: 3000 },
-    ).toString();
+    const out = execSync("docker ps -a --format '{{.Names}}|{{.State}}|{{.Image}}'", {
+      timeout: 3000,
+    }).toString();
     return out
       .trim()
       .split("\n")

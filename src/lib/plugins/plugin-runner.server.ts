@@ -11,12 +11,13 @@ function dayKey(d = new Date()) {
 }
 
 async function ensurePlan(pluginId: string) {
-  const { getPlanStore, getPluginStore, setPlanStore } = await import("./plugins-store.server");
+  const { getPlanStore, getPluginStore, setPlanStore } =
+    await import("@/lib/plugins/plugins-store.server");
   const p = await getPlanStore(pluginId);
   if (p && new Date(p.validUntil).getTime() > Date.now()) return p;
   const plugin = await getPluginStore(pluginId);
   if (!plugin) return null;
-  const { buildPlan } = await import("./ai-planner.server");
+  const { buildPlan } = await import("@/lib/ai/ai-planner.server");
   const fresh = await buildPlan(plugin).catch((e) => {
     console.error("[plugin-runner] plan build failed", e);
     return null;
@@ -31,13 +32,13 @@ async function applyAction(
   simulated: boolean,
   cfg: { brokerId: string | null; cmndTopic: string },
 ) {
-  const { setSimStateStore } = await import("./plugins-store.server");
+  const { setSimStateStore } = await import("@/lib/plugins/plugins-store.server");
   if (simulated || !cfg.brokerId) {
     await setSimStateStore(pluginId, action === "on");
     return;
   }
   try {
-    const { publishMqtt } = await import("./mqtt.server");
+    const { publishMqtt } = await import("@/lib/mqtt/mqtt.server");
     await publishMqtt(cfg.brokerId, {
       topic: cfg.cmndTopic,
       payload: action === "on" ? "ON" : "OFF",
@@ -52,12 +53,8 @@ async function applyAction(
 }
 
 async function tickPlugin(pluginId: string) {
-  const {
-    getPluginStore,
-    takeOverrideStore,
-    recordDecisionStore,
-    getSimStateStore,
-  } = await import("./plugins-store.server");
+  const { getPluginStore, takeOverrideStore, recordDecisionStore, getSimStateStore } =
+    await import("@/lib/plugins/plugins-store.server");
   const plugin = await getPluginStore(pluginId);
   if (!plugin || !plugin.enabled) return;
 
@@ -74,8 +71,7 @@ async function tickPlugin(pluginId: string) {
 
   const now = Date.now();
   const inWindow = plan.windows.find(
-    (w) =>
-      new Date(w.startIso).getTime() <= now && now < new Date(w.endIso).getTime(),
+    (w) => new Date(w.startIso).getTime() <= now && now < new Date(w.endIso).getTime(),
   );
   const current = await getSimStateStore(pluginId);
   const currentlyOn = !!current?.on;
@@ -136,15 +132,13 @@ async function tickPlugin(pluginId: string) {
 }
 
 async function loop() {
-  const { listPluginsStore } = await import("./plugins-store.server");
+  const { listPluginsStore } = await import("@/lib/plugins/plugins-store.server");
   while (!stopRequested) {
     try {
       const plugins = await listPluginsStore();
       for (const p of plugins) {
         if (!p.enabled) continue;
-        await tickPlugin(p.id).catch((e) =>
-          console.error("[plugin-runner] tick failed", p.id, e),
-        );
+        await tickPlugin(p.id).catch((e) => console.error("[plugin-runner] tick failed", p.id, e));
       }
     } catch (e) {
       console.error("[plugin-runner] loop error", e);

@@ -3,8 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { Pause, Play, Trash2, Send, Radio } from "lucide-react";
-import { listMqttBrokers, pollMqttMessages, publishMqttMessage } from "@/lib/mqtt.functions";
-import type { MqttMessage } from "@/lib/mock-data";
+import { listMqttBrokers, pollMqttMessages, publishMqttMessage } from "@/lib/mqtt/mqtt.functions";
+import type { MqttMessage } from "@/lib/core/mock-data";
 
 export const Route = createFileRoute("/_authenticated/mqtt")({
   component: MqttPage,
@@ -55,7 +55,8 @@ function MqttPage() {
   });
 
   const publish = useMutation({
-    mutationFn: () => pubFn({ data: { brokerId: brokerId!, topic: pubTopic, payload: pubPayload } }),
+    mutationFn: () =>
+      pubFn({ data: { brokerId: brokerId!, topic: pubTopic, payload: pubPayload } }),
     onSuccess: () => setShowPublish(false),
   });
 
@@ -194,7 +195,9 @@ function MqttPage() {
                 </span>
                 <span className="text-primary truncate">{m.topic}</span>
               </div>
-              <div className={`text-status-ok/80 mt-1 ${isOpen ? "whitespace-pre-wrap" : "truncate"}`}>
+              <div
+                className={`text-status-ok/80 mt-1 ${isOpen ? "whitespace-pre-wrap" : "truncate"}`}
+              >
                 {isOpen ? pretty : m.payload}
               </div>
             </button>

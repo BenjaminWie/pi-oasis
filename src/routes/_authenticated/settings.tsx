@@ -3,14 +3,18 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { LogOut, Smartphone, Cpu, Shield, Cloud, KeyRound, RefreshCw } from "lucide-react";
-import { auth } from "@/lib/auth-store";
-import { changePin, resetPinWithFactoryToken } from "@/lib/auth.functions";
+import { auth } from "@/lib/auth/auth-store";
+import { changePin, resetPinWithFactoryToken } from "@/lib/auth/auth.functions";
 import {
   getHostInfo,
   revokeTrustedDevices,
   getFactoryTokenForDisplay,
-} from "@/lib/host-info.functions";
-import { createPairingNonce, claimCloudPairing, disconnectCloudBridge } from "@/lib/cloud-pairing.functions";
+} from "@/lib/system/host-info.functions";
+import {
+  createPairingNonce,
+  claimCloudPairing,
+  disconnectCloudBridge,
+} from "@/lib/cloud/cloud-pairing.functions";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -61,8 +65,7 @@ function SettingsPage() {
         return;
       }
       const cloudUrl =
-        (import.meta as any).env?.VITE_PI_HUB_CLOUD_URL ||
-        "https://pi-hub.benniwie.com";
+        (import.meta as any).env?.VITE_PI_HUB_CLOUD_URL || "https://pi-hub.benniwie.com";
       const local = window.location.origin;
       const hostname = host?.hostname || window.location.hostname;
       const dest = new URL(cloudUrl + "/auth");
@@ -110,7 +113,11 @@ function SettingsPage() {
         <Row label="Platform" value={host ? `${host.platform} ${host.release}` : "—"} />
         <Row label="Arch" value={host?.arch ?? "—"} />
         <Row label="Node" value={host?.nodeVersion ?? "—"} />
-        <Row label="Runtime" value={host?.isPi ? "Pi (live)" : "preview"} tone={host?.isPi ? "ok" : undefined} />
+        <Row
+          label="Runtime"
+          value={host?.isPi ? "Pi (live)" : "preview"}
+          tone={host?.isPi ? "ok" : undefined}
+        />
       </Section>
 
       <Section title="Cloud bridge" icon={<Cloud className="size-4" />}>
@@ -130,9 +137,9 @@ function SettingsPage() {
         ) : (
           <>
             <p className="text-xs text-muted-foreground mb-3">
-              Verbinde diesen Pi mit der Cloud, um aus dem Mobilnetz oder via
-              Telegram fernzusteuern. Du meldest dich einmal in der Cloud an,
-              das Token wird automatisch übertragen.
+              Verbinde diesen Pi mit der Cloud, um aus dem Mobilnetz oder via Telegram
+              fernzusteuern. Du meldest dich einmal in der Cloud an, das Token wird automatisch
+              übertragen.
             </p>
             <button
               onClick={startCloudPair}
@@ -160,11 +167,7 @@ function SettingsPage() {
           <p className="text-xs text-muted-foreground">Keine getrusteten Geräte.</p>
         ) : (
           host!.trustedDevices.map((d) => (
-            <Row
-              key={d.id}
-              label={d.label}
-              value={new Date(d.lastSeenAt).toLocaleString()}
-            />
+            <Row key={d.id} label={d.label} value={new Date(d.lastSeenAt).toLocaleString()} />
           ))
         )}
         <button
@@ -274,7 +277,10 @@ function Row({ label, value, tone }: { label: string; value: string; tone?: "ok"
 
 function ModalShell({ title, onClose, children }: any) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
       <div
         className="bg-card border border-border rounded-3xl p-5 w-full max-w-sm space-y-3"
         onClick={(e) => e.stopPropagation()}
@@ -294,9 +300,33 @@ function ChangePinModal({ onClose, submit }: any) {
   const [ok, setOk] = useState(false);
   return (
     <ModalShell title="Change PIN" onClose={onClose}>
-      <input value={cur} onChange={(e) => setCur(e.target.value)} placeholder="Aktuelle PIN" type="password" inputMode="numeric" maxLength={8} className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm" />
-      <input value={neu} onChange={(e) => setNeu(e.target.value)} placeholder="Neue PIN (4–8 Ziffern)" type="password" inputMode="numeric" maxLength={8} className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm" />
-      <input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Neue PIN bestätigen" type="password" inputMode="numeric" maxLength={8} className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm" />
+      <input
+        value={cur}
+        onChange={(e) => setCur(e.target.value)}
+        placeholder="Aktuelle PIN"
+        type="password"
+        inputMode="numeric"
+        maxLength={8}
+        className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm"
+      />
+      <input
+        value={neu}
+        onChange={(e) => setNeu(e.target.value)}
+        placeholder="Neue PIN (4–8 Ziffern)"
+        type="password"
+        inputMode="numeric"
+        maxLength={8}
+        className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm"
+      />
+      <input
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+        placeholder="Neue PIN bestätigen"
+        type="password"
+        inputMode="numeric"
+        maxLength={8}
+        className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm"
+      />
       {err && <p className="text-xs text-destructive">{err}</p>}
       {ok && <p className="text-xs text-status-ok">PIN geändert.</p>}
       <button
@@ -326,11 +356,22 @@ function ResetPinModal({ onClose, submit }: any) {
   return (
     <ModalShell title="Reset PIN" onClose={onClose}>
       <p className="text-xs text-muted-foreground">
-        Factory-Token findest du auf dem Pi unter <code>~/.pi-hub/state.json</code>{" "}
-        oder im Output von <code>./scripts/install.sh</code>.
+        Factory-Token findest du auf dem Pi unter <code>~/.pi-hub/state.json</code> oder im Output
+        von <code>./scripts/install.sh</code>.
       </p>
-      <input value={tok} onChange={(e) => setTok(e.target.value)} placeholder="Factory-Token (32 hex)" className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-xs" />
-      <input value={neu} onChange={(e) => setNeu(e.target.value)} placeholder="Neue PIN (4–8 Ziffern)" inputMode="numeric" className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm" />
+      <input
+        value={tok}
+        onChange={(e) => setTok(e.target.value)}
+        placeholder="Factory-Token (32 hex)"
+        className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-xs"
+      />
+      <input
+        value={neu}
+        onChange={(e) => setNeu(e.target.value)}
+        placeholder="Neue PIN (4–8 Ziffern)"
+        inputMode="numeric"
+        className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm"
+      />
       {err && <p className="text-xs text-destructive">{err}</p>}
       {ok && <p className="text-xs text-status-ok">PIN zurückgesetzt.</p>}
       <button
@@ -358,8 +399,7 @@ function FactoryTokenModal({ onClose, load }: any) {
   return (
     <ModalShell title="Factory token" onClose={onClose}>
       <p className="text-xs text-muted-foreground">
-        Notiere diesen Token offline. Er erlaubt das Zurücksetzen der PIN, wenn
-        du sie vergisst.
+        Notiere diesen Token offline. Er erlaubt das Zurücksetzen der PIN, wenn du sie vergisst.
       </p>
       <div className="bg-background border border-border rounded-lg p-3 font-mono text-xs break-all">
         {tok ?? "lade…"}

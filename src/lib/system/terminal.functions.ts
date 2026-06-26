@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requirePiAuth } from "./pi-auth-middleware";
+import { requirePiAuth } from "../auth/pi-auth-middleware";
 
 // Allow-listed terminal commands. Free-form shell is not exposed.
 // On non-Pi runtime (Cloudflare Worker / vite dev on laptop), returns a
@@ -26,8 +26,10 @@ function previewReply(input: string): string {
   if (t.startsWith("docker ps")) {
     return `CONTAINER ID   IMAGE                              STATUS\n80a91          ghcr.io/home-assistant:stable     Up 12d\nc0092          jc21/nginx-proxy-manager:latest   Up 30d\nd7a44          linuxserver/plex:latest           Up 2h (unhealthy)`;
   }
-  if (t.startsWith("df")) return `Filesystem  Size  Used  Avail  Use%\n/dev/root   29G   18G   10G   64%`;
-  if (t === "help") return `available: gemini <prompt>, docker {ps|logs|stats}, df, free, uptime, hostname, vcgencmd, journalctl, ps, clear`;
+  if (t.startsWith("df"))
+    return `Filesystem  Size  Used  Avail  Use%\n/dev/root   29G   18G   10G   64%`;
+  if (t === "help")
+    return `available: gemini <prompt>, docker {ps|logs|stats}, df, free, uptime, hostname, vcgencmd, journalctl, ps, clear`;
   return `(preview) command not executed — runs live when installed on a Pi.`;
 }
 
@@ -87,7 +89,7 @@ export const runTerminalCommand = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }): Promise<{ output: string }> => {
     const cmd = data.cmd.trim();
-    const { hasProcStats } = await import("./pi-runtime.server");
+    const { hasProcStats } = await import("@/lib/core/pi-runtime.server");
 
     // Gemini route works in both runtimes when LOVABLE_API_KEY is present
     if (cmd.toLowerCase().startsWith("gemini")) {

@@ -26,7 +26,9 @@ export const listDevices = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("devices")
-      .select("id, name, last_seen_at, last_snapshot, created_at, pairing_code, pairing_expires_at, device_token_hash")
+      .select(
+        "id, name, last_seen_at, last_snapshot, created_at, pairing_code, pairing_expires_at, device_token_hash",
+      )
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []).map((d) => ({
@@ -35,9 +37,7 @@ export const listDevices = createServerFn({ method: "GET" })
       lastSeenAt: d.last_seen_at,
       snapshot: d.last_snapshot,
       createdAt: d.created_at,
-      pairing: d.pairing_code
-        ? { code: d.pairing_code, expiresAt: d.pairing_expires_at }
-        : null,
+      pairing: d.pairing_code ? { code: d.pairing_code, expiresAt: d.pairing_expires_at } : null,
       paired: !!d.device_token_hash,
     }));
   });
@@ -105,10 +105,7 @@ export const deleteDevice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }).parse)
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("devices")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await context.supabase.from("devices").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -125,7 +122,11 @@ const commandSchema = z.discriminatedUnion("kind", [
     kind: z.literal("container_action"),
     deviceId: z.string().uuid(),
     payload: z.object({
-      name: z.string().min(1).max(128).regex(/^[a-zA-Z0-9_.\-]+$/),
+      name: z
+        .string()
+        .min(1)
+        .max(128)
+        .regex(/^[a-zA-Z0-9_.-]+$/),
       action: z.enum(["start", "stop", "restart"]),
     }),
   }),
@@ -134,8 +135,15 @@ const commandSchema = z.discriminatedUnion("kind", [
     deviceId: z.string().uuid(),
     payload: z.object({
       topic: z.string().min(1).max(512),
-      payload: z.string().max(64 * 1024).optional().default(""),
-      broker: z.string().regex(/^[a-zA-Z0-9_.\-:]{1,253}$/).optional(),
+      payload: z
+        .string()
+        .max(64 * 1024)
+        .optional()
+        .default(""),
+      broker: z
+        .string()
+        .regex(/^[a-zA-Z0-9_.\-:]{1,253}$/)
+        .optional(),
       port: z.number().int().min(1).max(65535).optional(),
     }),
   }),
@@ -174,7 +182,9 @@ export const getProfile = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("profiles")
-      .select("display_name, telegram_bot_username, telegram_chat_id, telegram_linked_at, telegram_link_code")
+      .select(
+        "display_name, telegram_bot_username, telegram_chat_id, telegram_linked_at, telegram_link_code",
+      )
       .eq("id", context.userId)
       .single();
     if (error) throw new Error(error.message);
@@ -188,15 +198,14 @@ export const linkTelegramBot = createServerFn({ method: "POST" })
     // Verify token + fetch bot info
     const meRes = await fetch(`https://api.telegram.org/bot${data.token}/getMe`);
     const me = await meRes.json();
-    if (!meRes.ok || !me.ok) throw new Error("Telegram-Token ungültig: " + (me.description || meRes.status));
+    if (!meRes.ok || !me.ok)
+      throw new Error("Telegram-Token ungültig: " + (me.description || meRes.status));
 
     const webhookSecret = await sha256Hex(`tg:${context.userId}:${data.token}`);
     const linkCode = randomCode(6);
 
     // Build webhook URL: prefer header host
-    const reqUrl = new URL(
-      (await import("@tanstack/react-start/server")).getRequest().url,
-    );
+    const reqUrl = new URL((await import("@tanstack/react-start/server")).getRequest().url);
     const webhookUrl = `${reqUrl.origin}/api/public/telegram/webhook/${context.userId}`;
 
     const setRes = await fetch(`https://api.telegram.org/bot${data.token}/setWebhook`, {

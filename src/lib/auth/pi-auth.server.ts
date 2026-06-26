@@ -24,9 +24,7 @@ export function verifyPiToken(token: string | null | undefined): boolean {
   const [sub, expStr, nonce, sig] = parts;
   const exp = Number(expStr);
   if (!Number.isFinite(exp) || exp * 1000 < Date.now()) return false;
-  const expected = createHmac("sha256", SECRET)
-    .update(`${sub}.${expStr}.${nonce}`)
-    .digest("hex");
+  const expected = createHmac("sha256", SECRET).update(`${sub}.${expStr}.${nonce}`).digest("hex");
   const a = Buffer.from(sig, "hex");
   const b = Buffer.from(expected, "hex");
   if (a.length === 0 || a.length !== b.length) return false;

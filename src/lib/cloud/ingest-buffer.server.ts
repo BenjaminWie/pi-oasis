@@ -87,7 +87,7 @@ function scheduleForward(ev: IngestEvent) {
 
 async function drainForward() {
   try {
-    const { getCloudConfig } = await import("./pin-store.server");
+    const { getCloudConfig } = await import("@/lib/auth/pin-store.server");
     while (forwardQueue.length) {
       const cfg = await getCloudConfig();
       if (!cfg) {

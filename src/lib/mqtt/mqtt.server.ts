@@ -5,7 +5,7 @@
 // Loaded only on the Pi (gated by isPiRuntime in the .functions.ts).
 
 import mqtt, { type MqttClient } from "mqtt";
-import type { MqttMessage } from "./mock-data";
+import type { MqttMessage } from "../core/mock-data";
 
 interface Subscription {
   client: MqttClient;
@@ -22,7 +22,7 @@ function key(brokerId: string, filter: string) {
 }
 
 async function resolveBrokerUrl(brokerId: string): Promise<string> {
-  const { listRealContainers } = await import("./system.server");
+  const { listRealContainers } = await import("@/lib/system/system.server");
   const cs = await listRealContainers();
   const c = cs.find((x) => x.id === brokerId || x.id.startsWith(brokerId));
   if (!c) throw new Error(`broker ${brokerId} not found`);
@@ -32,10 +32,7 @@ async function resolveBrokerUrl(brokerId: string): Promise<string> {
   return `mqtt://127.0.0.1:${port}`;
 }
 
-async function ensureSub(
-  brokerId: string,
-  filter: string,
-): Promise<Subscription> {
+async function ensureSub(brokerId: string, filter: string): Promise<Subscription> {
   const k = key(brokerId, filter);
   const existing = subs.get(k);
   if (existing) {
@@ -53,9 +50,7 @@ async function ensureSub(
     const t = setTimeout(() => reject(new Error("mqtt connect timeout")), 4500);
     client.once("connect", () => {
       clearTimeout(t);
-      client.subscribe(filter, { qos: 0 }, (err) =>
-        err ? reject(err) : resolve(),
-      );
+      client.subscribe(filter, { qos: 0 }, (err) => (err ? reject(err) : resolve()));
     });
     client.once("error", (e) => {
       clearTimeout(t);
@@ -92,10 +87,7 @@ setInterval(() => {
   }
 }, 15_000).unref?.();
 
-export async function drainMqtt(
-  brokerId: string,
-  filter: string,
-): Promise<MqttMessage[]> {
+export async function drainMqtt(brokerId: string, filter: string): Promise<MqttMessage[]> {
   const sub = await ensureSub(brokerId, filter);
   const out = sub.buf;
   sub.buf = [];
@@ -117,15 +109,10 @@ export async function publishMqtt(
     const t = setTimeout(() => reject(new Error("mqtt connect timeout")), 4500);
     client.once("connect", () => {
       clearTimeout(t);
-      client.publish(
-        msg.topic,
-        msg.payload,
-        { qos: msg.qos, retain: msg.retained },
-        (err) => {
-          client.end(true);
-          err ? reject(err) : resolve();
-        },
-      );
+      client.publish(msg.topic, msg.payload, { qos: msg.qos, retain: msg.retained }, (err) => {
+        client.end(true);
+        err ? reject(err) : resolve();
+      });
     });
     client.once("error", (e) => {
       clearTimeout(t);

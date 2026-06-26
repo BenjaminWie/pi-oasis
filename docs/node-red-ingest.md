@@ -29,13 +29,13 @@ Strict schema. Unknown fields are rejected.
 }
 ```
 
-| field       | type                                                |
-|-------------|-----------------------------------------------------|
-| `component` | string, 1–64 chars                                  |
-| `device`    | string, 1–64 chars                                  |
-| `timestamp` | ISO 8601 with offset (optional, defaults to `now`)  |
-| `status`    | `healthy` \| `warning` \| `critical` \| `info`      |
-| `metrics`   | object, values must be number / string / boolean    |
+| field       | type                                               |
+| ----------- | -------------------------------------------------- |
+| `component` | string, 1–64 chars                                 |
+| `device`    | string, 1–64 chars                                 |
+| `timestamp` | ISO 8601 with offset (optional, defaults to `now`) |
+| `status`    | `healthy` \| `warning` \| `critical` \| `info`     |
+| `metrics`   | object, values must be number / string / boolean   |
 
 ## Node-RED setup
 
@@ -46,13 +46,14 @@ Strict schema. Unknown fields are rejected.
    - URL: `http://127.0.0.1:3000/api/public/ingest/event`
    - Return: `a parsed JSON object`
    - Use authentication: **off** (we add the header explicitly below)
-3. Drop a **Change** node *before* the HTTP Request that sets:
+3. Drop a **Change** node _before_ the HTTP Request that sets:
    - `msg.headers` → `{ "Authorization": "Bearer " & $env('PI_INGEST_TOKEN'), "Content-Type": "application/json" }`
 
    The token comes from `PI_INGEST_TOKEN` in `pi-hub`'s `.env`. Inject it
    into Node-RED's environment via systemd (`Environment=PI_INGEST_TOKEN=…`)
    or `~/.node-red/environment` — **never hardcode** it into the flow JSON
    (the export ends up on disk and in backups).
+
 4. Deploy.
 
 Every Node-RED event now appears live in **pi-hub → Events** and is forwarded

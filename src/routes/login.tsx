@@ -3,8 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Delete } from "lucide-react";
 import { toast } from "sonner";
-import { verifyPin, changePin, resetPinWithFactoryToken } from "@/lib/auth.functions";
-import { auth } from "@/lib/auth-store";
+import { verifyPin, changePin, resetPinWithFactoryToken } from "@/lib/auth/auth.functions";
+import { auth } from "@/lib/auth/auth-store";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -70,9 +70,7 @@ function LoginPage() {
           System Restricted
         </h1>
         <p className="text-sm text-muted-foreground">Enter PIN to access hub</p>
-        <p className="text-[10px] text-muted-foreground/50 mt-1 font-mono">
-          (demo PIN: 1234)
-        </p>
+        <p className="text-[10px] text-muted-foreground/50 mt-1 font-mono">(demo PIN: 1234)</p>
       </div>
 
       {/* PIN dots */}
@@ -311,8 +309,8 @@ function ResetPinModal({
   return (
     <ModalShell title="Reset PIN" onClose={onClose}>
       <p className="text-xs text-muted-foreground">
-        Factory-Token findest du auf dem Pi unter <code>~/.pi-hub/state.json</code> oder
-        im Output von <code>./scripts/install.sh</code>.
+        Factory-Token findest du auf dem Pi unter <code>~/.pi-hub/state.json</code> oder im Output
+        von <code>./scripts/install.sh</code>.
       </p>
       <input
         value={tok}

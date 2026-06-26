@@ -12,7 +12,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getRequestIP } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { createHash, timingSafeEqual } from "node:crypto";
-import { bearer, jsonResponse } from "@/lib/agent-api.server";
+import { bearer, jsonResponse } from "@/lib/ai/agent-api.server";
 
 const Body = z
   .object({
@@ -26,12 +26,7 @@ const Body = z
 
 function isLoopback(ip: string | undefined): boolean {
   if (!ip) return false;
-  return (
-    ip === "127.0.0.1" ||
-    ip === "::1" ||
-    ip === "::ffff:127.0.0.1" ||
-    ip.startsWith("127.")
-  );
+  return ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1" || ip.startsWith("127.");
 }
 
 function tokenMatches(provided: string): boolean {
@@ -80,7 +75,7 @@ export const Route = createFileRoute("/api/public/ingest/event")({
         if (!parsed.success) {
           return jsonResponse({ error: "invalid payload", detail: parsed.error.flatten() }, 400);
         }
-        const { pushEvent } = await import("@/lib/ingest-buffer.server");
+        const { pushEvent } = await import("@/lib/cloud/ingest-buffer.server");
         const ev = pushEvent({
           component: parsed.data.component,
           device: parsed.data.device,

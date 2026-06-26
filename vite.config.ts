@@ -5,11 +5,25 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import nodeExternals from "rollup-plugin-node-externals";
 
 // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
 // @cloudflare/vite-plugin builds from this — wrangler.jsonc main alone is insufficient.
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
+  },
+  vite: {
+    build: {
+      rollupOptions: {
+        plugins: [
+          // On the Pi, we want to keep native modules as externals because they
+          // are built for the specific architecture and can't be easily bundled.
+          nodeExternals({
+            include: ["dockerode", "node-pty", "mqtt"],
+          }),
+        ],
+      },
+    },
   },
 });

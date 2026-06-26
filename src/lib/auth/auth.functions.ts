@@ -14,10 +14,10 @@ export const verifyPin = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     await new Promise((r) => setTimeout(r, 200));
-    const { hasProcStats } = await import("./pi-runtime.server");
+    const { hasProcStats } = await import("@/lib/core/pi-runtime.server");
     let ok = false;
     if (hasProcStats()) {
-      const { verifyPinValue, recordTrustedDevice } = await import("./pin-store.server");
+      const { verifyPinValue, recordTrustedDevice } = await import("@/lib/auth/pin-store.server");
       ok = await verifyPinValue(data.pin);
       if (ok && data.trust) {
         await recordTrustedDevice(data.label || "Browser");
@@ -27,7 +27,7 @@ export const verifyPin = createServerFn({ method: "POST" })
       ok = data.pin === (process.env.PI_DASHBOARD_PIN || "1234");
     }
     if (!ok) return { ok: false as const };
-    const { signPiToken } = await import("./pi-auth.server");
+    const { signPiToken } = await import("@/lib/auth/pi-auth.server");
     const ttl = data.trust ? 60 * 60 * 24 * 30 : 60 * 60 * 24;
     return { ok: true as const, token: signPiToken("device", ttl) };
   });
@@ -41,11 +41,11 @@ export const changePin = createServerFn({ method: "POST" })
     return d;
   })
   .handler(async ({ data }) => {
-    const { hasProcStats } = await import("./pi-runtime.server");
+    const { hasProcStats } = await import("@/lib/core/pi-runtime.server");
     if (!hasProcStats()) {
       return { ok: false as const, error: "PIN-Änderung nur auf dem Pi möglich" };
     }
-    const { verifyPinValue, setPinValue } = await import("./pin-store.server");
+    const { verifyPinValue, setPinValue } = await import("@/lib/auth/pin-store.server");
     if (!(await verifyPinValue(data.currentPin))) {
       return { ok: false as const, error: "Aktuelle PIN falsch" };
     }
@@ -62,9 +62,9 @@ export const resetPinWithFactoryToken = createServerFn({ method: "POST" })
     return d;
   })
   .handler(async ({ data }) => {
-    const { hasProcStats } = await import("./pi-runtime.server");
+    const { hasProcStats } = await import("@/lib/core/pi-runtime.server");
     if (!hasProcStats()) return { ok: false as const, error: "Reset nur auf dem Pi möglich" };
-    const { verifyFactoryToken, setPinValue } = await import("./pin-store.server");
+    const { verifyFactoryToken, setPinValue } = await import("@/lib/auth/pin-store.server");
     if (!(await verifyFactoryToken(data.factoryToken))) {
       return { ok: false as const, error: "Factory-Token falsch" };
     }

@@ -19,7 +19,7 @@ import {
   manualAction,
   updatePlugin,
   deletePlugin,
-} from "@/lib/plugins.functions";
+} from "@/lib/plugins/plugins.functions";
 
 export const Route = createFileRoute("/_authenticated/plugins/$id")({
   component: PluginDetailPage,
@@ -59,8 +59,7 @@ function PluginDetailPage() {
     onSuccess: () => nav({ to: "/plugins" }),
   });
 
-  if (q.isLoading)
-    return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
+  if (q.isLoading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   if (!q.data?.plugin)
     return (
       <div className="p-6">
@@ -72,8 +71,7 @@ function PluginDetailPage() {
     );
 
   const { plugin, plan, decisions, simState } = q.data;
-  const planActive =
-    plan && new Date(plan.validUntil).getTime() > Date.now() ? plan : null;
+  const planActive = plan && new Date(plan.validUntil).getTime() > Date.now() ? plan : null;
   const nextWindow =
     planActive?.windows.find((w) => new Date(w.endIso).getTime() > Date.now()) ?? null;
 
@@ -198,12 +196,11 @@ function PluginDetailPage() {
             </li>
           )}
           {decisions.map((d) => (
-            <li
-              key={d.id}
-              className="bg-card border border-border rounded-2xl px-3 py-2"
-            >
+            <li key={d.id} className="bg-card border border-border rounded-2xl px-3 py-2">
               <div className="flex items-baseline justify-between gap-2">
-                <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${actionColor(d.action)}`}>
+                <span
+                  className={`text-[10px] font-mono font-bold uppercase tracking-widest ${actionColor(d.action)}`}
+                >
                   {d.action.replace("_", " ")}
                 </span>
                 <span className="text-[10px] font-mono text-muted-foreground">

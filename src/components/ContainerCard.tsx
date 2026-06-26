@@ -1,11 +1,23 @@
 import { Link } from "@tanstack/react-router";
-import type { ContainerSummary } from "@/lib/mock-data";
+import type { ContainerSummary } from "@/lib/core/mock-data";
 
 const statusMeta = {
   running: { dot: "bg-status-ok glow-ok", label: "RUNNING", text: "text-foreground" },
-  warning: { dot: "bg-status-warn glow-warn animate-pulse", label: "DEGRADED", text: "text-foreground" },
-  restarting: { dot: "bg-status-warn glow-warn animate-pulse", label: "RESTARTING", text: "text-foreground" },
-  exited: { dot: "bg-status-crit glow-crit animate-pulse", label: "EXITED", text: "text-status-crit" },
+  warning: {
+    dot: "bg-status-warn glow-warn animate-pulse",
+    label: "DEGRADED",
+    text: "text-foreground",
+  },
+  restarting: {
+    dot: "bg-status-warn glow-warn animate-pulse",
+    label: "RESTARTING",
+    text: "text-foreground",
+  },
+  exited: {
+    dot: "bg-status-crit glow-crit animate-pulse",
+    label: "EXITED",
+    text: "text-status-crit",
+  },
 } as const;
 
 export function ContainerCard({ c }: { c: ContainerSummary }) {
@@ -32,12 +44,8 @@ export function ContainerCard({ c }: { c: ContainerSummary }) {
         <div className="text-[10px] text-primary font-mono mb-1 tracking-widest opacity-60">
           {isFailing ? `STATE: EXITED_WITH_ERROR` : `CONTAINER_ID: ${c.id}`}
         </div>
-        <h3 className={`font-mono font-bold text-lg tracking-tight ${meta.text}`}>
-          {c.name}
-        </h3>
-        <p className="text-[10px] text-muted-foreground/70 font-mono mt-1 truncate">
-          {c.image}
-        </p>
+        <h3 className={`font-mono font-bold text-lg tracking-tight ${meta.text}`}>{c.name}</h3>
+        <p className="text-[10px] text-muted-foreground/70 font-mono mt-1 truncate">{c.image}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
