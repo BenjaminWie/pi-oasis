@@ -49,7 +49,7 @@ MSG
 }
 
 rebuild_esbuild_binaries() {
-  ensure_go || exit 1
+  ensure_go || return 1
   export GOBIN="$PWD/.esbuild-bin"
   mkdir -p "$GOBIN"
 
@@ -77,16 +77,41 @@ rebuild_esbuild_binaries() {
   echo "✓ esbuild rebuilt for ${#PKGS[@]} package(s)"
 }
 
+# --- swap check (low-memory optimization) ---
+MEM_TOTAL=$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo "0")
+SWAP_TOTAL=$(awk '/SwapTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo "0")
+if [ "$MEM_TOTAL" -lt 1500000 ] && [ "$SWAP_TOTAL" -lt 500000 ]; then
+  MEM_MB=$((MEM_TOTAL / 1024))
+  echo "WARN: Low memory detected (${MEM_MB}MB) and no swap found."
+  echo "      The build process might crash. Consider creating a swap file:"
+  echo "      sudo fallocate -l 1G /swapfile && sudo chmod 600 /swapfile && \\"
+  echo "      sudo mkswap /swapfile && sudo swapon /swapfile"
+  echo
+fi
+
+# --- cleanup node_modules to avoid ENOTEMPTY errors ---
+if [ -d node_modules ]; then
+  echo "→ cleaning up old node_modules"
+  rm -rf node_modules
+fi
+
 # --- deps ---
 echo "→ installing dependencies"
+# Use --legacy-peer-deps to avoid conflict between nitro and lovable config
+# Use --jobs=1 on low-memory Pis to avoid OOM
+INSTALL_FLAGS="--legacy-peer-deps"
+if [ "$MEM_TOTAL" -lt 1500000 ]; then
+  INSTALL_FLAGS="$INSTALL_FLAGS --jobs=1"
+fi
+
 if [ "$NEEDS_ESBUILD_REBUILD" = "1" ]; then
   # Skip postinstall hooks (esbuild's would SIGILL), then patch in our binaries.
-  npm install --ignore-scripts
+  npm install $INSTALL_FLAGS --ignore-scripts
   rebuild_esbuild_binaries
   # Now run the rest of the postinstalls (lifecycle scripts) with our binaries in place.
   npm rebuild --ignore-scripts=false || true
 else
-  npm install
+  npm install $INSTALL_FLAGS
 fi
 
 # --- env ---
@@ -135,9 +160,9 @@ if [ ! -f "$STATE_FILE" ]; then
   echo
 fi
 
-# NOTE: we no longer run `npm run build` here. The TanStack Start prod server
-# entry path is unstable across versions on ARM, which caused restart loops.
-# pi-hub runs under `vite dev` via PM2 instead — see ecosystem.config.cjs.
+# Build the production assets
+echo "→ building production assets"
+npm run build
 
 echo
 echo "✓ install done"
