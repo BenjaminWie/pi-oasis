@@ -16,6 +16,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CloudTelegramRouteImport } from './routes/_cloud/telegram'
 import { Route as CloudPairCallbackRouteImport } from './routes/_cloud/pair-callback'
+import { Route as CloudMcpRouteImport } from './routes/_cloud/mcp'
 import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
 import { Route as CloudAuditRouteImport } from './routes/_cloud/audit'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
@@ -24,9 +25,11 @@ import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
 import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
+import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
 import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
 import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
+import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
 import { Route as ApiPublicIngestEventRouteImport } from './routes/api/public/ingest/event'
 import { Route as ApiPublicCloudBridgeEventRouteImport } from './routes/api/public/cloud-bridge/event'
 import { Route as ApiPublicCloudBridgeClaimRouteImport } from './routes/api/public/cloud-bridge/claim'
@@ -69,6 +72,11 @@ const CloudPairCallbackRoute = CloudPairCallbackRouteImport.update({
   path: '/pair-callback',
   getParentRoute: () => CloudRoute,
 } as any)
+const CloudMcpRoute = CloudMcpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => CloudRoute,
+} as any)
 const CloudDevicesRoute = CloudDevicesRouteImport.update({
   id: '/devices',
   path: '/devices',
@@ -109,6 +117,11 @@ const AuthenticatedEventsRoute = AuthenticatedEventsRouteImport.update({
   path: '/events',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiPublicMcpRoute = ApiPublicMcpRouteImport.update({
+  id: '/api/public/mcp',
+  path: '/api/public/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CloudDevicesIdRoute = CloudDevicesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -125,6 +138,11 @@ const AuthenticatedContainerIdRoute =
     path: '/container/$id',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
+  id: '/api/public/voice/alexa',
+  path: '/api/public/voice/alexa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicIngestEventRoute = ApiPublicIngestEventRouteImport.update({
   id: '/api/public/ingest/event',
   path: '/api/public/ingest/event',
@@ -181,11 +199,13 @@ export interface FileRoutesByFullPath {
   '/terminal': typeof AuthenticatedTerminalRoute
   '/audit': typeof CloudAuditRoute
   '/devices': typeof CloudDevicesRouteWithChildren
+  '/mcp': typeof CloudMcpRoute
   '/pair-callback': typeof CloudPairCallbackRoute
   '/telegram': typeof CloudTelegramRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/devices/$id': typeof CloudDevicesIdRoute
+  '/api/public/mcp': typeof ApiPublicMcpRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
@@ -193,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
   '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
+  '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRoutesByTo {
@@ -207,11 +228,13 @@ export interface FileRoutesByTo {
   '/terminal': typeof AuthenticatedTerminalRoute
   '/audit': typeof CloudAuditRoute
   '/devices': typeof CloudDevicesRouteWithChildren
+  '/mcp': typeof CloudMcpRoute
   '/pair-callback': typeof CloudPairCallbackRoute
   '/telegram': typeof CloudTelegramRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/devices/$id': typeof CloudDevicesIdRoute
+  '/api/public/mcp': typeof ApiPublicMcpRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
@@ -219,6 +242,7 @@ export interface FileRoutesByTo {
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
   '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
+  '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRoutesById {
@@ -236,11 +260,13 @@ export interface FileRoutesById {
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
   '/_cloud/audit': typeof CloudAuditRoute
   '/_cloud/devices': typeof CloudDevicesRouteWithChildren
+  '/_cloud/mcp': typeof CloudMcpRoute
   '/_cloud/pair-callback': typeof CloudPairCallbackRoute
   '/_cloud/telegram': typeof CloudTelegramRoute
   '/_authenticated/container/$id': typeof AuthenticatedContainerIdRoute
   '/_authenticated/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/_cloud/devices/$id': typeof CloudDevicesIdRoute
+  '/api/public/mcp': typeof ApiPublicMcpRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
@@ -248,6 +274,7 @@ export interface FileRoutesById {
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
   '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
+  '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRouteTypes {
@@ -264,11 +291,13 @@ export interface FileRouteTypes {
     | '/terminal'
     | '/audit'
     | '/devices'
+    | '/mcp'
     | '/pair-callback'
     | '/telegram'
     | '/container/$id'
     | '/plugins/$id'
     | '/devices/$id'
+    | '/api/public/mcp'
     | '/api/public/agent/heartbeat'
     | '/api/public/agent/poll'
     | '/api/public/agent/register'
@@ -276,6 +305,7 @@ export interface FileRouteTypes {
     | '/api/public/cloud-bridge/claim'
     | '/api/public/cloud-bridge/event'
     | '/api/public/ingest/event'
+    | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -290,11 +320,13 @@ export interface FileRouteTypes {
     | '/terminal'
     | '/audit'
     | '/devices'
+    | '/mcp'
     | '/pair-callback'
     | '/telegram'
     | '/container/$id'
     | '/plugins/$id'
     | '/devices/$id'
+    | '/api/public/mcp'
     | '/api/public/agent/heartbeat'
     | '/api/public/agent/poll'
     | '/api/public/agent/register'
@@ -302,6 +334,7 @@ export interface FileRouteTypes {
     | '/api/public/cloud-bridge/claim'
     | '/api/public/cloud-bridge/event'
     | '/api/public/ingest/event'
+    | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   id:
     | '__root__'
@@ -318,11 +351,13 @@ export interface FileRouteTypes {
     | '/_authenticated/terminal'
     | '/_cloud/audit'
     | '/_cloud/devices'
+    | '/_cloud/mcp'
     | '/_cloud/pair-callback'
     | '/_cloud/telegram'
     | '/_authenticated/container/$id'
     | '/_authenticated/plugins/$id'
     | '/_cloud/devices/$id'
+    | '/api/public/mcp'
     | '/api/public/agent/heartbeat'
     | '/api/public/agent/poll'
     | '/api/public/agent/register'
@@ -330,6 +365,7 @@ export interface FileRouteTypes {
     | '/api/public/cloud-bridge/claim'
     | '/api/public/cloud-bridge/event'
     | '/api/public/ingest/event'
+    | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesById: FileRoutesById
 }
@@ -339,6 +375,7 @@ export interface RootRouteChildren {
   CloudRoute: typeof CloudRouteWithChildren
   AuthRoute: typeof AuthRoute
   LoginRoute: typeof LoginRoute
+  ApiPublicMcpRoute: typeof ApiPublicMcpRoute
   ApiPublicAgentHeartbeatRoute: typeof ApiPublicAgentHeartbeatRoute
   ApiPublicAgentPollRoute: typeof ApiPublicAgentPollRoute
   ApiPublicAgentRegisterRoute: typeof ApiPublicAgentRegisterRoute
@@ -346,6 +383,7 @@ export interface RootRouteChildren {
   ApiPublicCloudBridgeClaimRoute: typeof ApiPublicCloudBridgeClaimRoute
   ApiPublicCloudBridgeEventRoute: typeof ApiPublicCloudBridgeEventRoute
   ApiPublicIngestEventRoute: typeof ApiPublicIngestEventRoute
+  ApiPublicVoiceAlexaRoute: typeof ApiPublicVoiceAlexaRoute
   ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
 }
 
@@ -398,6 +436,13 @@ declare module '@tanstack/react-router' {
       path: '/pair-callback'
       fullPath: '/pair-callback'
       preLoaderRoute: typeof CloudPairCallbackRouteImport
+      parentRoute: typeof CloudRoute
+    }
+    '/_cloud/mcp': {
+      id: '/_cloud/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof CloudMcpRouteImport
       parentRoute: typeof CloudRoute
     }
     '/_cloud/devices': {
@@ -456,6 +501,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEventsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/mcp': {
+      id: '/api/public/mcp'
+      path: '/api/public/mcp'
+      fullPath: '/api/public/mcp'
+      preLoaderRoute: typeof ApiPublicMcpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_cloud/devices/$id': {
       id: '/_cloud/devices/$id'
       path: '/$id'
@@ -476,6 +528,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/container/$id'
       preLoaderRoute: typeof AuthenticatedContainerIdRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/voice/alexa': {
+      id: '/api/public/voice/alexa'
+      path: '/api/public/voice/alexa'
+      fullPath: '/api/public/voice/alexa'
+      preLoaderRoute: typeof ApiPublicVoiceAlexaRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/ingest/event': {
       id: '/api/public/ingest/event'
@@ -586,6 +645,7 @@ const CloudDevicesRouteWithChildren = CloudDevicesRoute._addFileChildren(
 interface CloudRouteChildren {
   CloudAuditRoute: typeof CloudAuditRoute
   CloudDevicesRoute: typeof CloudDevicesRouteWithChildren
+  CloudMcpRoute: typeof CloudMcpRoute
   CloudPairCallbackRoute: typeof CloudPairCallbackRoute
   CloudTelegramRoute: typeof CloudTelegramRoute
 }
@@ -593,6 +653,7 @@ interface CloudRouteChildren {
 const CloudRouteChildren: CloudRouteChildren = {
   CloudAuditRoute: CloudAuditRoute,
   CloudDevicesRoute: CloudDevicesRouteWithChildren,
+  CloudMcpRoute: CloudMcpRoute,
   CloudPairCallbackRoute: CloudPairCallbackRoute,
   CloudTelegramRoute: CloudTelegramRoute,
 }
@@ -605,6 +666,7 @@ const rootRouteChildren: RootRouteChildren = {
   CloudRoute: CloudRouteWithChildren,
   AuthRoute: AuthRoute,
   LoginRoute: LoginRoute,
+  ApiPublicMcpRoute: ApiPublicMcpRoute,
   ApiPublicAgentHeartbeatRoute: ApiPublicAgentHeartbeatRoute,
   ApiPublicAgentPollRoute: ApiPublicAgentPollRoute,
   ApiPublicAgentRegisterRoute: ApiPublicAgentRegisterRoute,
@@ -612,6 +674,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCloudBridgeClaimRoute: ApiPublicCloudBridgeClaimRoute,
   ApiPublicCloudBridgeEventRoute: ApiPublicCloudBridgeEventRoute,
   ApiPublicIngestEventRoute: ApiPublicIngestEventRoute,
+  ApiPublicVoiceAlexaRoute: ApiPublicVoiceAlexaRoute,
   ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
 }
 export const routeTree = rootRouteImport

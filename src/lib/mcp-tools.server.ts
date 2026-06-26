@@ -40,7 +40,7 @@ async function enqueueAndWait(
       device_id: ctx.deviceId,
       user_id: ctx.userId,
       kind,
-      payload,
+      payload: payload as any,
       source: "mcp",
       status: "pending",
     })
