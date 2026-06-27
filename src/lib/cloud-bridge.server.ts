@@ -21,7 +21,6 @@ async function snapshot() {
       ram: stats.ramTotalGb ? (stats.ramUsedGb / stats.ramTotalGb) * 100 : null,
       temp: stats.tempC,
       disk: stats.diskUsedPct,
-      plugins,
       containers: containers.map((c) => ({
         id: c.id,
         name: c.name,

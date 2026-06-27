@@ -64,6 +64,44 @@ export type Database = {
           },
         ]
       }
+      anomaly_baselines: {
+        Row: {
+          device_id: string
+          mean: number
+          metric: string
+          sample_count: number
+          stddev: number
+          updated_at: string
+          window_days: number
+        }
+        Insert: {
+          device_id: string
+          mean: number
+          metric: string
+          sample_count: number
+          stddev: number
+          updated_at?: string
+          window_days?: number
+        }
+        Update: {
+          device_id?: string
+          mean?: number
+          metric?: string
+          sample_count?: number
+          stddev?: number
+          updated_at?: string
+          window_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anomaly_baselines_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cloud_pairings: {
         Row: {
           claimed_at: string | null
@@ -115,9 +153,11 @@ export type Database = {
           device_id: string
           device_label: string
           id: string
+          message: string | null
           metrics: Json
           occurred_at: string
           status: string
+          strategy_applied: string | null
         }
         Insert: {
           component: string
@@ -125,9 +165,11 @@ export type Database = {
           device_id: string
           device_label: string
           id?: string
+          message?: string | null
           metrics?: Json
           occurred_at: string
           status: string
+          strategy_applied?: string | null
         }
         Update: {
           component?: string
@@ -135,13 +177,59 @@ export type Database = {
           device_id?: string
           device_label?: string
           id?: string
+          message?: string | null
           metrics?: Json
           occurred_at?: string
           status?: string
+          strategy_applied?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_events_hourly: {
+        Row: {
+          bucket: string
+          component: string
+          created_at: string
+          device_id: string
+          event_count: number
+          status: string
+          watts_avg: number | null
+          watts_max: number | null
+          watts_min: number | null
+        }
+        Insert: {
+          bucket: string
+          component: string
+          created_at?: string
+          device_id: string
+          event_count?: number
+          status: string
+          watts_avg?: number | null
+          watts_max?: number | null
+          watts_min?: number | null
+        }
+        Update: {
+          bucket?: string
+          component?: string
+          created_at?: string
+          device_id?: string
+          event_count?: number
+          status?: string
+          watts_avg?: number | null
+          watts_max?: number | null
+          watts_min?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_events_hourly_device_id_fkey"
             columns: ["device_id"]
             isOneToOne: false
             referencedRelation: "devices"
@@ -307,6 +395,41 @@ export type Database = {
         }
         Relationships: []
       }
+      strategy_profiles: {
+        Row: {
+          created_at: string
+          device_id: string
+          eco_paused: boolean
+          params: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          eco_paused?: boolean
+          params?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          eco_paused?: boolean
+          params?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_profiles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       telegram_audit: {
         Row: {
           chat_id: number | null
@@ -350,7 +473,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      aggregate_device_events: { Args: never; Returns: undefined }
+      recompute_anomaly_baselines: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

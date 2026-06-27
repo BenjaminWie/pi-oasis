@@ -32,6 +32,10 @@ import { Route as CloudConnectionsAlexaRouteImport } from './routes/_cloud/conne
 import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
 import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
+import { Route as ApiPublicHooksAnomalyScanRouteImport } from './routes/api/public/hooks/anomaly-scan'
+import { Route as ApiPublicHooksAggregateEventsRouteImport } from './routes/api/public/hooks/aggregate-events'
+import { Route as ApiPublicCloudBridgeStrategyRouteImport } from './routes/api/public/cloud-bridge/strategy'
+import { Route as ApiPublicCloudBridgeEventRouteImport } from './routes/api/public/cloud-bridge/event'
 import { Route as ApiPublicCloudBridgeClaimRouteImport } from './routes/api/public/cloud-bridge/claim'
 import { Route as ApiPublicAgentResultRouteImport } from './routes/api/public/agent/result'
 import { Route as ApiPublicAgentRegisterRouteImport } from './routes/api/public/agent/register'
@@ -154,6 +158,30 @@ const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
   path: '/api/public/voice/alexa',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksAnomalyScanRoute =
+  ApiPublicHooksAnomalyScanRouteImport.update({
+    id: '/api/public/hooks/anomaly-scan',
+    path: '/api/public/hooks/anomaly-scan',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksAggregateEventsRoute =
+  ApiPublicHooksAggregateEventsRouteImport.update({
+    id: '/api/public/hooks/aggregate-events',
+    path: '/api/public/hooks/aggregate-events',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCloudBridgeStrategyRoute =
+  ApiPublicCloudBridgeStrategyRouteImport.update({
+    id: '/api/public/cloud-bridge/strategy',
+    path: '/api/public/cloud-bridge/strategy',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCloudBridgeEventRoute =
+  ApiPublicCloudBridgeEventRouteImport.update({
+    id: '/api/public/cloud-bridge/event',
+    path: '/api/public/cloud-bridge/event',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCloudBridgeClaimRoute =
   ApiPublicCloudBridgeClaimRouteImport.update({
     id: '/api/public/cloud-bridge/claim',
@@ -212,6 +240,10 @@ export interface FileRoutesByFullPath {
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
+  '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
+  '/api/public/cloud-bridge/strategy': typeof ApiPublicCloudBridgeStrategyRoute
+  '/api/public/hooks/aggregate-events': typeof ApiPublicHooksAggregateEventsRoute
+  '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -240,6 +272,10 @@ export interface FileRoutesByTo {
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
+  '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
+  '/api/public/cloud-bridge/strategy': typeof ApiPublicCloudBridgeStrategyRoute
+  '/api/public/hooks/aggregate-events': typeof ApiPublicHooksAggregateEventsRoute
+  '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -272,6 +308,10 @@ export interface FileRoutesById {
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
+  '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
+  '/api/public/cloud-bridge/strategy': typeof ApiPublicCloudBridgeStrategyRoute
+  '/api/public/hooks/aggregate-events': typeof ApiPublicHooksAggregateEventsRoute
+  '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -302,6 +342,10 @@ export interface FileRouteTypes {
     | '/api/public/agent/register'
     | '/api/public/agent/result'
     | '/api/public/cloud-bridge/claim'
+    | '/api/public/cloud-bridge/event'
+    | '/api/public/cloud-bridge/strategy'
+    | '/api/public/hooks/aggregate-events'
+    | '/api/public/hooks/anomaly-scan'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesByTo: FileRoutesByTo
@@ -330,6 +374,10 @@ export interface FileRouteTypes {
     | '/api/public/agent/register'
     | '/api/public/agent/result'
     | '/api/public/cloud-bridge/claim'
+    | '/api/public/cloud-bridge/event'
+    | '/api/public/cloud-bridge/strategy'
+    | '/api/public/hooks/aggregate-events'
+    | '/api/public/hooks/anomaly-scan'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   id:
@@ -361,6 +409,10 @@ export interface FileRouteTypes {
     | '/api/public/agent/register'
     | '/api/public/agent/result'
     | '/api/public/cloud-bridge/claim'
+    | '/api/public/cloud-bridge/event'
+    | '/api/public/cloud-bridge/strategy'
+    | '/api/public/hooks/aggregate-events'
+    | '/api/public/hooks/anomaly-scan'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesById: FileRoutesById
@@ -377,6 +429,10 @@ export interface RootRouteChildren {
   ApiPublicAgentRegisterRoute: typeof ApiPublicAgentRegisterRoute
   ApiPublicAgentResultRoute: typeof ApiPublicAgentResultRoute
   ApiPublicCloudBridgeClaimRoute: typeof ApiPublicCloudBridgeClaimRoute
+  ApiPublicCloudBridgeEventRoute: typeof ApiPublicCloudBridgeEventRoute
+  ApiPublicCloudBridgeStrategyRoute: typeof ApiPublicCloudBridgeStrategyRoute
+  ApiPublicHooksAggregateEventsRoute: typeof ApiPublicHooksAggregateEventsRoute
+  ApiPublicHooksAnomalyScanRoute: typeof ApiPublicHooksAnomalyScanRoute
   ApiPublicVoiceAlexaRoute: typeof ApiPublicVoiceAlexaRoute
   ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -544,6 +600,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicVoiceAlexaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/anomaly-scan': {
+      id: '/api/public/hooks/anomaly-scan'
+      path: '/api/public/hooks/anomaly-scan'
+      fullPath: '/api/public/hooks/anomaly-scan'
+      preLoaderRoute: typeof ApiPublicHooksAnomalyScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/aggregate-events': {
+      id: '/api/public/hooks/aggregate-events'
+      path: '/api/public/hooks/aggregate-events'
+      fullPath: '/api/public/hooks/aggregate-events'
+      preLoaderRoute: typeof ApiPublicHooksAggregateEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cloud-bridge/strategy': {
+      id: '/api/public/cloud-bridge/strategy'
+      path: '/api/public/cloud-bridge/strategy'
+      fullPath: '/api/public/cloud-bridge/strategy'
+      preLoaderRoute: typeof ApiPublicCloudBridgeStrategyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cloud-bridge/event': {
+      id: '/api/public/cloud-bridge/event'
+      path: '/api/public/cloud-bridge/event'
+      fullPath: '/api/public/cloud-bridge/event'
+      preLoaderRoute: typeof ApiPublicCloudBridgeEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cloud-bridge/claim': {
       id: '/api/public/cloud-bridge/claim'
       path: '/api/public/cloud-bridge/claim'
@@ -679,19 +763,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAgentRegisterRoute: ApiPublicAgentRegisterRoute,
   ApiPublicAgentResultRoute: ApiPublicAgentResultRoute,
   ApiPublicCloudBridgeClaimRoute: ApiPublicCloudBridgeClaimRoute,
+  ApiPublicCloudBridgeEventRoute: ApiPublicCloudBridgeEventRoute,
+  ApiPublicCloudBridgeStrategyRoute: ApiPublicCloudBridgeStrategyRoute,
+  ApiPublicHooksAggregateEventsRoute: ApiPublicHooksAggregateEventsRoute,
+  ApiPublicHooksAnomalyScanRoute: ApiPublicHooksAnomalyScanRoute,
   ApiPublicVoiceAlexaRoute: ApiPublicVoiceAlexaRoute,
   ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
