@@ -5,6 +5,7 @@ import { useState } from "react";
 import { getDevice, enqueueCommand, deleteDevice, regeneratePairing } from "@/lib/cloud.functions";
 import { ArrowLeft, RefreshCw, Trash2, Play, Square, RotateCcw, Terminal as TerminalIcon, Puzzle } from "lucide-react";
 import { StatGauge } from "@/components/StatGauge";
+import { DeviceAnalytics } from "@/components/DeviceAnalytics";
 
 export const Route = createFileRoute("/_cloud/devices/$id")({
   component: DevicePage,
