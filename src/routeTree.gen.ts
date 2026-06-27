@@ -32,6 +32,7 @@ import { Route as CloudConnectionsAlexaRouteImport } from './routes/_cloud/conne
 import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
 import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
+import { Route as ApiPublicHooksAnomalyScanRouteImport } from './routes/api/public/hooks/anomaly-scan'
 import { Route as ApiPublicHooksAggregateEventsRouteImport } from './routes/api/public/hooks/aggregate-events'
 import { Route as ApiPublicCloudBridgeStrategyRouteImport } from './routes/api/public/cloud-bridge/strategy'
 import { Route as ApiPublicCloudBridgeEventRouteImport } from './routes/api/public/cloud-bridge/event'
@@ -157,6 +158,12 @@ const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
   path: '/api/public/voice/alexa',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksAnomalyScanRoute =
+  ApiPublicHooksAnomalyScanRouteImport.update({
+    id: '/api/public/hooks/anomaly-scan',
+    path: '/api/public/hooks/anomaly-scan',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksAggregateEventsRoute =
   ApiPublicHooksAggregateEventsRouteImport.update({
     id: '/api/public/hooks/aggregate-events',
@@ -236,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
   '/api/public/cloud-bridge/strategy': typeof ApiPublicCloudBridgeStrategyRoute
   '/api/public/hooks/aggregate-events': typeof ApiPublicHooksAggregateEventsRoute
+  '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -267,6 +275,7 @@ export interface FileRoutesByTo {
   '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
   '/api/public/cloud-bridge/strategy': typeof ApiPublicCloudBridgeStrategyRoute
   '/api/public/hooks/aggregate-events': typeof ApiPublicHooksAggregateEventsRoute
+  '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -302,6 +311,7 @@ export interface FileRoutesById {
   '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
   '/api/public/cloud-bridge/strategy': typeof ApiPublicCloudBridgeStrategyRoute
   '/api/public/hooks/aggregate-events': typeof ApiPublicHooksAggregateEventsRoute
+  '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/api/public/cloud-bridge/event'
     | '/api/public/cloud-bridge/strategy'
     | '/api/public/hooks/aggregate-events'
+    | '/api/public/hooks/anomaly-scan'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesByTo: FileRoutesByTo
@@ -366,6 +377,7 @@ export interface FileRouteTypes {
     | '/api/public/cloud-bridge/event'
     | '/api/public/cloud-bridge/strategy'
     | '/api/public/hooks/aggregate-events'
+    | '/api/public/hooks/anomaly-scan'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   id:
@@ -400,6 +412,7 @@ export interface FileRouteTypes {
     | '/api/public/cloud-bridge/event'
     | '/api/public/cloud-bridge/strategy'
     | '/api/public/hooks/aggregate-events'
+    | '/api/public/hooks/anomaly-scan'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesById: FileRoutesById
@@ -419,6 +432,7 @@ export interface RootRouteChildren {
   ApiPublicCloudBridgeEventRoute: typeof ApiPublicCloudBridgeEventRoute
   ApiPublicCloudBridgeStrategyRoute: typeof ApiPublicCloudBridgeStrategyRoute
   ApiPublicHooksAggregateEventsRoute: typeof ApiPublicHooksAggregateEventsRoute
+  ApiPublicHooksAnomalyScanRoute: typeof ApiPublicHooksAnomalyScanRoute
   ApiPublicVoiceAlexaRoute: typeof ApiPublicVoiceAlexaRoute
   ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -586,6 +600,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicVoiceAlexaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/anomaly-scan': {
+      id: '/api/public/hooks/anomaly-scan'
+      path: '/api/public/hooks/anomaly-scan'
+      fullPath: '/api/public/hooks/anomaly-scan'
+      preLoaderRoute: typeof ApiPublicHooksAnomalyScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/aggregate-events': {
       id: '/api/public/hooks/aggregate-events'
       path: '/api/public/hooks/aggregate-events'
@@ -745,6 +766,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCloudBridgeEventRoute: ApiPublicCloudBridgeEventRoute,
   ApiPublicCloudBridgeStrategyRoute: ApiPublicCloudBridgeStrategyRoute,
   ApiPublicHooksAggregateEventsRoute: ApiPublicHooksAggregateEventsRoute,
+  ApiPublicHooksAnomalyScanRoute: ApiPublicHooksAnomalyScanRoute,
   ApiPublicVoiceAlexaRoute: ApiPublicVoiceAlexaRoute,
   ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
 }
