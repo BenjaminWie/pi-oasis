@@ -42,13 +42,11 @@ function CloudLayout() {
 
   const tabs = [
     { to: "/devices", label: "Geräte", icon: Server },
+    { to: "/mcp", label: "MCP", icon: Bot },
     { to: "/telegram", label: "Telegram", icon: MessageCircle },
     { to: "/audit", label: "Audit", icon: ScrollText },
-    { to: "/cloud/devices", label: "Geräte", icon: Server },
-    { to: "/cloud/mcp", label: "MCP", icon: Bot },
-    { to: "/cloud/telegram", label: "Telegram", icon: MessageCircle },
-    { to: "/cloud/audit", label: "Audit", icon: ScrollText },
   ];
+
 
   return (
     <div className="min-h-screen bg-background text-foreground max-w-md mx-auto pb-28">
