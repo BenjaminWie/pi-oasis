@@ -2,7 +2,7 @@
 // token, stores it keyed by sha256(nonce) — the Pi picks it up by polling.
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { mintLocalPairing } from "@/lib/cloud-pairing.functions";
 
@@ -20,11 +20,15 @@ export const Route = createFileRoute("/_cloud/pair-callback")({
 function PairCallback() {
   const search = useSearch({ from: "/_cloud/pair-callback" });
   const mint = useServerFn(mintLocalPairing);
+  const startedRef = useRef(false);
   const [status, setStatus] = useState<"working" | "ok" | "error">("working");
   const [message, setMessage] = useState("Erzeuge sicheren Geräte-Token …");
   const [name, setName] = useState<string | null>(null);
 
   useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+
     (async () => {
       try {
         const hostname =
