@@ -2,9 +2,14 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+    tags: ['v*']
   workflow_dispatch:
+
+# Cancel an older in-flight run if a newer push lands on the same ref.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-release:
@@ -26,50 +31,71 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Install dependencies (Host)
-        run: npm install --legacy-peer-deps
+      - name: Install dependencies (host)
+        run: npm install --legacy-peer-deps --no-audit --no-fund
 
-      - name: Build project
+      - name: Build project (slim Pi flavor)
+        env:
+          VITE_PI_SLIM_MODE: 'true'
+          NODE_ENV: production
         run: npm run build
+
+      - name: Verify build output
+        run: |
+          if [ ! -f .output/server/index.mjs ]; then
+            echo "::error::.output/server/index.mjs missing — build did not produce a server entry"
+            ls -la .output || true
+            exit 1
+          fi
+          du -sh .output
 
       - name: Rebuild production dependencies for arm64
         run: |
-          # Use a multi-arch container to install ONLY production dependencies for arm64
           docker run --rm -v ${{ github.workspace }}:/app -w /app --platform linux/arm64 node:20-bookworm-slim /bin/bash -c "
             apt-get update && apt-get install -y python3 make g++ gcc &&
-            npm install --legacy-peer-deps --omit=dev --platform=linux --arch=arm64 &&
+            npm install --legacy-peer-deps --omit=dev --no-audit --no-fund --platform=linux --arch=arm64 &&
             npm rebuild --platform=linux --arch=arm64
           "
 
-      - name: Prepare release bundle
+      - name: Prepare release bundle (runtime artifacts only)
         run: |
           mkdir -p release-bundle
           cp -r .output release-bundle/
-          cp package.json release-bundle/
-          cp package-lock.json release-bundle/
-          cp ecosystem.config.cjs release-bundle/
-          cp -r scripts release-bundle/
-          # node_modules now only contains production dependencies built for arm64
           cp -r node_modules release-bundle/
-          # Remove dev-only scripts
-          rm release-bundle/scripts/dev.sh || true
+          cp package.json release-bundle/
+          cp ecosystem.config.cjs release-bundle/
+          mkdir -p release-bundle/scripts
+          # Ship only the runtime scripts — no dev/install build script
+          for f in start.sh install-systemd.sh; do
+            [ -f scripts/$f ] && cp scripts/$f release-bundle/scripts/$f
+          done
+          chmod +x release-bundle/scripts/*.sh || true
+          # Ship the runtime bootstrap so users can re-run it from disk
+          cp scripts/bootstrap.sh release-bundle/scripts/bootstrap.sh || true
           tar -czf pi-hub-linux-arm64.tar.gz -C release-bundle .
+          sha256sum pi-hub-linux-arm64.tar.gz > pi-hub-linux-arm64.tar.gz.sha256
+          echo "Artifact size: $(du -h pi-hub-linux-arm64.tar.gz | cut -f1)"
+          cat pi-hub-linux-arm64.tar.gz.sha256
 
-      - name: Upload Artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pi-hub-linux-arm64
-          path: pi-hub-linux-arm64.tar.gz
+          path: |
+            pi-hub-linux-arm64.tar.gz
+            pi-hub-linux-arm64.tar.gz.sha256
 
-      - name: Create Release
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest-dev' }}
-          files: pi-hub-linux-arm64.tar.gz
+          files: |
+            pi-hub-linux-arm64.tar.gz
+            pi-hub-linux-arm64.tar.gz.sha256
           draft: false
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
           name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'Latest Development Build' }}
           generate_release_notes: true
-          make_latest: true
+          make_latest: ${{ startsWith(github.ref, 'refs/tags/') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
