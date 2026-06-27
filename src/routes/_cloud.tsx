@@ -80,7 +80,7 @@ function CloudLayout() {
       <Outlet />
 
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md border-t border-border bg-card/95 backdrop-blur">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-3">
           {tabs.map((t) => {
             const active = loc.pathname.startsWith(t.to);
             const Icon = t.icon;
