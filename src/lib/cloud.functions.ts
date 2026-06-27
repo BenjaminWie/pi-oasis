@@ -154,6 +154,41 @@ const commandSchema = z.discriminatedUnion("kind", [
       topic: z.string().min(1).max(512),
     }),
   }),
+  z.object({
+    kind: z.literal("terminal"),
+    deviceId: z.string().uuid(),
+    payload: z.object({
+      cmd: z.string().min(1).max(512),
+    }),
+  }),
+  z.object({
+    kind: z.literal("plugin_list"),
+    deviceId: z.string().uuid(),
+    payload: z.object({}).optional().default({}),
+  }),
+  z.object({
+    kind: z.literal("plugin_get"),
+    deviceId: z.string().uuid(),
+    payload: z.object({
+      id: z.string().min(1).max(64),
+    }),
+  }),
+  z.object({
+    kind: z.literal("plugin_run_planner"),
+    deviceId: z.string().uuid(),
+    payload: z.object({
+      id: z.string().min(1).max(64),
+    }),
+  }),
+  z.object({
+    kind: z.literal("plugin_manual"),
+    deviceId: z.string().uuid(),
+    payload: z.object({
+      id: z.string().min(1).max(64),
+      action: z.enum(["on", "off"]),
+      minutes: z.number().int().min(1).max(120).optional(),
+    }),
+  }),
 ]);
 
 export const enqueueCommand = createServerFn({ method: "POST" })
