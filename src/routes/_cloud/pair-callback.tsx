@@ -28,6 +28,13 @@ function PairCallback() {
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
+    const guardKey = `pi-hub-pairing:${search.nonce}`;
+    const existingState = window.sessionStorage.getItem(guardKey);
+    if (existingState === "running" || existingState === "ok") {
+      setMessage("Pairing läuft bereits …\nKehre zum Pi-Dashboard zurück — die Verbindung wird automatisch hergestellt.");
+      return;
+    }
+    window.sessionStorage.setItem(guardKey, "running");
 
     (async () => {
       try {
@@ -37,6 +44,7 @@ function PairCallback() {
         if (!res.ok) throw new Error("Pairing fehlgeschlagen");
         setName(res.name);
         setStatus("ok");
+        window.sessionStorage.setItem(guardKey, "ok");
         setMessage(
           `✓ ${res.name} verknüpft.\nKehre zum Pi-Dashboard zurück — die Verbindung wird automatisch hergestellt.`,
         );
@@ -50,6 +58,7 @@ function PairCallback() {
           if (search.local) window.location.assign(search.local);
         }, 2500);
       } catch (e: any) {
+        window.sessionStorage.removeItem(guardKey);
         setStatus("error");
         setMessage(e.message || String(e));
       }
