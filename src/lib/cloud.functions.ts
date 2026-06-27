@@ -119,6 +119,11 @@ const commandSchema = z.discriminatedUnion("kind", [
     payload: z.object({}).optional().default({}),
   }),
   z.object({
+    kind: z.literal("system_reboot"),
+    deviceId: z.string().uuid(),
+    payload: z.object({}).optional().default({}),
+  }),
+  z.object({
     kind: z.literal("container_action"),
     deviceId: z.string().uuid(),
     payload: z.object({
