@@ -18,6 +18,18 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
+  // In slim Pi builds the marketing landing is stripped — send users straight
+  // to the dashboard. The redirect runs before the route component is rendered
+  // so framer-motion + the landing tree never need to load on the device.
+  beforeLoad: () => {
+    const slim =
+      (typeof process !== "undefined" && process.env?.VITE_PI_SLIM_MODE === "true") ||
+      (typeof globalThis !== "undefined" &&
+        (globalThis as { VITE_PI_SLIM_MODE?: string }).VITE_PI_SLIM_MODE === "true");
+    if (slim) {
+      throw redirect({ to: "/overview" });
+    }
+  },
   component: Landing,
 });
 
