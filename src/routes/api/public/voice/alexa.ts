@@ -22,7 +22,7 @@ function ask(text: string, end = true) {
 }
 
 async function runTool(ctx: ToolCtx, name: string, args: Record<string, unknown>) {
-  const tool = findTool(name);
+  const tool = await findTool(name, ctx);
   if (!tool) throw new Error("unknown tool " + name);
   if (!ctx.scopes.includes(tool.scope)) throw new Error("missing scope " + tool.scope);
   const parsed = tool.inputSchema.parse(args);
@@ -75,18 +75,30 @@ export const Route = createFileRoute("/api/public/voice/alexa")({
         try {
           if (intent === "TurnOnPumpIntent" || intent === "PumpOnIntent") {
             const plugins = (await runTool(ctx, "list_plugins", {})) as any;
-            const first = plugins?.result?.plugins?.[0] ?? plugins?.plugins?.[0];
-            if (!first) return jsonResponse(ask("Es ist keine Pumpe eingerichtet."));
+            const list = plugins?.result?.plugins ?? plugins?.plugins ?? [];
+            const targetName = slot("PluginName");
+            const target = targetName
+              ? list.find((p: any) => p.name.toLowerCase().includes(targetName.toLowerCase()))
+              : list[0];
+
+            if (!target) return jsonResponse(ask("Ich konnte das gewünschte Plugin nicht finden."));
+
             const minutes = Math.max(1, Math.min(120, Number(slot("Minutes") ?? 5)));
-            await runTool(ctx, "pump_set", { id: first.id, action: "on", minutes });
-            return jsonResponse(ask(`Okay, ${first.name} läuft für ${minutes} Minuten.`));
+            await runTool(ctx, "pump_set", { id: target.id, action: "on", minutes });
+            return jsonResponse(ask(`Okay, ${target.name} läuft für ${minutes} Minuten.`));
           }
           if (intent === "TurnOffPumpIntent" || intent === "PumpOffIntent") {
             const plugins = (await runTool(ctx, "list_plugins", {})) as any;
-            const first = plugins?.result?.plugins?.[0] ?? plugins?.plugins?.[0];
-            if (!first) return jsonResponse(ask("Es ist keine Pumpe eingerichtet."));
-            await runTool(ctx, "pump_set", { id: first.id, action: "off" });
-            return jsonResponse(ask(`Okay, ${first.name} ausgeschaltet.`));
+            const list = plugins?.result?.plugins ?? plugins?.plugins ?? [];
+            const targetName = slot("PluginName");
+            const target = targetName
+              ? list.find((p: any) => p.name.toLowerCase().includes(targetName.toLowerCase()))
+              : list[0];
+
+            if (!target) return jsonResponse(ask("Ich konnte das gewünschte Plugin nicht finden."));
+
+            await runTool(ctx, "pump_set", { id: target.id, action: "off" });
+            return jsonResponse(ask(`Okay, ${target.name} ausgeschaltet.`));
           }
           if (intent === "PumpStatusIntent" || intent === "StatusIntent") {
             const snap = (await runTool(ctx, "get_status", {})) as any;
@@ -102,12 +114,42 @@ export const Route = createFileRoute("/api/public/voice/alexa")({
           }
           if (intent === "WaterPlanIntent" || intent === "PlanIntent") {
             const plugins = (await runTool(ctx, "list_plugins", {})) as any;
-            const first = plugins?.result?.plugins?.[0] ?? plugins?.plugins?.[0];
-            if (!first) return jsonResponse(ask("Es ist keine Pumpe eingerichtet."));
-            const det = (await runTool(ctx, "get_plugin", { id: first.id })) as any;
+            const list = plugins?.result?.plugins ?? plugins?.plugins ?? [];
+            const targetName = slot("PluginName");
+            const target = targetName
+              ? list.find((p: any) => p.name.toLowerCase().includes(targetName.toLowerCase()))
+              : list[0];
+
+            if (!target) return jsonResponse(ask("Plugin nicht gefunden."));
+
+            const det = (await runTool(ctx, "get_plugin", { id: target.id })) as any;
             const plan = det?.result?.plan ?? det?.plan;
             const rationale = plan?.rationale || "Kein aktueller Plan.";
-            return jsonResponse(ask(`Plan für ${first.name}: ${rationale}`));
+            return jsonResponse(ask(`Plan für ${target.name}: ${rationale}`));
+          }
+          if (intent === "PluginCommandIntent") {
+            const command = slot("CommandName");
+            const pluginName = slot("PluginName");
+            if (!command) return jsonResponse(ask("Welchen Befehl soll ich ausführen?"));
+
+            const plugins = (await runTool(ctx, "list_plugins", {})) as any;
+            const list = plugins?.result?.plugins ?? plugins?.plugins ?? [];
+
+            // Try to find matching plugin and command
+            for (const p of list) {
+              if (pluginName && !p.name.toLowerCase().includes(pluginName.toLowerCase())) continue;
+              if (!p.commands) continue;
+              const c = p.commands.find((c: any) =>
+                c.label.toLowerCase().includes(command.toLowerCase()) ||
+                c.name.toLowerCase().includes(command.toLowerCase())
+              );
+              if (c) {
+                const toolName = `${p.name.toLowerCase().replace(/\s+/g, "_")}_${c.name.toLowerCase()}`;
+                await runTool(ctx, toolName, { minutes: Number(slot("Minutes") || 5) });
+                return jsonResponse(ask(`Befehl ${c.label} für ${p.name} ausgeführt.`));
+              }
+            }
+            return jsonResponse(ask(`Ich konnte den Befehl ${command} nicht finden.`));
           }
           if (intent === "AMAZON.HelpIntent") {
             return jsonResponse(

@@ -2,7 +2,13 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { requirePiAuth } from "./pi-auth-middleware";
-import type { Plugin, PluginDecision, PluginPlan, SmartPumpConfig } from "./plugins-store.server";
+import type {
+  Plugin,
+  PluginDecision,
+  PluginPlan,
+  SmartPumpConfig,
+  PluginCommand,
+} from "./plugins-store.server";
 
 function validateConfig(c: Partial<SmartPumpConfig>): SmartPumpConfig {
   const cmndTopic = String(c.cmndTopic ?? "").trim();
@@ -75,7 +81,13 @@ export const createSmartPump = createServerFn({ method: "POST" })
 export const updatePlugin = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
   .inputValidator(
-    (d: { id: string; name?: string; enabled?: boolean; config?: Partial<SmartPumpConfig> }) => d,
+    (d: {
+      id: string;
+      name?: string;
+      enabled?: boolean;
+      config?: Partial<SmartPumpConfig>;
+      commands?: PluginCommand[];
+    }) => d,
   )
   .handler(async ({ data }) => {
     const { updatePluginStore } = await import("./plugins-store.server");
@@ -83,6 +95,7 @@ export const updatePlugin = createServerFn({ method: "POST" })
     if (data.name != null) patch.name = String(data.name).slice(0, 64);
     if (data.enabled != null) patch.enabled = !!data.enabled;
     if (data.config) patch.config = validateConfig(data.config);
+    if (data.commands) patch.commands = data.commands;
     const p = await updatePluginStore(data.id, patch);
     return { plugin: p };
   });
@@ -131,7 +144,7 @@ export const manualAction = createServerFn({ method: "POST" })
       pluginId: data.id,
       action: data.action === "on" ? "manual_on" : "manual_off",
       reason: `Manual override — ${data.action.toUpperCase()} for ${minutes}m`,
-      simulated: plugin.config.simulated,
+      simulated: (plugin.config as any).simulated,
     });
     return { ok: true as const };
   });

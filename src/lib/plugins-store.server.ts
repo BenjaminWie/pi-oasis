@@ -11,7 +11,17 @@ const DIR = process.env.PI_HUB_HOME || join(homedir(), ".pi-hub");
 const FILE = join(DIR, "plugins.json");
 const MAX_DECISIONS = 200;
 
-export type PluginKind = "smart_pump";
+export type PluginKind = "smart_pump" | "generic";
+
+export interface PluginCommand {
+  id: string;
+  name: string;
+  label: string;
+  type: "control" | "monitor";
+  description: string;
+  actionKind?: string; // e.g. "mqtt_publish" or "container_action"
+  actionPayload?: any;
+}
 
 export interface SmartPumpConfig {
   brokerId: string | null; // mqtt broker container id; null when simulated
@@ -31,7 +41,8 @@ export interface Plugin {
   name: string;
   enabled: boolean;
   createdAt: string;
-  config: SmartPumpConfig;
+  config: SmartPumpConfig | Record<string, any>;
+  commands?: PluginCommand[];
 }
 
 export interface PluginPlan {
@@ -115,7 +126,8 @@ export async function getPluginStore(id: string): Promise<Plugin | null> {
 export async function createPluginStore(
   kind: PluginKind,
   name: string,
-  config: SmartPumpConfig,
+  config: SmartPumpConfig | Record<string, any>,
+  commands?: PluginCommand[],
 ): Promise<Plugin> {
   const s = await load();
   const p: Plugin = {
@@ -125,6 +137,7 @@ export async function createPluginStore(
     enabled: true,
     createdAt: new Date().toISOString(),
     config,
+    commands,
   };
   s.plugins.unshift(p);
   await save(s);
@@ -133,7 +146,7 @@ export async function createPluginStore(
 
 export async function updatePluginStore(
   id: string,
-  patch: Partial<Pick<Plugin, "name" | "enabled" | "config">>,
+  patch: Partial<Pick<Plugin, "name" | "enabled" | "config" | "commands">>,
 ): Promise<Plugin | null> {
   const s = await load();
   const i = s.plugins.findIndex((p) => p.id === id);
@@ -141,7 +154,10 @@ export async function updatePluginStore(
   s.plugins[i] = {
     ...s.plugins[i],
     ...patch,
-    config: patch.config ? { ...s.plugins[i].config, ...patch.config } : s.plugins[i].config,
+    config: patch.config
+      ? { ...(s.plugins[i].config as any), ...(patch.config as any) }
+      : s.plugins[i].config,
+    commands: patch.commands ?? s.plugins[i].commands,
   };
   await save(s);
   return s.plugins[i];
