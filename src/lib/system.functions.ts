@@ -42,7 +42,7 @@ export const listContainers = createServerFn({ method: "GET" })
 
 export const getContainer = createServerFn({ method: "GET" })
   .middleware([requirePiAuth])
-  .inputValidator((d: { id: string }) => d)
+  .validator((d: { id: string }) => d)
   .handler(async ({ data }) => {
     const { isPiRuntime } = await import("./pi-runtime.server");
     if (!isPiRuntime()) {
@@ -62,7 +62,7 @@ export const getContainer = createServerFn({ method: "GET" })
 
 export const containerAction = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
-  .inputValidator((d: { id: string; action: "start" | "stop" | "restart" }) => d)
+  .validator((d: { id: string; action: "start" | "stop" | "restart" }) => d)
   .handler(async ({ data }) => {
     const { isPiRuntime } = await import("./pi-runtime.server");
     if (!isPiRuntime()) return { ok: true, id: data.id, action: data.action };
