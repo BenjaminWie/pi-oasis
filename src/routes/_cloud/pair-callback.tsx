@@ -59,8 +59,24 @@ function PairCallback() {
         }, 2500);
       } catch (e: any) {
         window.sessionStorage.removeItem(guardKey);
+        const msg = e?.message || String(e);
+        if (msg.includes("duplicate key") || msg.includes("cloud_pairings_nonce_hash_key")) {
+          setStatus("ok");
+          setMessage(
+            "✓ Geräte-Token wurde bereits erzeugt.\nKehre zum Pi-Dashboard zurück — die Verbindung wird automatisch hergestellt.",
+          );
+          setTimeout(() => {
+            if (window.opener) {
+              window.opener.focus();
+              window.close();
+              return;
+            }
+            if (search.local) window.location.assign(search.local);
+          }, 2500);
+          return;
+        }
         setStatus("error");
-        setMessage(e.message || String(e));
+        setMessage(msg);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
