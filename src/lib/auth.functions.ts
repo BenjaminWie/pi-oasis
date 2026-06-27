@@ -6,7 +6,7 @@ import { requirePiAuth } from "./pi-auth-middleware";
 // issues an HMAC-signed token validated by `requirePiAuth`.
 
 export const verifyPin = createServerFn({ method: "POST" })
-  .inputValidator((d: { pin: string; trust?: boolean; label?: string }) => {
+  .validator((d: { pin: string; trust?: boolean; label?: string }) => {
     if (typeof d.pin !== "string" || d.pin.length === 0 || d.pin.length > 32) {
       throw new Error("invalid pin");
     }
@@ -34,7 +34,7 @@ export const verifyPin = createServerFn({ method: "POST" })
 
 export const changePin = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
-  .inputValidator((d: { currentPin: string; newPin: string }) => {
+  .validator((d: { currentPin: string; newPin: string }) => {
     if (typeof d.newPin !== "string" || !/^\d{4,8}$/.test(d.newPin)) {
       throw new Error("PIN muss 4–8 Ziffern sein");
     }
@@ -54,7 +54,7 @@ export const changePin = createServerFn({ method: "POST" })
   });
 
 export const resetPinWithFactoryToken = createServerFn({ method: "POST" })
-  .inputValidator((d: { factoryToken: string; newPin: string }) => {
+  .validator((d: { factoryToken: string; newPin: string }) => {
     if (!/^\d{4,8}$/.test(d.newPin)) throw new Error("PIN muss 4–8 Ziffern sein");
     if (typeof d.factoryToken !== "string" || d.factoryToken.length < 16) {
       throw new Error("Factory-Token ungültig");

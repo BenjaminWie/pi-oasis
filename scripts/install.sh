@@ -6,15 +6,15 @@ cd "$(dirname "$0")/.."
 
 # --- node check ---
 if ! command -v node >/dev/null; then
-  echo "ERROR: node is not installed. Install Node.js 20+ first:"
-  echo "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
+  echo "ERROR: node is not installed. Install Node.js 22+ first:"
+  echo "  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -"
   echo "  sudo apt install -y nodejs"
   exit 1
 fi
 
 NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]")
-if [ "$NODE_MAJOR" -lt 20 ]; then
-  echo "ERROR: Node 20+ required (found $(node -v))"
+if [ "$NODE_MAJOR" -lt 22 ]; then
+  echo "ERROR: Node 22+ required (found $(node -v))"
   exit 1
 fi
 

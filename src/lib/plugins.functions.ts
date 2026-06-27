@@ -38,7 +38,7 @@ export const listPlugins = createServerFn({ method: "GET" })
 
 export const getPlugin = createServerFn({ method: "GET" })
   .middleware([requirePiAuth])
-  .inputValidator((d: { id: string }) => d)
+  .validator((d: { id: string }) => d)
   .handler(
     async ({
       data,
@@ -63,7 +63,7 @@ export const getPlugin = createServerFn({ method: "GET" })
 
 export const createSmartPump = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
-  .inputValidator((d: { name?: string; config: Partial<SmartPumpConfig> }) => d)
+  .validator((d: { name?: string; config: Partial<SmartPumpConfig> }) => d)
   .handler(async ({ data }) => {
     const { createPluginStore } = await import("./plugins-store.server");
     const config = validateConfig(data.config);
@@ -74,7 +74,7 @@ export const createSmartPump = createServerFn({ method: "POST" })
 
 export const updatePlugin = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
-  .inputValidator(
+  .validator(
     (d: { id: string; name?: string; enabled?: boolean; config?: Partial<SmartPumpConfig> }) => d,
   )
   .handler(async ({ data }) => {
@@ -89,7 +89,7 @@ export const updatePlugin = createServerFn({ method: "POST" })
 
 export const deletePlugin = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
-  .inputValidator((d: { id: string }) => d)
+  .validator((d: { id: string }) => d)
   .handler(async ({ data }) => {
     const { deletePluginStore } = await import("./plugins-store.server");
     await deletePluginStore(data.id);
@@ -98,7 +98,7 @@ export const deletePlugin = createServerFn({ method: "POST" })
 
 export const runPlannerNow = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
-  .inputValidator((d: { id: string }) => d)
+  .validator((d: { id: string }) => d)
   .handler(async ({ data }) => {
     const { getPluginStore, setPlanStore } = await import("./plugins-store.server");
     const plugin = await getPluginStore(data.id);
@@ -111,7 +111,7 @@ export const runPlannerNow = createServerFn({ method: "POST" })
 
 export const manualAction = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
-  .inputValidator((d: { id: string; action: "on" | "off"; minutes?: number }) => {
+  .validator((d: { id: string; action: "on" | "off"; minutes?: number }) => {
     if (d.action !== "on" && d.action !== "off") throw new Error("invalid action");
     return d;
   })
