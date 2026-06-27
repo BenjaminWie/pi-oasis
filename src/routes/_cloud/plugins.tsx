@@ -58,7 +58,7 @@ function PluginsPage() {
       {showAdd && (
         <PluginForm
           devices={devices}
-          onSave={(p) => cmd.mutate({ deviceId: p.deviceId, kind: "plugin_create", payload: p })}
+          onSave={(p: any) => cmd.mutate({ deviceId: p.deviceId, kind: "plugin_create", payload: p })}
           onCancel={() => setShowAdd(false)}
         />
       )}
@@ -67,7 +67,7 @@ function PluginsPage() {
         <PluginForm
           plugin={selectedPlugin}
           devices={devices}
-          onSave={(patch) => cmd.mutate({
+          onSave={(patch: any) => cmd.mutate({
             deviceId: selectedPlugin.deviceId,
             kind: "plugin_update",
             payload: { id: selectedPlugin.id, patch }
