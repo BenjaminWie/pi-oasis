@@ -24,10 +24,11 @@ function buildPostAuthTarget(search: z.infer<typeof authSearchSchema>): string {
       nonce: search.nonce,
     });
     if (search.hostname) params.set("hostname", search.hostname);
-    return "/cloud/pair-callback?" + params.toString();
+    return "/pair-callback?" + params.toString();
   }
-  return "/cloud/devices";
+  return "/devices";
 }
+
 
 function AuthPage() {
   const navigate = useNavigate();
