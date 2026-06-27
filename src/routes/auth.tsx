@@ -24,10 +24,11 @@ function buildPostAuthTarget(search: z.infer<typeof authSearchSchema>): string {
       nonce: search.nonce,
     });
     if (search.hostname) params.set("hostname", search.hostname);
-    return "/cloud/pair-callback?" + params.toString();
+    return "/pair-callback?" + params.toString();
   }
-  return "/cloud/devices";
+  return "/devices";
 }
+
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -92,8 +93,9 @@ function AuthPage() {
             onClick={async () => {
               setError(null);
               const result = await lovable.auth.signInWithOAuth("google", {
-                redirect_uri: window.location.origin + postAuth,
+                redirect_uri: window.location.href,
               });
+
               if (result.error) {
                 setError(result.error.message);
                 return;
