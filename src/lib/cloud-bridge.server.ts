@@ -88,6 +88,12 @@ async function execCommand(cmd: any) {
       const res = await executeTerminalCommand(cmd.payload.cmd);
       return { ok: true, result: res };
     }
+    if (cmd.kind === "system_reboot") {
+      const { execFile } = await import("node:child_process");
+      // Schedule reboot in 5s so we can ack the command first.
+      execFile("sh", ["-c", "(sleep 5 && sudo /sbin/reboot) &"], { timeout: 2000 }, () => {});
+      return { ok: true, result: { scheduled: true, in_seconds: 5 } };
+    }
     if (cmd.kind === "plugin_list") {
       const { listPluginsStore } = await import("./plugins-store.server");
       return { ok: true, result: { plugins: await listPluginsStore() } };

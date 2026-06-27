@@ -14,11 +14,11 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CloudRouteImport } from './routes/_cloud'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CloudPumpRouteImport } from './routes/_cloud/pump'
 import { Route as CloudPluginsRouteImport } from './routes/_cloud/plugins'
 import { Route as CloudPairCallbackRouteImport } from './routes/_cloud/pair-callback'
 import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
 import { Route as CloudConnectionsRouteImport } from './routes/_cloud/connections'
-import { Route as CloudAuditRouteImport } from './routes/_cloud/audit'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticated/plugins'
@@ -66,6 +66,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CloudPumpRoute = CloudPumpRouteImport.update({
+  id: '/pump',
+  path: '/pump',
+  getParentRoute: () => CloudRoute,
+} as any)
 const CloudPluginsRoute = CloudPluginsRouteImport.update({
   id: '/plugins',
   path: '/plugins',
@@ -84,11 +89,6 @@ const CloudDevicesRoute = CloudDevicesRouteImport.update({
 const CloudConnectionsRoute = CloudConnectionsRouteImport.update({
   id: '/connections',
   path: '/connections',
-  getParentRoute: () => CloudRoute,
-} as any)
-const CloudAuditRoute = CloudAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
   getParentRoute: () => CloudRoute,
 } as any)
 const AuthenticatedTerminalRoute = AuthenticatedTerminalRouteImport.update({
@@ -224,10 +224,10 @@ export interface FileRoutesByFullPath {
   '/plugins': typeof CloudPluginsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
-  '/audit': typeof CloudAuditRoute
   '/connections': typeof CloudConnectionsRouteWithChildren
   '/devices': typeof CloudDevicesRouteWithChildren
   '/pair-callback': typeof CloudPairCallbackRoute
+  '/pump': typeof CloudPumpRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
@@ -256,10 +256,10 @@ export interface FileRoutesByTo {
   '/plugins': typeof CloudPluginsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
-  '/audit': typeof CloudAuditRoute
   '/connections': typeof CloudConnectionsRouteWithChildren
   '/devices': typeof CloudDevicesRouteWithChildren
   '/pair-callback': typeof CloudPairCallbackRoute
+  '/pump': typeof CloudPumpRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
@@ -291,11 +291,11 @@ export interface FileRoutesById {
   '/_authenticated/plugins': typeof AuthenticatedPluginsRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
-  '/_cloud/audit': typeof CloudAuditRoute
   '/_cloud/connections': typeof CloudConnectionsRouteWithChildren
   '/_cloud/devices': typeof CloudDevicesRouteWithChildren
   '/_cloud/pair-callback': typeof CloudPairCallbackRoute
   '/_cloud/plugins': typeof CloudPluginsRoute
+  '/_cloud/pump': typeof CloudPumpRoute
   '/_authenticated/container/$id': typeof AuthenticatedContainerIdRoute
   '/_authenticated/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/_cloud/connections/alexa': typeof CloudConnectionsAlexaRoute
@@ -326,10 +326,10 @@ export interface FileRouteTypes {
     | '/plugins'
     | '/settings'
     | '/terminal'
-    | '/audit'
     | '/connections'
     | '/devices'
     | '/pair-callback'
+    | '/pump'
     | '/container/$id'
     | '/plugins/$id'
     | '/connections/alexa'
@@ -358,10 +358,10 @@ export interface FileRouteTypes {
     | '/plugins'
     | '/settings'
     | '/terminal'
-    | '/audit'
     | '/connections'
     | '/devices'
     | '/pair-callback'
+    | '/pump'
     | '/container/$id'
     | '/plugins/$id'
     | '/connections/alexa'
@@ -392,11 +392,11 @@ export interface FileRouteTypes {
     | '/_authenticated/plugins'
     | '/_authenticated/settings'
     | '/_authenticated/terminal'
-    | '/_cloud/audit'
     | '/_cloud/connections'
     | '/_cloud/devices'
     | '/_cloud/pair-callback'
     | '/_cloud/plugins'
+    | '/_cloud/pump'
     | '/_authenticated/container/$id'
     | '/_authenticated/plugins/$id'
     | '/_cloud/connections/alexa'
@@ -474,6 +474,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_cloud/pump': {
+      id: '/_cloud/pump'
+      path: '/pump'
+      fullPath: '/pump'
+      preLoaderRoute: typeof CloudPumpRouteImport
+      parentRoute: typeof CloudRoute
+    }
     '/_cloud/plugins': {
       id: '/_cloud/plugins'
       path: '/plugins'
@@ -500,13 +507,6 @@ declare module '@tanstack/react-router' {
       path: '/connections'
       fullPath: '/connections'
       preLoaderRoute: typeof CloudConnectionsRouteImport
-      parentRoute: typeof CloudRoute
-    }
-    '/_cloud/audit': {
-      id: '/_cloud/audit'
-      path: '/audit'
-      fullPath: '/audit'
-      preLoaderRoute: typeof CloudAuditRouteImport
       parentRoute: typeof CloudRoute
     }
     '/_authenticated/terminal': {
@@ -734,19 +734,19 @@ const CloudDevicesRouteWithChildren = CloudDevicesRoute._addFileChildren(
 )
 
 interface CloudRouteChildren {
-  CloudAuditRoute: typeof CloudAuditRoute
   CloudConnectionsRoute: typeof CloudConnectionsRouteWithChildren
   CloudDevicesRoute: typeof CloudDevicesRouteWithChildren
   CloudPairCallbackRoute: typeof CloudPairCallbackRoute
   CloudPluginsRoute: typeof CloudPluginsRoute
+  CloudPumpRoute: typeof CloudPumpRoute
 }
 
 const CloudRouteChildren: CloudRouteChildren = {
-  CloudAuditRoute: CloudAuditRoute,
   CloudConnectionsRoute: CloudConnectionsRouteWithChildren,
   CloudDevicesRoute: CloudDevicesRouteWithChildren,
   CloudPairCallbackRoute: CloudPairCallbackRoute,
   CloudPluginsRoute: CloudPluginsRoute,
+  CloudPumpRoute: CloudPumpRoute,
 }
 
 const CloudRouteWithChildren = CloudRoute._addFileChildren(CloudRouteChildren)
@@ -773,13 +773,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
