@@ -44,7 +44,7 @@ export const listDevices = createServerFn({ method: "GET" })
 
 export const getDevice = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator(z.object({ id: z.string().uuid() }).parse)
+  .inputValidator(z.object({ id: z.string().uuid() }).parse)
   .handler(async ({ data, context }) => {
     const { data: device, error } = await context.supabase
       .from("devices")
@@ -65,7 +65,7 @@ export const getDevice = createServerFn({ method: "GET" })
 
 export const createDevice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator(z.object({ name: z.string().min(1).max(64) }).parse)
+  .inputValidator(z.object({ name: z.string().min(1).max(64) }).parse)
   .handler(async ({ data, context }) => {
     const code = randomCode(8);
     const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
@@ -85,7 +85,7 @@ export const createDevice = createServerFn({ method: "POST" })
 
 export const regeneratePairing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator(z.object({ id: z.string().uuid() }).parse)
+  .inputValidator(z.object({ id: z.string().uuid() }).parse)
   .handler(async ({ data, context }) => {
     const code = randomCode(8);
     const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
@@ -103,7 +103,7 @@ export const regeneratePairing = createServerFn({ method: "POST" })
 
 export const deleteDevice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator(z.object({ id: z.string().uuid() }).parse)
+  .inputValidator(z.object({ id: z.string().uuid() }).parse)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("devices").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -158,7 +158,7 @@ const commandSchema = z.discriminatedUnion("kind", [
 
 export const enqueueCommand = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator(commandSchema.parse)
+  .inputValidator(commandSchema.parse)
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("agent_commands")
@@ -193,7 +193,7 @@ export const getProfile = createServerFn({ method: "GET" })
 
 export const linkTelegramBot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator(z.object({ token: z.string().regex(/^\d+:[A-Za-z0-9_-]{20,}$/) }).parse)
+  .inputValidator(z.object({ token: z.string().regex(/^\d+:[A-Za-z0-9_-]{20,}$/) }).parse)
   .handler(async ({ data, context }) => {
     // Verify token + fetch bot info
     const meRes = await fetch(`https://api.telegram.org/bot${data.token}/getMe`);

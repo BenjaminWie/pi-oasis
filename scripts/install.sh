@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
-# Robust setup for the Pi (or any Linux box with Node 20+).
+# DEV-ONLY install script — builds pi-hub from source.
+#
+# Do NOT run this on a Raspberry Pi 3 / 4 / Zero — it will exhaust RAM and
+# the prebuilt esbuild binaries SIGILL on ARMv8.0. End users should install
+# via the prebuilt artifact:
+#
+#     curl -fsSL https://pi-hub.benniwie.com/install.sh | sh
+#
+# Use this script only on a development machine (laptop, x86 server, or a
+# Pi 5 with ≥ 4 GB RAM and swap configured).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

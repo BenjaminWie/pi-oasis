@@ -52,7 +52,7 @@ export const listMqttBrokers = createServerFn({ method: "GET" })
 
 export const pollMqttMessages = createServerFn({ method: "GET" })
   .middleware([requirePiAuth])
-  .validator((d: { brokerId: string; topicFilter?: string }) => d)
+  .inputValidator((d: { brokerId: string; topicFilter?: string }) => d)
   .handler(async ({ data }): Promise<{ messages: MqttMessage[] }> => {
     const { isPiRuntime } = await import("./pi-runtime.server");
     if (isPiRuntime()) {
@@ -84,7 +84,7 @@ export const pollMqttMessages = createServerFn({ method: "GET" })
 
 export const publishMqttMessage = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
-  .validator(
+  .inputValidator(
     (d: {
       brokerId: string;
       topic: string;
