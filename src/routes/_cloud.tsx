@@ -52,9 +52,8 @@ function CloudLayout() {
 
   const tabs = [
     { to: "/devices", label: "Geräte", icon: Server },
+    { to: "/pump", label: "Pumpe", icon: Droplets },
     { to: "/connections", label: "Connect", icon: Link2 },
-    { to: "/plugins", label: "Plugins", icon: Puzzle },
-    { to: "/audit", label: "Audit", icon: ScrollText },
   ];
 
 
