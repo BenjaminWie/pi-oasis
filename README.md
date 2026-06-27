@@ -78,13 +78,17 @@ proxy, no DB server. State is a tiny JSON file at `~/.pi-hub/state.json`
 
 See [DEPLOY.md](./DEPLOY.md) for the mock-to-real wiring.
 
-## Why we run `vite dev` on the Pi
+## Prebuilt artifact vs. dev build
 
-pi-hub runs the TanStack Start dev server under PM2 rather than a production
-build. The prod server entry path moves between TanStack Start releases
-(`dist/server/server.js` vs `.output/server/index.mjs`), which caused restart
-loops on ARM. Dev mode boots in seconds, stays under ~500 MB RSS on a Pi 4,
-and is what `scripts/start.sh` and `ecosystem.config.cjs` invoke.
+The Pi runs the **prebuilt** `.output/server/index.mjs` from the GitHub
+release tarball — that's what makes the install a one-line, sub-minute
+operation that doesn't OOM a Pi 3. The Vite + esbuild toolchain never lands
+on the device.
+
+For local development on a laptop, `./scripts/install.sh` does the full
+source build (Node 22+, ≥ 4 GB RAM recommended). See
+[docs/pi-slim.md](./docs/pi-slim.md) for what's stripped on the slim build.
+
 
 ## Real data vs demo
 
