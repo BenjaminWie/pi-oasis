@@ -209,8 +209,48 @@ export const TOOLS: ToolDef[] = [
   },
 ];
 
-export function findTool(name: string): ToolDef | null {
-  return TOOLS.find((t) => t.name === name) ?? null;
+export async function getToolsForDevice(ctx: ToolCtx): Promise<ToolDef[]> {
+  const d = await getSnapshot(ctx);
+  const snap = (d?.last_snapshot as any) || {};
+  const plugins = snap.plugins || [];
+
+  const dynamicTools: ToolDef[] = [];
+
+  for (const p of plugins) {
+    if (!p.commands) continue;
+    for (const c of p.commands) {
+      const toolName = `${p.name.toLowerCase().replace(/\s+/g, "_")}_${c.name.toLowerCase()}`;
+      dynamicTools.push({
+        name: toolName,
+        description: `${c.description || c.label} (Plugin: ${p.name})`,
+        scope: c.type === "control" ? "control" : "read",
+        inputSchema: z.object({
+          minutes: z.number().int().min(1).max(120).optional().describe("Duration in minutes (if applicable)"),
+        }),
+        async execute(args, ctx) {
+          if (c.type === "control") {
+            // For now, we reuse the plugin_manual action which is geared towards pump-like behavior.
+            // If the command is generic, we might need a more generic plugin_cmd later.
+            return await enqueueAndWait(ctx, "plugin_manual", {
+              id: p.id,
+              action: c.name.includes("off") ? "off" : "on",
+              minutes: args.minutes,
+              command: c.name
+            });
+          } else {
+            return await enqueueAndWait(ctx, "plugin_get", { id: p.id });
+          }
+        },
+      });
+    }
+  }
+
+  return [...TOOLS, ...dynamicTools];
+}
+
+export async function findTool(name: string, ctx?: ToolCtx): Promise<ToolDef | null> {
+  const tools = ctx ? await getToolsForDevice(ctx) : TOOLS;
+  return tools.find((t) => t.name === name) ?? null;
 }
 
 // ---- token verification + audit -------------------------------------------

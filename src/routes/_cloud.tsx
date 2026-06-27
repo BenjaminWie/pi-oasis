@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Server, MessageCircle, ScrollText, LogOut, Bot } from "lucide-react";
+import { Server, MessageCircle, ScrollText, LogOut, Bot, Puzzle, Link2 } from "lucide-react";
 
 export const Route = createFileRoute("/_cloud")({
   ssr: false,
@@ -52,8 +52,8 @@ function CloudLayout() {
 
   const tabs = [
     { to: "/devices", label: "Geräte", icon: Server },
-    { to: "/mcp", label: "MCP", icon: Bot },
-    { to: "/telegram", label: "Telegram", icon: MessageCircle },
+    { to: "/connections", label: "Connect", icon: Link2 },
+    { to: "/plugins", label: "Plugins", icon: Puzzle },
     { to: "/audit", label: "Audit", icon: ScrollText },
   ];
 

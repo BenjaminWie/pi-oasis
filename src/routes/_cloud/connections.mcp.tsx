@@ -6,7 +6,7 @@ import { Plus, Trash2, Copy, Check, Bot, ShieldCheck, Zap } from "lucide-react";
 import { listMcpTokens, createMcpToken, deleteMcpToken, listMcpAudit } from "@/lib/mcp-tokens.functions";
 import { listDevices } from "@/lib/cloud.functions";
 
-export const Route = createFileRoute("/_cloud/mcp")({
+export const Route = createFileRoute("/_cloud/connections/mcp")({
   component: McpPage,
 });
 

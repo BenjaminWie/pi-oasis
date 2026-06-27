@@ -16,6 +16,7 @@ import {
   resolveToken,
   writeAudit,
   zodToJsonSchema,
+  getToolsForDevice,
   type ToolCtx,
 } from "@/lib/mcp-tools.server";
 
@@ -61,7 +62,8 @@ async function handleRpc(msg: JsonRpcReq, ctx: ToolCtx | null) {
 
     case "tools/list": {
       if (!ctx) return rpcError(id, -32001, "unauthorized");
-      const available = TOOLS.filter((t) => ctx.scopes.includes(t.scope));
+      const allTools = await getToolsForDevice(ctx);
+      const available = allTools.filter((t) => ctx.scopes.includes(t.scope));
       return rpcResult(id, {
         tools: available.map((t) => ({
           name: t.name,
@@ -75,7 +77,7 @@ async function handleRpc(msg: JsonRpcReq, ctx: ToolCtx | null) {
       if (!ctx) return rpcError(id, -32001, "unauthorized");
       const name = msg.params?.name;
       const args = msg.params?.arguments ?? {};
-      const tool = findTool(name);
+      const tool = await findTool(name, ctx);
       if (!tool) {
         await writeAudit(ctx, String(name ?? "?"), "error", 0, "unknown tool");
         return rpcError(id, -32602, `unknown tool: ${name}`);

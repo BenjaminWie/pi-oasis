@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { getProfile, linkTelegramBot, unlinkTelegramBot } from "@/lib/cloud.functions";
 
-export const Route = createFileRoute("/_cloud/telegram")({
+export const Route = createFileRoute("/_cloud/connections/telegram")({
   component: TelegramPage,
 });
 
