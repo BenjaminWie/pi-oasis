@@ -2,7 +2,6 @@
 // matching `cloud_pairings` row, mark it claimed, and return the device
 // token bundle. No auth header — the nonce IS the auth, single-use + 10min TTL.
 import { createFileRoute } from "@tanstack/react-router";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { jsonResponse } from "@/lib/agent-api.server";
 
 export const Route = createFileRoute("/api/public/cloud-bridge/claim")({
@@ -19,6 +18,7 @@ export const Route = createFileRoute("/api/public/cloud-bridge/claim")({
         if (nonce.length < 8) return jsonResponse({ error: "invalid nonce" }, 400);
 
         const { createHash } = await import("node:crypto");
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const nonceHash = createHash("sha256").update(nonce).digest("hex");
 
         const { data: pairing } = await supabaseAdmin

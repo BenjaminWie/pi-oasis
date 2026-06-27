@@ -13,24 +13,34 @@ function CloudLayout() {
   const loc = useLocation();
   const [ready, setReady] = useState(false);
 
+  const authRedirectSearch = () => {
+    if (loc.pathname !== "/pair-callback") return undefined;
+    return {
+      ...(loc.search as Record<string, unknown>),
+      returnTo: "pair-callback",
+    };
+  };
+
   useEffect(() => {
     let active = true;
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
       if (!data.session) {
-        navigate({ to: "/auth" });
+        navigate({ to: "/auth", search: authRedirectSearch() as any, replace: true });
       } else {
         setReady(true);
       }
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") navigate({ to: "/auth" });
+      if (event === "SIGNED_OUT") {
+        navigate({ to: "/auth", search: authRedirectSearch() as any, replace: true });
+      }
     });
     return () => {
       active = false;
       sub.subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, loc.pathname, loc.search]);
 
   if (!ready) {
     return (

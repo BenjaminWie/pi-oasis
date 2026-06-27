@@ -38,7 +38,12 @@ function PairCallback() {
         );
         // Auto-close popup after a moment so the parent (Pi UI) can pick it up
         setTimeout(() => {
-          if (window.opener) window.close();
+          if (window.opener) {
+            window.opener.focus();
+            window.close();
+            return;
+          }
+          if (search.local) window.location.assign(search.local);
         }, 2500);
       } catch (e: any) {
         setStatus("error");
@@ -67,6 +72,14 @@ function PairCallback() {
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-2">
             Gerät: {name}
           </p>
+        )}
+        {status === "ok" && search.local && (
+          <a
+            href={search.local}
+            className="inline-flex mt-5 rounded-lg bg-primary px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-primary-foreground"
+          >
+            Zurück zum Pi
+          </a>
         )}
       </div>
     </div>
