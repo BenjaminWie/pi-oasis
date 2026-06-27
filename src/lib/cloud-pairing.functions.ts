@@ -74,14 +74,17 @@ export const mintLocalPairing = createServerFn({ method: "POST" })
     if (pairErr) {
       // best-effort cleanup of orphan device row
       await context.supabase.from("devices").delete().eq("id", device.id);
-      if (pairErr.code === "23505") {
-        const { data: afterRace } = await supabaseAdmin
-          .from("cloud_pairings")
-          .select("user_id, device_name")
-          .eq("nonce_hash", nonceHash)
-          .maybeSingle();
-        if (afterRace && (afterRace as any).user_id === context.userId) {
-          return { ok: true as const, name: (afterRace as any).device_name as string };
+      if (pairErr.code === "23505" || pairErr.message.includes("duplicate key")) {
+        for (let i = 0; i < 5; i += 1) {
+          const { data: afterRace } = await supabaseAdmin
+            .from("cloud_pairings")
+            .select("user_id, device_name")
+            .eq("nonce_hash", nonceHash)
+            .maybeSingle();
+          if (afterRace && (afterRace as any).user_id === context.userId) {
+            return { ok: true as const, name: (afterRace as any).device_name as string };
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
       throw new Error(pairErr.message);
