@@ -90,7 +90,7 @@ function PumpPage() {
     }));
   const maxW = wattPoints.length ? Math.max(...wattPoints.map((p) => p.max)) : 0;
 
-  const lastWatts = events.find((e: any) => e.metrics?.watts != null)?.metrics?.watts;
+  const lastWatts = (events as any[]).find((e) => (e.metrics as any)?.watts != null)?.metrics?.watts;
   const lastDecision = events[0];
 
   const fields: Array<{ key: string; label: string; suffix?: string }> = [
