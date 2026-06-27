@@ -45,7 +45,7 @@ export const Route = createFileRoute("/api/public/cloud-bridge/event")({
         const rows = events.map((e) => ({
           device_id: device.id,
           component: e.component,
-          device_label: e.device ?? null,
+          device_label: e.device ?? "",
           status: e.status,
           message: e.message ?? null,
           strategy_applied: e.strategy_applied ?? null,

@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/public/hooks/aggregate-events")({
         `;
         // Use rpc fallback via direct sql; admin client can't run raw SQL — use SECURITY DEFINER fn instead.
         // For simplicity here, call two separate operations via PostgREST is not possible. We rely on a DB function.
-        const { error } = await supabaseAdmin.rpc("aggregate_device_events" as any);
+        const { error } = await (supabaseAdmin as any).rpc("aggregate_device_events");
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
         return new Response(JSON.stringify({ ok: true }), {
           headers: { "Content-Type": "application/json" },
