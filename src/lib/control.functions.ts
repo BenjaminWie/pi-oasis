@@ -86,7 +86,7 @@ export const upsertStrategy = createServerFn({ method: "POST" })
     const patch: Record<string, unknown> = {
       device_id: data.deviceId,
       updated_at: new Date().toISOString(),
-      updated_by: context.user.id,
+      updated_by: context.userId,
     };
     if (data.params) patch.params = data.params;
     if (typeof data.ecoPaused === "boolean") patch.eco_paused = data.ecoPaused;
