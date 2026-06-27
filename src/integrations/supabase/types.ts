@@ -473,7 +473,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      aggregate_device_events: { Args: never; Returns: undefined }
+      recompute_anomaly_baselines: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
