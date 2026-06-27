@@ -15,6 +15,7 @@ async function snapshot() {
     ]);
     const { listPluginsStore } = await import("./plugins-store.server");
     const plugins = await listPluginsStore().catch(() => []);
+
     return {
       ...stats,
       ram: stats.ramTotalGb ? (stats.ramUsedGb / stats.ramTotalGb) * 100 : null,
@@ -34,6 +35,13 @@ async function snapshot() {
         isMqtt: c.isMqtt,
       })),
       mqtt_brokers: containers.filter((c) => c.isMqtt).map((c) => c.name),
+      plugins: plugins.map((p) => ({
+        id: p.id,
+        name: p.name,
+        kind: p.kind,
+        enabled: p.enabled,
+        commands: p.commands,
+      })),
     };
   } catch {
     return null;
@@ -130,9 +138,29 @@ async function execCommand(cmd: any) {
         pluginId: id,
         action: action === "on" ? "manual_on" : "manual_off",
         reason: `MCP override — ${action.toUpperCase()} for ${minutes}m`,
-        simulated: plugin.config.simulated,
+        simulated: (plugin.config as any).simulated,
       });
       return { ok: true, result: { ok: true, action, minutes } };
+    }
+    if (cmd.kind === "plugin_create") {
+      const { createPluginStore } = await import("./plugins-store.server");
+      const p = await createPluginStore(
+        cmd.payload.kind,
+        cmd.payload.name,
+        cmd.payload.config,
+        cmd.payload.commands,
+      );
+      return { ok: true, result: p };
+    }
+    if (cmd.kind === "plugin_update") {
+      const { updatePluginStore } = await import("./plugins-store.server");
+      const p = await updatePluginStore(cmd.payload.id, cmd.payload.patch);
+      return { ok: true, result: p };
+    }
+    if (cmd.kind === "plugin_delete") {
+      const { deletePluginStore } = await import("./plugins-store.server");
+      await deletePluginStore(cmd.payload.id);
+      return { ok: true, result: { ok: true } };
     }
     return { ok: false, result: { error: "unknown kind " + cmd.kind } };
   } catch (e: any) {

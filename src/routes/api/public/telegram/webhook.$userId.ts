@@ -59,7 +59,7 @@ async function mapVoiceToCommand(transcript: string): Promise<string | null> {
           {
             role: "system",
             content:
-              "You map a user's natural-language request (German or English) for a Raspberry Pi home server to ONE command. Allowed outputs (verbatim, nothing else): `/status`, `/containers`, `/devices`, or `/mqtt pub <topic> <message>`. If you cannot map, output exactly: unclear",
+              "You map a user's natural-language request (German or English) for a Raspberry Pi home server to ONE command. Allowed outputs (verbatim, nothing else): `/status`, `/containers`, `/devices`, `/plugins`, `/plugin <name> <command>`, or `/mqtt pub <topic> <message>`. If you cannot map, output exactly: unclear",
           },
           { role: "user", content: transcript },
         ],
@@ -165,7 +165,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             })
             .eq("id", userId);
           await reply(
-            "✅ Verknüpft. Befehle: /devices /status /containers /mqtt pub <topic> <msg> · oder einfach Sprachnachricht",
+            "✅ Verknüpft. Befehle: /devices /status /containers /plugins /plugin <name> <command> /mqtt pub <topic> <msg> · oder einfach Sprachnachricht",
           );
           return jsonResponse({ ok: true });
         }
@@ -202,6 +202,62 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
                 .join("\n"),
             );
           }
+          return jsonResponse({ ok: true });
+        }
+
+        if (text.startsWith("/plugins")) {
+          const allPlugins = paired.flatMap((d) =>
+            ((d.last_snapshot as any)?.plugins || []).map((p: any) => ({ ...p, deviceName: d.name }))
+          );
+          if (allPlugins.length === 0) {
+            await reply("Keine Plugins gefunden.");
+          } else {
+            await reply(
+              "*Plugins:*\n" +
+              allPlugins.map((p) => `🧩 *${p.name}* (${p.deviceName})\n   Befehle: ${p.commands?.map((c: any) => c.label).join(", ") || "keine"}`).join("\n\n")
+            );
+          }
+          return jsonResponse({ ok: true });
+        }
+
+        if (text.startsWith("/plugin")) {
+          const parts = text.split(/\s+/);
+          const pluginName = parts[1];
+          const commandLabel = parts.slice(2).join(" ");
+
+          const allPlugins = paired.flatMap((d) =>
+            ((d.last_snapshot as any)?.plugins || []).map((p: any) => ({ ...p, deviceId: d.id, deviceName: d.name }))
+          );
+
+          const plugin = allPlugins.find(p => p.name.toLowerCase().includes(pluginName?.toLowerCase()));
+          if (!plugin) {
+            await reply(`Plugin "${pluginName}" nicht gefunden. Nutze /plugins für eine Liste.`);
+            return jsonResponse({ ok: true });
+          }
+
+          const cmd = plugin.commands?.find((c: any) =>
+            c.label.toLowerCase().includes(commandLabel.toLowerCase()) ||
+            c.name.toLowerCase().includes(commandLabel.toLowerCase())
+          );
+
+          if (!cmd) {
+            await reply(`Befehl "${commandLabel}" für ${plugin.name} nicht gefunden.`);
+            return jsonResponse({ ok: true });
+          }
+
+          await supabaseAdmin.from("agent_commands").insert({
+            device_id: plugin.deviceId,
+            user_id: userId,
+            kind: cmd.type === "control" ? "plugin_manual" : "plugin_get",
+            payload: {
+              id: plugin.id,
+              action: cmd.name.includes("off") ? "off" : "on",
+              command: cmd.name
+            },
+            source: "telegram",
+          });
+
+          await reply(`⏳ Befehl \`${cmd.label}\` an *${plugin.name}* gesendet...`);
           return jsonResponse({ ok: true });
         }
 

@@ -14,10 +14,10 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CloudRouteImport } from './routes/_cloud'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CloudTelegramRouteImport } from './routes/_cloud/telegram'
+import { Route as CloudPluginsRouteImport } from './routes/_cloud/plugins'
 import { Route as CloudPairCallbackRouteImport } from './routes/_cloud/pair-callback'
-import { Route as CloudMcpRouteImport } from './routes/_cloud/mcp'
 import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
+import { Route as CloudConnectionsRouteImport } from './routes/_cloud/connections'
 import { Route as CloudAuditRouteImport } from './routes/_cloud/audit'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -26,6 +26,9 @@ import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
 import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
 import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
+import { Route as CloudConnectionsTelegramRouteImport } from './routes/_cloud/connections.telegram'
+import { Route as CloudConnectionsMcpRouteImport } from './routes/_cloud/connections.mcp'
+import { Route as CloudConnectionsAlexaRouteImport } from './routes/_cloud/connections.alexa'
 import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
 import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
@@ -59,9 +62,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CloudTelegramRoute = CloudTelegramRouteImport.update({
-  id: '/telegram',
-  path: '/telegram',
+const CloudPluginsRoute = CloudPluginsRouteImport.update({
+  id: '/plugins',
+  path: '/plugins',
   getParentRoute: () => CloudRoute,
 } as any)
 const CloudPairCallbackRoute = CloudPairCallbackRouteImport.update({
@@ -69,14 +72,14 @@ const CloudPairCallbackRoute = CloudPairCallbackRouteImport.update({
   path: '/pair-callback',
   getParentRoute: () => CloudRoute,
 } as any)
-const CloudMcpRoute = CloudMcpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
-  getParentRoute: () => CloudRoute,
-} as any)
 const CloudDevicesRoute = CloudDevicesRouteImport.update({
   id: '/devices',
   path: '/devices',
+  getParentRoute: () => CloudRoute,
+} as any)
+const CloudConnectionsRoute = CloudConnectionsRouteImport.update({
+  id: '/connections',
+  path: '/connections',
   getParentRoute: () => CloudRoute,
 } as any)
 const CloudAuditRoute = CloudAuditRouteImport.update({
@@ -118,6 +121,22 @@ const CloudDevicesIdRoute = CloudDevicesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => CloudDevicesRoute,
+} as any)
+const CloudConnectionsTelegramRoute =
+  CloudConnectionsTelegramRouteImport.update({
+    id: '/telegram',
+    path: '/telegram',
+    getParentRoute: () => CloudConnectionsRoute,
+  } as any)
+const CloudConnectionsMcpRoute = CloudConnectionsMcpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => CloudConnectionsRoute,
+} as any)
+const CloudConnectionsAlexaRoute = CloudConnectionsAlexaRouteImport.update({
+  id: '/alexa',
+  path: '/alexa',
+  getParentRoute: () => CloudConnectionsRoute,
 } as any)
 const AuthenticatedPluginsIdRoute = AuthenticatedPluginsIdRouteImport.update({
   id: '/$id',
@@ -174,16 +193,18 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
-  '/plugins': typeof AuthenticatedPluginsRouteWithChildren
+  '/plugins': typeof CloudPluginsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
   '/audit': typeof CloudAuditRoute
+  '/connections': typeof CloudConnectionsRouteWithChildren
   '/devices': typeof CloudDevicesRouteWithChildren
-  '/mcp': typeof CloudMcpRoute
   '/pair-callback': typeof CloudPairCallbackRoute
-  '/telegram': typeof CloudTelegramRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/plugins/$id': typeof AuthenticatedPluginsIdRoute
+  '/connections/alexa': typeof CloudConnectionsAlexaRoute
+  '/connections/mcp': typeof CloudConnectionsMcpRoute
+  '/connections/telegram': typeof CloudConnectionsTelegramRoute
   '/devices/$id': typeof CloudDevicesIdRoute
   '/api/public/mcp': typeof ApiPublicMcpRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
@@ -200,16 +221,18 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
-  '/plugins': typeof AuthenticatedPluginsRouteWithChildren
+  '/plugins': typeof CloudPluginsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
   '/audit': typeof CloudAuditRoute
+  '/connections': typeof CloudConnectionsRouteWithChildren
   '/devices': typeof CloudDevicesRouteWithChildren
-  '/mcp': typeof CloudMcpRoute
   '/pair-callback': typeof CloudPairCallbackRoute
-  '/telegram': typeof CloudTelegramRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/plugins/$id': typeof AuthenticatedPluginsIdRoute
+  '/connections/alexa': typeof CloudConnectionsAlexaRoute
+  '/connections/mcp': typeof CloudConnectionsMcpRoute
+  '/connections/telegram': typeof CloudConnectionsTelegramRoute
   '/devices/$id': typeof CloudDevicesIdRoute
   '/api/public/mcp': typeof ApiPublicMcpRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
@@ -233,12 +256,15 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
   '/_cloud/audit': typeof CloudAuditRoute
+  '/_cloud/connections': typeof CloudConnectionsRouteWithChildren
   '/_cloud/devices': typeof CloudDevicesRouteWithChildren
-  '/_cloud/mcp': typeof CloudMcpRoute
   '/_cloud/pair-callback': typeof CloudPairCallbackRoute
-  '/_cloud/telegram': typeof CloudTelegramRoute
+  '/_cloud/plugins': typeof CloudPluginsRoute
   '/_authenticated/container/$id': typeof AuthenticatedContainerIdRoute
   '/_authenticated/plugins/$id': typeof AuthenticatedPluginsIdRoute
+  '/_cloud/connections/alexa': typeof CloudConnectionsAlexaRoute
+  '/_cloud/connections/mcp': typeof CloudConnectionsMcpRoute
+  '/_cloud/connections/telegram': typeof CloudConnectionsTelegramRoute
   '/_cloud/devices/$id': typeof CloudDevicesIdRoute
   '/api/public/mcp': typeof ApiPublicMcpRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
@@ -261,12 +287,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/terminal'
     | '/audit'
+    | '/connections'
     | '/devices'
-    | '/mcp'
     | '/pair-callback'
-    | '/telegram'
     | '/container/$id'
     | '/plugins/$id'
+    | '/connections/alexa'
+    | '/connections/mcp'
+    | '/connections/telegram'
     | '/devices/$id'
     | '/api/public/mcp'
     | '/api/public/agent/heartbeat'
@@ -287,12 +315,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/terminal'
     | '/audit'
+    | '/connections'
     | '/devices'
-    | '/mcp'
     | '/pair-callback'
-    | '/telegram'
     | '/container/$id'
     | '/plugins/$id'
+    | '/connections/alexa'
+    | '/connections/mcp'
+    | '/connections/telegram'
     | '/devices/$id'
     | '/api/public/mcp'
     | '/api/public/agent/heartbeat'
@@ -315,12 +345,15 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/terminal'
     | '/_cloud/audit'
+    | '/_cloud/connections'
     | '/_cloud/devices'
-    | '/_cloud/mcp'
     | '/_cloud/pair-callback'
-    | '/_cloud/telegram'
+    | '/_cloud/plugins'
     | '/_authenticated/container/$id'
     | '/_authenticated/plugins/$id'
+    | '/_cloud/connections/alexa'
+    | '/_cloud/connections/mcp'
+    | '/_cloud/connections/telegram'
     | '/_cloud/devices/$id'
     | '/api/public/mcp'
     | '/api/public/agent/heartbeat'
@@ -385,11 +418,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_cloud/telegram': {
-      id: '/_cloud/telegram'
-      path: '/telegram'
-      fullPath: '/telegram'
-      preLoaderRoute: typeof CloudTelegramRouteImport
+    '/_cloud/plugins': {
+      id: '/_cloud/plugins'
+      path: '/plugins'
+      fullPath: '/plugins'
+      preLoaderRoute: typeof CloudPluginsRouteImport
       parentRoute: typeof CloudRoute
     }
     '/_cloud/pair-callback': {
@@ -399,18 +432,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CloudPairCallbackRouteImport
       parentRoute: typeof CloudRoute
     }
-    '/_cloud/mcp': {
-      id: '/_cloud/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof CloudMcpRouteImport
-      parentRoute: typeof CloudRoute
-    }
     '/_cloud/devices': {
       id: '/_cloud/devices'
       path: '/devices'
       fullPath: '/devices'
       preLoaderRoute: typeof CloudDevicesRouteImport
+      parentRoute: typeof CloudRoute
+    }
+    '/_cloud/connections': {
+      id: '/_cloud/connections'
+      path: '/connections'
+      fullPath: '/connections'
+      preLoaderRoute: typeof CloudConnectionsRouteImport
       parentRoute: typeof CloudRoute
     }
     '/_cloud/audit': {
@@ -468,6 +501,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/devices/$id'
       preLoaderRoute: typeof CloudDevicesIdRouteImport
       parentRoute: typeof CloudDevicesRoute
+    }
+    '/_cloud/connections/telegram': {
+      id: '/_cloud/connections/telegram'
+      path: '/telegram'
+      fullPath: '/connections/telegram'
+      preLoaderRoute: typeof CloudConnectionsTelegramRouteImport
+      parentRoute: typeof CloudConnectionsRoute
+    }
+    '/_cloud/connections/mcp': {
+      id: '/_cloud/connections/mcp'
+      path: '/mcp'
+      fullPath: '/connections/mcp'
+      preLoaderRoute: typeof CloudConnectionsMcpRouteImport
+      parentRoute: typeof CloudConnectionsRoute
+    }
+    '/_cloud/connections/alexa': {
+      id: '/_cloud/connections/alexa'
+      path: '/alexa'
+      fullPath: '/connections/alexa'
+      preLoaderRoute: typeof CloudConnectionsAlexaRouteImport
+      parentRoute: typeof CloudConnectionsRoute
     }
     '/_authenticated/plugins/$id': {
       id: '/_authenticated/plugins/$id'
@@ -568,6 +622,21 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface CloudConnectionsRouteChildren {
+  CloudConnectionsAlexaRoute: typeof CloudConnectionsAlexaRoute
+  CloudConnectionsMcpRoute: typeof CloudConnectionsMcpRoute
+  CloudConnectionsTelegramRoute: typeof CloudConnectionsTelegramRoute
+}
+
+const CloudConnectionsRouteChildren: CloudConnectionsRouteChildren = {
+  CloudConnectionsAlexaRoute: CloudConnectionsAlexaRoute,
+  CloudConnectionsMcpRoute: CloudConnectionsMcpRoute,
+  CloudConnectionsTelegramRoute: CloudConnectionsTelegramRoute,
+}
+
+const CloudConnectionsRouteWithChildren =
+  CloudConnectionsRoute._addFileChildren(CloudConnectionsRouteChildren)
+
 interface CloudDevicesRouteChildren {
   CloudDevicesIdRoute: typeof CloudDevicesIdRoute
 }
@@ -582,18 +651,18 @@ const CloudDevicesRouteWithChildren = CloudDevicesRoute._addFileChildren(
 
 interface CloudRouteChildren {
   CloudAuditRoute: typeof CloudAuditRoute
+  CloudConnectionsRoute: typeof CloudConnectionsRouteWithChildren
   CloudDevicesRoute: typeof CloudDevicesRouteWithChildren
-  CloudMcpRoute: typeof CloudMcpRoute
   CloudPairCallbackRoute: typeof CloudPairCallbackRoute
-  CloudTelegramRoute: typeof CloudTelegramRoute
+  CloudPluginsRoute: typeof CloudPluginsRoute
 }
 
 const CloudRouteChildren: CloudRouteChildren = {
   CloudAuditRoute: CloudAuditRoute,
+  CloudConnectionsRoute: CloudConnectionsRouteWithChildren,
   CloudDevicesRoute: CloudDevicesRouteWithChildren,
-  CloudMcpRoute: CloudMcpRoute,
   CloudPairCallbackRoute: CloudPairCallbackRoute,
-  CloudTelegramRoute: CloudTelegramRoute,
+  CloudPluginsRoute: CloudPluginsRoute,
 }
 
 const CloudRouteWithChildren = CloudRoute._addFileChildren(CloudRouteChildren)
