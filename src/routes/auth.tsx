@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { z } from "zod";
@@ -29,16 +29,48 @@ function buildPostAuthTarget(search: z.infer<typeof authSearchSchema>): string {
   return "/devices";
 }
 
+function buildAuthReturnUrl(search: z.infer<typeof authSearchSchema>): string {
+  const url = new URL("/auth", window.location.origin);
+  if (search.returnTo) url.searchParams.set("returnTo", search.returnTo);
+  if (search.local) url.searchParams.set("local", search.local);
+  if (search.nonce) url.searchParams.set("nonce", search.nonce);
+  if (search.hostname) url.searchParams.set("hostname", search.hostname);
+  return url.toString();
+}
 
 function AuthPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/auth" });
-  const postAuth = buildPostAuthTarget(search);
+  const postAuth = useMemo(() => buildPostAuthTarget(search), [search]);
+  const authReturnUrl = useMemo(() => buildAuthReturnUrl(search), [search]);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const continueIfSignedIn = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (active && data.session) {
+        navigate({ to: postAuth, replace: true });
+      }
+    };
+
+    void continueIfSignedIn();
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active && session) {
+        navigate({ to: postAuth, replace: true });
+      }
+    });
+
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [navigate, postAuth]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,7 +81,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin + postAuth },
+          options: { emailRedirectTo: authReturnUrl },
         });
         if (error) throw error;
       } else {
@@ -93,7 +125,7 @@ function AuthPage() {
             onClick={async () => {
               setError(null);
               const result = await lovable.auth.signInWithOAuth("google", {
-                redirect_uri: window.location.href,
+                redirect_uri: authReturnUrl,
               });
 
               if (result.error) {

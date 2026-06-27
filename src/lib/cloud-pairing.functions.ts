@@ -34,9 +34,24 @@ export const mintLocalPairing = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { randomBytes, createHash } = await import("node:crypto");
+    const nonceHash = createHash("sha256").update(data.nonce).digest("hex");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: existing, error: existingErr } = await supabaseAdmin
+      .from("cloud_pairings")
+      .select("user_id, device_name")
+      .eq("nonce_hash", nonceHash)
+      .maybeSingle();
+    if (existingErr) throw new Error(existingErr.message);
+    if (existing) {
+      if ((existing as any).user_id !== context.userId) {
+        throw new Error("Pairing-Link wurde bereits verwendet");
+      }
+      return { ok: true as const, name: (existing as any).device_name as string };
+    }
+
     const token = randomBytes(32).toString("base64url");
     const tokenHash = createHash("sha256").update(token).digest("hex");
-    const nonceHash = createHash("sha256").update(data.nonce).digest("hex");
 
     const { data: device, error: devErr } = await context.supabase
       .from("devices")
@@ -49,7 +64,6 @@ export const mintLocalPairing = createServerFn({ method: "POST" })
       .single();
     if (devErr) throw new Error(devErr.message);
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error: pairErr } = await supabaseAdmin.from("cloud_pairings").insert({
       nonce_hash: nonceHash,
       user_id: context.userId,
@@ -60,6 +74,19 @@ export const mintLocalPairing = createServerFn({ method: "POST" })
     if (pairErr) {
       // best-effort cleanup of orphan device row
       await context.supabase.from("devices").delete().eq("id", device.id);
+      if (pairErr.code === "23505" || pairErr.message.includes("duplicate key")) {
+        for (let i = 0; i < 5; i += 1) {
+          const { data: afterRace } = await supabaseAdmin
+            .from("cloud_pairings")
+            .select("user_id, device_name")
+            .eq("nonce_hash", nonceHash)
+            .maybeSingle();
+          if (afterRace && (afterRace as any).user_id === context.userId) {
+            return { ok: true as const, name: (afterRace as any).device_name as string };
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
       throw new Error(pairErr.message);
     }
     return { ok: true as const, name: device.name };

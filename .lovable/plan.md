@@ -1,38 +1,47 @@
-## Problem
+## Befund aus Logs und Code
 
-When the Pi opens the cloud popup to bridge, the user signs in successfully but then lands on **`/cloud/pair-callback` → 404**, breaking the pairing handoff. The popup never reaches the page that mints the device token, so the Pi-side poller times out and the bridge never activates.
+- Google-Login selbst funktioniert: die Auth-Logs zeigen erfolgreiche Google-Logins (`/token` Status 200).
+- Es wird aber kein Pairing erzeugt: `cloud_pairings` ist leer. Das heißt: der Flow erreicht den Cloud-Callback, der den Geräte-Token erzeugt, nicht zuverlässig.
+- Aktuelle Schwachstelle: Der Pi öffnet die Cloud in einem Popup. Nach Google-OAuth bleibt der Nutzer in der Cloud/Auth-Seite hängen oder landet auf der Cloud-Startseite; der lokale Pi-Kontext ist weg. Das ist genau der Bruch, den du beschreibst.
 
-## Root cause
+## Ziel
 
-The cloud routes live under the pathless layout `src/routes/_cloud.tsx`. Their actual URLs are:
+Der Pi bleibt die führende Oberfläche. Die Cloud-Anmeldung passiert nur als kurzer Handshake. Nach erfolgreichem Login wird automatisch ein Token gemintet, vom Pi abgeholt und die UI zeigt verbunden an.
 
-```
-/devices   /telegram   /audit   /mcp   /pair-callback
-```
+## Änderungen
 
-…**not** `/cloud/devices`, `/cloud/pair-callback`, etc. But several spots hardcode the `/cloud/*` prefix:
+1. **Cloud-Login robust machen**
+   - In `src/routes/auth.tsx` nach jedem Seitenaufruf prüfen, ob bereits eine Cloud-Session existiert.
+   - Wenn ja: automatisch zum berechneten Ziel weiterleiten, z. B. `/pair-callback?...`.
+   - Dadurch funktioniert auch der OAuth-Rücksprung, bei dem Google wieder auf `/auth?...` landet.
 
-- `src/routes/auth.tsx` → `buildPostAuthTarget()` returns `"/cloud/pair-callback?..."` and `"/cloud/devices"` (both 404).
-- `src/routes/_cloud.tsx` bottom-nav `tabs` array contains duplicated `/cloud/devices`, `/cloud/mcp`, `/cloud/telegram`, `/cloud/audit` entries (also 404 on click).
+2. **Google Redirect stabilisieren**
+   - Google-OAuth nicht auf `window.location.href` verlassen.
+   - Explizit auf die öffentliche Auth-Seite zurückleiten: `/auth?returnTo=pair-callback&local=...&nonce=...&hostname=...`.
+   - Die Query bleibt erhalten, aber der Callback läuft erst nach bestätigter Session.
 
-Secondary issue along the same path: the Google button in `auth.tsx` passes `redirect_uri: window.location.origin + postAuth`, i.e. it asks Google to come back directly into a protected `_cloud` route. Per the Supabase/Lovable OAuth guidance the `redirect_uri` must be a **public same-origin URL**; the protected layout's client-only session check then races the OAuth callback and can bounce to `/auth` or 404 before the session is hydrated. The destination must be `/auth` (public) and the auth page navigates onward once the session is live — which is exactly what the email/password branch already does.
+3. **Pi-Pairing ohne Weglaufen vom Pi**
+   - Der lokale Settings-Screen bleibt offen und pollt weiter.
+   - Popup bekommt klare Statusseite: „Anmeldung läuft“, „Gerät verknüpft“, „Du kannst zurück zum Pi“.
+   - Falls Popup-Closing blockiert ist, ist das egal: der Pi pollt unabhängig und zeigt den Erfolg.
 
-## Fix
+4. **Fehler sichtbarer machen**
+   - Pairing-Callback zeigt konkrete Fehler, wenn Token-Minting fehlschlägt.
+   - Pi-Settings zeigen verständliche Stati: Login offen, warte auf Cloud, verbunden, Timeout.
 
-1. **`src/routes/auth.tsx` — `buildPostAuthTarget`**
-   - Return `"/pair-callback?local=…&nonce=…&hostname=…"` (no `/cloud` prefix).
-   - Default fallback returns `"/devices"`.
-   - For the Google button, pass `redirect_uri: window.location.origin + "/auth?" + currentSearchParams` so Google returns to the public auth route; after `signInWithOAuth` resolves (or on the post-OAuth mount once the session lands), the existing `navigate({ to: postAuth })` carries the user to `/pair-callback` with the popup's `nonce`/`local`/`hostname` preserved.
+5. **Sicherheits-/Import-Fix am Claim-Endpunkt**
+   - `src/routes/api/public/cloud-bridge/claim.ts` lädt den Admin-Client erst im Handler, nicht auf Modulebene.
+   - Das ist sicherer für öffentliche Server-Routen und vermeidet Bundling-/Runtime-Risiken.
 
-2. **`src/routes/_cloud.tsx` — `tabs` array**
-   - Remove the four duplicate `/cloud/*` entries. Keep only `/devices`, `/telegram`, `/audit`, plus add `/mcp` so the bottom nav matches the real routes.
+## Verifikation
 
-3. **No backend / no schema / no pairing-logic changes.** `cloud-pairing.functions.ts`, `pair-callback.tsx`, and `/api/public/cloud-bridge/claim` are correct — they just never got reached.
+- Prüfen, dass `/auth?returnTo=pair-callback&...` nach vorhandener oder neuer Google-Session automatisch zu `/pair-callback?...` navigiert.
+- Prüfen, dass `cloud_pairings` nach Callback einen Eintrag bekommt.
+- Prüfen, dass `/api/public/cloud-bridge/claim` mit derselben Nonce den Device-Token zurückgibt und den Eintrag als claimed markiert.
+- Prüfen, dass der lokale Pi-Settings-Screen nach Polling `connected` anzeigt.
 
-## Verification
+## Nicht ändern
 
-- From the Pi UI's Settings → "In Cloud anmelden & Bridge aktivieren":
-  - Popup opens at `https://pi-hub.benniwie.com/auth?returnTo=pair-callback&local=…&nonce=…&hostname=…`.
-  - After Google or email sign-in the popup navigates to `/pair-callback?...` (200, not 404) and shows "✓ <hostname> verknüpft".
-  - Pi-side poll picks up the token within ~2.5 s and `host.cloudBridge.connected` flips to `true`.
-- Bottom-nav tabs in the cloud UI all resolve (no 404).
+- Keine neue Datenbankstruktur.
+- Kein Umbau der bestehenden Geräte-/Token-Logik.
+- Kein schwerer zusätzlicher Client-Code auf dem Pi.
