@@ -17,41 +17,38 @@ Site: **https://pi-hub.benniwie.com**
 
 ---
 
-## Run on your Pi (One-liner)
+## Install on your Pi
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/benniwie/pi-hub/main/scripts/bootstrap.sh | bash
+curl -fsSL https://pi-hub.benniwie.com/install.sh | sh
 ```
 
-> This script automatically detects your architecture (arm64), installs Node.js and PM2 if missing, downloads the latest pre-built release, and sets up Pi Hub as a background service. It's designed to be fast and low-memory.
+That's it. The installer:
 
-### Alternative (Manual Clone)
+1. Detects your arm64 Pi and checks for Node 20+ (installs it if missing).
+2. Downloads the latest **prebuilt** `pi-hub-linux-arm64.tar.gz` from GitHub
+   Releases — never compiles on the device.
+3. Verifies the SHA256, extracts to `/opt/pi-hub`, generates a fresh PIN +
+   factory-reset token.
+4. Starts pi-hub under PM2 (capped at 220 MB RSS, auto-restart on crash).
 
-```bash
-git clone <this-repo> pi-hub && cd pi-hub
-./scripts/install.sh
-./scripts/start.sh                # → http://<pi>.local:3000
-```
+When it's done, open `http://<pi>.local:3000` and log in with PIN **1234**
+(change it in Settings on first login). Re-run the same command any time to
+upgrade.
 
-### Run as a background service (recommended: PM2)
+> **Pi 3 / Pi 4 users:** the old `./scripts/install.sh` path is gone for end
+> users — it ran `npm install` + a full Vite build on-device and that's what
+> killed your Pi. Use the one-liner above; it installs a prebuilt artifact in
+> under a minute.
 
-PM2 avoids the `$PATH` / NVM headaches that bite raw systemd units on the Pi
-and gives you log rotation and restart-on-crash out of the box.
+### Run as a service
 
-```bash
-npm install -g pm2
-pm2 start ecosystem.config.cjs
-pm2 save
-pm2 startup                       # follow the printed sudo command
-```
+PM2 is started automatically. To have it survive reboots, run the `sudo env …`
+line that `pm2 startup` printed at the end of the install.
 
-### Alternative: systemd
+Prefer raw systemd? `./scripts/install-systemd.sh` writes a unit file.
 
-```bash
-./scripts/install-systemd.sh
-```
 
-Default PIN is **1234** — change it in Settings on first login.
 
 ## Run on your laptop (preview with mock data)
 
