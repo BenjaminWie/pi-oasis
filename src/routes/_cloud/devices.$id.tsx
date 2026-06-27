@@ -315,6 +315,10 @@ function DevicePage() {
         </>
       )}
 
+      {paired && <DeviceAnalytics deviceId={id} />}
+
+
+
       <button
         onClick={async () => {
           if (!confirm("Gerät wirklich entfernen?")) return;
