@@ -93,7 +93,7 @@ async function runShell(argv: string[]): Promise<string> {
 
 export const runTerminalCommand = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
-  .validator((d: { cmd: string }) => {
+  .inputValidator((d: { cmd: string }) => {
     if (typeof d.cmd !== "string" || !d.cmd.trim() || d.cmd.length > 512) {
       throw new Error("invalid cmd");
     }

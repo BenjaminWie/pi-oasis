@@ -26,7 +26,7 @@ export const createPairingNonce = createServerFn({ method: "POST" })
 
 export const mintLocalPairing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator(
+  .inputValidator(
     z.object({
       nonce: z.string().min(8).max(512),
       hostname: z.string().min(1).max(128),
@@ -69,7 +69,7 @@ export const mintLocalPairing = createServerFn({ method: "POST" })
 
 export const claimCloudPairing = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
-  .validator((d: { nonce: string; cloudUrl?: string }) => {
+  .inputValidator((d: { nonce: string; cloudUrl?: string }) => {
     if (typeof d.nonce !== "string" || d.nonce.length < 8) throw new Error("invalid nonce");
     return d;
   })

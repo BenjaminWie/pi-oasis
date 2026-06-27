@@ -27,7 +27,7 @@ export const listMcpTokens = createServerFn({ method: "GET" })
 
 export const createMcpToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator(
+  .inputValidator(
     z.object({
       deviceId: z.string().uuid(),
       name: z.string().min(1).max(64),
@@ -72,7 +72,7 @@ export const createMcpToken = createServerFn({ method: "POST" })
 
 export const deleteMcpToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator(z.object({ id: z.string().uuid() }).parse)
+  .inputValidator(z.object({ id: z.string().uuid() }).parse)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("mcp_tokens")
