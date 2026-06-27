@@ -13,16 +13,25 @@ async function snapshot() {
       readRealSystemStats(),
       listRealContainers().catch(() => []),
     ]);
+    const { listPluginsStore } = await import("./plugins-store.server");
+    const plugins = await listPluginsStore().catch(() => []);
     return {
-      cpu: stats.cpu,
+      ...stats,
       ram: stats.ramTotalGb ? (stats.ramUsedGb / stats.ramTotalGb) * 100 : null,
       temp: stats.tempC,
       disk: stats.diskUsedPct,
-      uptime: stats.uptime,
+      plugins,
       containers: containers.map((c) => ({
+        id: c.id,
         name: c.name,
-        status: c.status === "running" ? "running" : c.status,
         image: c.image,
+        status: c.status,
+        uptime: c.uptime,
+        ports: c.ports,
+        network: c.network,
+        cpu: c.cpu,
+        mem: c.mem,
+        isMqtt: c.isMqtt,
       })),
       mqtt_brokers: containers.filter((c) => c.isMqtt).map((c) => c.name),
     };
@@ -66,6 +75,11 @@ async function execCommand(cmd: any) {
         { timeout: 5000 },
       );
       return { ok: true, result: { topic: cmd.payload.topic } };
+    }
+    if (cmd.kind === "terminal") {
+      const { executeTerminalCommand } = await import("./terminal.functions");
+      const res = await executeTerminalCommand(cmd.payload.cmd);
+      return { ok: true, result: res };
     }
     if (cmd.kind === "plugin_list") {
       const { listPluginsStore } = await import("./plugins-store.server");

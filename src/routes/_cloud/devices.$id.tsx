@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { getDevice, enqueueCommand, deleteDevice, regeneratePairing } from "@/lib/cloud.functions";
-import { ArrowLeft, RefreshCw, Trash2, Play, Square, RotateCcw } from "lucide-react";
+import { ArrowLeft, RefreshCw, Trash2, Play, Square, RotateCcw, Terminal as TerminalIcon, Puzzle } from "lucide-react";
+import { StatGauge } from "@/components/StatGauge";
 
 export const Route = createFileRoute("/_cloud/devices/$id")({
   component: DevicePage,
@@ -11,6 +13,7 @@ export const Route = createFileRoute("/_cloud/devices/$id")({
 function DevicePage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const [terminalInput, setTerminalInput] = useState("");
   const fetchDevice = useServerFn(getDevice);
   const enqueue = useServerFn(enqueueCommand);
   const regen = useServerFn(regeneratePairing);
@@ -83,107 +86,229 @@ function DevicePage() {
         </div>
       ) : (
         <>
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-3">
-              Snapshot
-            </h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <SnapRow label="CPU" value={snap.cpu != null ? Math.round(snap.cpu) + " %" : "—"} />
-              <SnapRow label="RAM" value={snap.ram != null ? Math.round(snap.ram) + " %" : "—"} />
-              <SnapRow
-                label="Temp"
-                value={snap.temp != null ? Math.round(snap.temp) + " °C" : "—"}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">
+                Snapshot
+              </h3>
+              <button
+                onClick={() => cmd.mutate({ kind: "status" })}
+                className="text-primary p-1 active:scale-90 transition-transform"
+                title="Aktualisieren"
+              >
+                <RefreshCw size={14} className={cmd.isPending ? "animate-spin" : ""} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <StatGauge
+                label="CPU"
+                value={snap.cpu != null ? `${Math.round(snap.cpu)}` : "—"}
+                unit="%"
+                pct={snap.cpu ?? 0}
+                tone={snap.cpu > 75 ? "warn" : "ok"}
               />
-              <SnapRow
+              <StatGauge
+                label="RAM"
+                value={snap.ram != null ? `${Math.round(snap.ram)}` : "—"}
+                unit="%"
+                pct={snap.ram ?? 0}
+                tone={snap.ram > 80 ? "warn" : "ok"}
+              />
+              <StatGauge
+                label="TMP"
+                value={snap.temp != null ? `${Math.round(snap.temp)}` : "—"}
+                unit="°C"
+                pct={snap.temp != null ? (snap.temp / 85) * 100 : 0}
+                tone={snap.temp > 70 ? "crit" : "accent"}
+              />
+              <StatGauge
                 label="Disk"
-                value={snap.disk != null ? Math.round(snap.disk) + " %" : "—"}
+                value={snap.disk != null ? `${Math.round(snap.disk)}` : "—"}
+                unit="%"
+                pct={snap.disk ?? 0}
+                tone={snap.disk > 90 ? "crit" : "ok"}
               />
             </div>
-            <button
-              onClick={() => cmd.mutate({ kind: "status" })}
-              className="mt-4 w-full rounded-lg bg-primary text-primary-foreground py-2 text-xs uppercase tracking-widest flex items-center justify-center gap-1"
-            >
-              <RefreshCw size={12} /> Aktualisieren
-            </button>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-3">
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground px-1">
               Container ({(snap.containers || []).length})
             </h3>
-            <div className="space-y-2">
+            <div className="grid gap-3">
               {(snap.containers || []).map((c: any) => (
-                <div key={c.name} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${c.status === "running" ? "bg-primary" : "bg-muted-foreground"}`}
-                    />
-                    <span className="font-mono">{c.name}</span>
+                <div
+                  key={c.name}
+                  className="bg-card border border-border rounded-2xl p-4 relative overflow-hidden"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`size-2 rounded-full ${c.status === "running" ? "bg-status-ok glow-ok" : "bg-status-crit glow-crit"}`}
+                      />
+                      <span className="font-mono font-bold text-sm">{c.name}</span>
+                    </div>
+                    <div className="flex gap-1">
+                      <ActionBtn
+                        icon={Play}
+                        onClick={() =>
+                          cmd.mutate({
+                            kind: "container_action",
+                            payload: { name: c.name, action: "start" },
+                          })
+                        }
+                      />
+                      <ActionBtn
+                        icon={Square}
+                        onClick={() =>
+                          cmd.mutate({
+                            kind: "container_action",
+                            payload: { name: c.name, action: "stop" },
+                          })
+                        }
+                      />
+                      <ActionBtn
+                        icon={RotateCcw}
+                        onClick={() =>
+                          cmd.mutate({
+                            kind: "container_action",
+                            payload: { name: c.name, action: "restart" },
+                          })
+                        }
+                      />
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    <ActionBtn
-                      icon={Play}
-                      onClick={() =>
-                        cmd.mutate({
-                          kind: "container_action",
-                          payload: { name: c.name, action: "start" },
-                        })
-                      }
-                    />
-                    <ActionBtn
-                      icon={Square}
-                      onClick={() =>
-                        cmd.mutate({
-                          kind: "container_action",
-                          payload: { name: c.name, action: "stop" },
-                        })
-                      }
-                    />
-                    <ActionBtn
-                      icon={RotateCcw}
-                      onClick={() =>
-                        cmd.mutate({
-                          kind: "container_action",
-                          payload: { name: c.name, action: "restart" },
-                        })
-                      }
-                    />
+                  <div className="text-[10px] text-muted-foreground font-mono truncate mb-2">
+                    {c.image}
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="py-1.5 px-2 bg-white/5 rounded-lg border border-border">
+                      <span className="block text-[8px] uppercase text-muted-foreground font-bold">
+                        Port
+                      </span>
+                      <span className="font-mono text-[10px] text-primary">
+                        {c.ports?.[0] ?? "—"}
+                      </span>
+                    </div>
+                    <div className="py-1.5 px-2 bg-white/5 rounded-lg border border-border">
+                      <span className="block text-[8px] uppercase text-muted-foreground font-bold">
+                        CPU / MEM
+                      </span>
+                      <span className="font-mono text-[10px]">
+                        {c.cpu ?? 0}% · {c.mem ?? 0}M
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
               {(!snap.containers || snap.containers.length === 0) && (
-                <p className="text-[10px] text-muted-foreground">Keine Daten</p>
+                <p className="text-[10px] text-muted-foreground p-4 text-center border border-dashed border-border rounded-2xl">
+                  Keine Daten
+                </p>
               )}
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-3">
-              Befehls-Verlauf
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground px-1">
+              Plugins ({(snap.plugins || []).length})
             </h3>
-            <div className="space-y-1 text-[11px] font-mono">
-              {data.commands.map((c: any) => (
+            <div className="grid gap-3">
+              {(snap.plugins || []).map((p: any) => (
                 <div
-                  key={c.id}
-                  className="flex justify-between gap-2 border-b border-border/40 py-1"
+                  key={p.id}
+                  className="bg-card border border-border rounded-2xl p-4 relative overflow-hidden"
                 >
-                  <span>{c.kind}</span>
-                  <span
-                    className={
-                      c.status === "done"
-                        ? "text-primary"
-                        : c.status === "failed"
-                          ? "text-destructive"
-                          : "text-muted-foreground"
-                    }
-                  >
-                    {c.status}
-                  </span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Puzzle size={16} className="text-primary" />
+                      <span className="font-mono font-bold text-sm">{p.name}</span>
+                    </div>
+                    <span className={`text-[10px] uppercase tracking-widest ${p.enabled ? "text-primary" : "text-muted-foreground"}`}>
+                      {p.enabled ? "Enabled" : "Disabled"}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground font-mono mb-3">
+                    Type: {p.kind}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => cmd.mutate({ kind: "plugin_run_planner", payload: { id: p.id } })}
+                      className="flex-1 py-2 bg-primary/10 border border-primary/20 text-primary rounded-xl text-[10px] font-bold uppercase tracking-widest"
+                    >
+                      Plan rebuild
+                    </button>
+                    <button
+                      onClick={() => cmd.mutate({ kind: "plugin_manual", payload: { id: p.id, action: "on", minutes: 10 } })}
+                      className="flex-1 py-2 bg-status-ok/10 border border-status-ok/20 text-status-ok rounded-xl text-[10px] font-bold uppercase tracking-widest"
+                    >
+                      Manual ON (10m)
+                    </button>
+                  </div>
                 </div>
               ))}
-              {data.commands.length === 0 && (
-                <p className="text-[10px] text-muted-foreground">Noch keine Befehle</p>
+              {(!snap.plugins || snap.plugins.length === 0) && (
+                <p className="text-[10px] text-muted-foreground p-4 text-center border border-dashed border-border rounded-2xl">
+                  Keine Plugins konfiguriert
+                </p>
               )}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground px-1">
+              Terminal
+            </h3>
+            <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+              <div className="flex gap-2">
+                <input
+                  value={terminalInput}
+                  onChange={(e) => setTerminalInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && terminalInput) {
+                      cmd.mutate({ kind: "terminal", payload: { cmd: terminalInput } });
+                      setTerminalInput("");
+                    }
+                  }}
+                  placeholder="Befehl (z.B. uptime, docker ps)"
+                  className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-xs font-mono"
+                />
+                <button
+                  onClick={() => {
+                    if (terminalInput) {
+                      cmd.mutate({ kind: "terminal", payload: { cmd: terminalInput } });
+                      setTerminalInput("");
+                    }
+                  }}
+                  disabled={!terminalInput || cmd.isPending}
+                  className="bg-primary text-primary-foreground p-2 rounded-lg disabled:opacity-50"
+                >
+                  <TerminalIcon size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto font-mono text-[11px]">
+                {data.commands
+                  .filter((c: any) => c.kind === "terminal" || c.kind === "status")
+                  .map((c: any) => (
+                    <div key={c.id} className="border-b border-border/40 pb-2 last:border-0">
+                      <div className="flex justify-between text-[9px] text-muted-foreground mb-1">
+                        <span>{c.kind === "terminal" ? `$ ${c.payload.cmd}` : "Status Update"}</span>
+                        <span>{new Date(c.created_at).toLocaleTimeString()}</span>
+                      </div>
+                      {c.status === "pending" && <div className="text-muted-foreground animate-pulse">Running...</div>}
+                      {c.status === "failed" && <div className="text-destructive">Failed: {c.result?.error || "Unknown error"}</div>}
+                      {c.status === "done" && (
+                        <pre className="whitespace-pre-wrap break-all text-foreground/90">
+                          {c.kind === "terminal" ? c.result?.output : "Snapshot updated"}
+                        </pre>
+                      )}
+                    </div>
+                  ))}
+                {data.commands.length === 0 && (
+                  <p className="text-[10px] text-muted-foreground text-center py-4">Noch keine Befehle</p>
+                )}
+              </div>
             </div>
           </div>
         </>
@@ -199,15 +324,6 @@ function DevicePage() {
       >
         <Trash2 size={12} /> Entfernen
       </button>
-    </div>
-  );
-}
-
-function SnapRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between font-mono">
-      <span className="text-muted-foreground text-[10px] uppercase tracking-widest">{label}</span>
-      <span>{value}</span>
     </div>
   );
 }

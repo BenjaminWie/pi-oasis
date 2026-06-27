@@ -45,7 +45,7 @@ function previewReply(input: string): string {
   return `(preview) command not executed — runs live when installed on a Pi.`;
 }
 
-async function runGemini(prompt: string): Promise<string> {
+export async function runGemini(prompt: string): Promise<string> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) return "gemini: LOVABLE_API_KEY not configured";
   try {
@@ -75,7 +75,7 @@ async function runGemini(prompt: string): Promise<string> {
   }
 }
 
-async function runShell(argv: string[]): Promise<string> {
+export async function runShell(argv: string[]): Promise<string> {
   const { execFile } = await import("node:child_process");
   const { promisify } = await import("node:util");
   const exec = promisify(execFile);
@@ -91,6 +91,65 @@ async function runShell(argv: string[]): Promise<string> {
   }
 }
 
+export async function executeTerminalCommand(cmdRaw: string): Promise<{ output: string }> {
+  const cmd = cmdRaw.trim();
+  const { hasProcStats } = await import("./pi-runtime.server");
+
+  // Gemini route works in both runtimes when LOVABLE_API_KEY is present
+  if (cmd.toLowerCase().startsWith("gemini")) {
+    const prompt = cmd.slice(6).trim();
+    if (!prompt) return { output: "usage: gemini <your question>" };
+    return { output: await runGemini(prompt) };
+  }
+
+  if (!hasProcStats()) return { output: previewReply(cmd) };
+
+  if (cmd === "help") {
+    return {
+      output:
+        "Available commands:\n" +
+        "  gemini <prompt>          — ask the AI sysadmin\n" +
+        "  docker ps|logs|stats     — container info\n" +
+        "  pm2 list|logs|show       — process management\n" +
+        "  df / free / uptime       — system resource usage\n" +
+        "  ls / cat / tail / grep   — file inspection\n" +
+        "  ip / ping                — network info\n" +
+        "  hostname / vcgencmd ...  — host info\n" +
+        "  journalctl -u <unit>     — service logs\n" +
+        "  ps aux / whoami / uname  — system info\n",
+    };
+  }
+
+  const tokens = cmd.split(/\s+/);
+  const head = tokens[0];
+  if (!ALLOWED.has(head)) {
+    return {
+      output: `'${head}' not allowed. Try: help, docker ps, df, free, uptime, journalctl, gemini <prompt>`,
+    };
+  }
+
+  // Lightweight argument sanitation: no shell metas
+  for (const t of tokens) {
+    if (/[`$;&|<>(){}\\]/.test(t)) {
+      return { output: "shell metacharacters not allowed" };
+    }
+  }
+
+  // Some defaults to keep output sane
+  if (head === "journalctl" && !tokens.includes("-n")) tokens.push("-n", "50");
+  if (head === "docker" && tokens[1] === "logs" && !tokens.includes("--tail")) {
+    tokens.push("--tail", "100");
+  }
+  if (head === "pm2" && tokens[1] === "logs" && !tokens.includes("--lines")) {
+    tokens.push("--lines", "50");
+  }
+  if (head === "tail" && !tokens.includes("-n")) {
+    tokens.push("-n", "50");
+  }
+
+  return { output: await runShell(tokens) };
+}
+
 export const runTerminalCommand = createServerFn({ method: "POST" })
   .middleware([requirePiAuth])
   .inputValidator((d: { cmd: string }) => {
@@ -100,60 +159,5 @@ export const runTerminalCommand = createServerFn({ method: "POST" })
     return d;
   })
   .handler(async ({ data }): Promise<{ output: string }> => {
-    const cmd = data.cmd.trim();
-    const { hasProcStats } = await import("./pi-runtime.server");
-
-    // Gemini route works in both runtimes when LOVABLE_API_KEY is present
-    if (cmd.toLowerCase().startsWith("gemini")) {
-      const prompt = cmd.slice(6).trim();
-      if (!prompt) return { output: "usage: gemini <your question>" };
-      return { output: await runGemini(prompt) };
-    }
-
-    if (!hasProcStats()) return { output: previewReply(cmd) };
-
-    if (cmd === "help") {
-      return {
-        output:
-          "Available commands:\n" +
-          "  gemini <prompt>          — ask the AI sysadmin\n" +
-          "  docker ps|logs|stats     — container info\n" +
-          "  pm2 list|logs|show       — process management\n" +
-          "  df / free / uptime       — system resource usage\n" +
-          "  ls / cat / tail / grep   — file inspection\n" +
-          "  ip / ping                — network info\n" +
-          "  hostname / vcgencmd ...  — host info\n" +
-          "  journalctl -u <unit>     — service logs\n" +
-          "  ps aux / whoami / uname  — system info\n",
-      };
-    }
-
-    const tokens = cmd.split(/\s+/);
-    const head = tokens[0];
-    if (!ALLOWED.has(head)) {
-      return {
-        output: `'${head}' not allowed. Try: help, docker ps, df, free, uptime, journalctl, gemini <prompt>`,
-      };
-    }
-
-    // Lightweight argument sanitation: no shell metas
-    for (const t of tokens) {
-      if (/[`$;&|<>(){}\\]/.test(t)) {
-        return { output: "shell metacharacters not allowed" };
-      }
-    }
-
-    // Some defaults to keep output sane
-    if (head === "journalctl" && !tokens.includes("-n")) tokens.push("-n", "50");
-    if (head === "docker" && tokens[1] === "logs" && !tokens.includes("--tail")) {
-      tokens.push("--tail", "100");
-    }
-    if (head === "pm2" && tokens[1] === "logs" && !tokens.includes("--lines")) {
-      tokens.push("--lines", "50");
-    }
-    if (head === "tail" && !tokens.includes("-n")) {
-      tokens.push("-n", "50");
-    }
-
-    return { output: await runShell(tokens) };
+    return await executeTerminalCommand(data.cmd);
   });
