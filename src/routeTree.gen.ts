@@ -18,7 +18,6 @@ import { Route as CloudPluginsRouteImport } from './routes/_cloud/plugins'
 import { Route as CloudPairCallbackRouteImport } from './routes/_cloud/pair-callback'
 import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
 import { Route as CloudConnectionsRouteImport } from './routes/_cloud/connections'
-import { Route as CloudAuditRouteImport } from './routes/_cloud/audit'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticated/plugins'
@@ -84,11 +83,6 @@ const CloudDevicesRoute = CloudDevicesRouteImport.update({
 const CloudConnectionsRoute = CloudConnectionsRouteImport.update({
   id: '/connections',
   path: '/connections',
-  getParentRoute: () => CloudRoute,
-} as any)
-const CloudAuditRoute = CloudAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
   getParentRoute: () => CloudRoute,
 } as any)
 const AuthenticatedTerminalRoute = AuthenticatedTerminalRouteImport.update({
@@ -224,7 +218,6 @@ export interface FileRoutesByFullPath {
   '/plugins': typeof CloudPluginsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
-  '/audit': typeof CloudAuditRoute
   '/connections': typeof CloudConnectionsRouteWithChildren
   '/devices': typeof CloudDevicesRouteWithChildren
   '/pair-callback': typeof CloudPairCallbackRoute
@@ -256,7 +249,6 @@ export interface FileRoutesByTo {
   '/plugins': typeof CloudPluginsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
-  '/audit': typeof CloudAuditRoute
   '/connections': typeof CloudConnectionsRouteWithChildren
   '/devices': typeof CloudDevicesRouteWithChildren
   '/pair-callback': typeof CloudPairCallbackRoute
@@ -291,7 +283,6 @@ export interface FileRoutesById {
   '/_authenticated/plugins': typeof AuthenticatedPluginsRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
-  '/_cloud/audit': typeof CloudAuditRoute
   '/_cloud/connections': typeof CloudConnectionsRouteWithChildren
   '/_cloud/devices': typeof CloudDevicesRouteWithChildren
   '/_cloud/pair-callback': typeof CloudPairCallbackRoute
@@ -326,7 +317,6 @@ export interface FileRouteTypes {
     | '/plugins'
     | '/settings'
     | '/terminal'
-    | '/audit'
     | '/connections'
     | '/devices'
     | '/pair-callback'
@@ -358,7 +348,6 @@ export interface FileRouteTypes {
     | '/plugins'
     | '/settings'
     | '/terminal'
-    | '/audit'
     | '/connections'
     | '/devices'
     | '/pair-callback'
@@ -392,7 +381,6 @@ export interface FileRouteTypes {
     | '/_authenticated/plugins'
     | '/_authenticated/settings'
     | '/_authenticated/terminal'
-    | '/_cloud/audit'
     | '/_cloud/connections'
     | '/_cloud/devices'
     | '/_cloud/pair-callback'
@@ -500,13 +488,6 @@ declare module '@tanstack/react-router' {
       path: '/connections'
       fullPath: '/connections'
       preLoaderRoute: typeof CloudConnectionsRouteImport
-      parentRoute: typeof CloudRoute
-    }
-    '/_cloud/audit': {
-      id: '/_cloud/audit'
-      path: '/audit'
-      fullPath: '/audit'
-      preLoaderRoute: typeof CloudAuditRouteImport
       parentRoute: typeof CloudRoute
     }
     '/_authenticated/terminal': {
@@ -734,7 +715,6 @@ const CloudDevicesRouteWithChildren = CloudDevicesRoute._addFileChildren(
 )
 
 interface CloudRouteChildren {
-  CloudAuditRoute: typeof CloudAuditRoute
   CloudConnectionsRoute: typeof CloudConnectionsRouteWithChildren
   CloudDevicesRoute: typeof CloudDevicesRouteWithChildren
   CloudPairCallbackRoute: typeof CloudPairCallbackRoute
@@ -742,7 +722,6 @@ interface CloudRouteChildren {
 }
 
 const CloudRouteChildren: CloudRouteChildren = {
-  CloudAuditRoute: CloudAuditRoute,
   CloudConnectionsRoute: CloudConnectionsRouteWithChildren,
   CloudDevicesRoute: CloudDevicesRouteWithChildren,
   CloudPairCallbackRoute: CloudPairCallbackRoute,
