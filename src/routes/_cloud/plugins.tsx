@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Puzzle, Plus, Settings2, Activity, Zap, Trash2, Save, Info } from "lucide-react";
+import { Puzzle, Plus, Settings2, Activity, Zap, Trash2, Save, Info, ArrowLeft } from "lucide-react";
 import { listDevices, enqueueCommand } from "@/lib/cloud.functions";
 
 export const Route = createFileRoute("/_cloud/plugins")({
@@ -36,89 +36,114 @@ function PluginsPage() {
     },
   });
 
+  const showList = !showAdd && !selectedPlugin;
+
   return (
     <div className="px-5 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-1">
-            Plugins
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Verwalte Automatisierungen auf deinen Geräten.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-xs uppercase tracking-widest flex items-center gap-1"
-        >
-          <Plus size={14} /> Neu
-        </button>
-      </div>
+      {showList ? (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-1">
+                Plugins
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Verwalte Automatisierungen auf deinen Geräten.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-xs uppercase tracking-widest flex items-center gap-1"
+            >
+              <Plus size={14} /> Neu
+            </button>
+          </div>
 
-      {showAdd && (
-        <PluginForm
-          devices={devices}
-          onSave={(p: any) => cmd.mutate({ deviceId: p.deviceId, kind: "plugin_create", payload: p })}
-          onCancel={() => setShowAdd(false)}
-        />
-      )}
+          <div className="space-y-3">
+            {plugins.map((p: any) => (
+              <div
+                key={`${p.deviceId}-${p.id}`}
+                className="rounded-2xl border border-border bg-card p-4 flex items-center gap-4 active:scale-[0.99] transition-transform cursor-pointer"
+                onClick={() => setSelectedPlugin(p)}
+              >
+                <div className="rounded-xl bg-primary/10 p-2.5 text-primary shrink-0">
+                  <Puzzle size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm truncate">{p.name}</span>
+                    {!p.enabled && (
+                      <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                        Off
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground truncate">
+                    {p.deviceName} · {p.kind}
+                  </div>
+                </div>
+                <div className="text-muted-foreground">
+                  <Settings2 size={16} />
+                </div>
+              </div>
+            ))}
 
-      {selectedPlugin && (
-        <PluginForm
-          plugin={selectedPlugin}
-          devices={devices}
-          onSave={(patch: any) => cmd.mutate({
-            deviceId: selectedPlugin.deviceId,
-            kind: "plugin_update",
-            payload: { id: selectedPlugin.id, patch }
-          })}
-          onDelete={() => cmd.mutate({
-            deviceId: selectedPlugin.deviceId,
-            kind: "plugin_delete",
-            payload: { id: selectedPlugin.id }
-          })}
-          onCancel={() => setSelectedPlugin(null)}
-        />
-      )}
-
-      <div className="space-y-3">
-        {plugins.map((p: any) => (
-          <div
-            key={`${p.deviceId}-${p.id}`}
-            className="rounded-2xl border border-border bg-card p-4 flex items-center gap-4 active:scale-[0.99] transition-transform cursor-pointer"
-            onClick={() => setSelectedPlugin(p)}
+            {plugins.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-border p-8 text-center space-y-3">
+                <Puzzle size={32} className="mx-auto text-muted-foreground/40" />
+                <p className="text-xs text-muted-foreground">
+                  Noch keine Plugins konfiguriert.
+                </p>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <button
+            onClick={() => {
+              setShowAdd(false);
+              setSelectedPlugin(null);
+            }}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground mb-2"
           >
-            <div className="rounded-xl bg-primary/10 p-2.5 text-primary shrink-0">
-              <Puzzle size={20} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm truncate">{p.name}</span>
-                {!p.enabled && (
-                  <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                    Off
-                  </span>
-                )}
-              </div>
-              <div className="text-[11px] text-muted-foreground truncate">
-                {p.deviceName} · {p.kind}
-              </div>
-            </div>
-            <div className="text-muted-foreground">
-              <Settings2 size={16} />
-            </div>
-          </div>
-        ))}
+            <ArrowLeft size={14} /> zurück
+          </button>
 
-        {plugins.length === 0 && !showAdd && (
-          <div className="rounded-2xl border border-dashed border-border p-8 text-center space-y-3">
-            <Puzzle size={32} className="mx-auto text-muted-foreground/40" />
-            <p className="text-xs text-muted-foreground">
-              Noch keine Plugins konfiguriert.
-            </p>
-          </div>
-        )}
-      </div>
+          {showAdd && (
+            <PluginForm
+              devices={devices}
+              onSave={(p: any) =>
+                cmd.mutate({ deviceId: p.deviceId, kind: "plugin_create", payload: p })
+              }
+              onCancel={() => setShowAdd(false)}
+            />
+          )}
+
+          {selectedPlugin && (
+            <PluginForm
+              plugin={selectedPlugin}
+              devices={devices}
+              onSave={(patch: any) =>
+                cmd.mutate({
+                  deviceId: selectedPlugin.deviceId,
+                  kind: "plugin_update",
+                  payload: { id: selectedPlugin.id, patch },
+                })
+              }
+              onDelete={() => {
+                if (!confirm("Plugin wirklich löschen?")) return;
+                cmd.mutate({
+                  deviceId: selectedPlugin.deviceId,
+                  kind: "plugin_delete",
+                  payload: { id: selectedPlugin.id },
+                });
+              }}
+              onCancel={() => setSelectedPlugin(null)}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }

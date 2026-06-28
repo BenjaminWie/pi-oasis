@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -77,12 +77,12 @@ function PluginDetailPage() {
 
   return (
     <div className="px-4 pt-6 pb-24">
-      <button
-        onClick={() => nav({ to: "/plugins" })}
-        className="flex items-center gap-1 text-xs text-muted-foreground mb-3"
+      <Link
+        to="/plugins"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground mb-3"
       >
-        <ArrowLeft className="size-3" /> Plugins
-      </button>
+        <ArrowLeft size={14} /> zurück
+      </Link>
 
       <header className="mb-5">
         <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">

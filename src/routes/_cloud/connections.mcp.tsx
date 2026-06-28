@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, Trash2, Copy, Check, Bot, ShieldCheck, Zap } from "lucide-react";
+import { Plus, Trash2, Copy, Check, Bot, ShieldCheck, Zap, ArrowLeft } from "lucide-react";
 import { listMcpTokens, createMcpToken, deleteMcpToken, listMcpAudit } from "@/lib/mcp-tokens.functions";
 import { listDevices } from "@/lib/cloud.functions";
 
@@ -73,6 +73,12 @@ function McpPage() {
 
   return (
     <div className="px-5 space-y-6">
+      <Link
+        to="/connections"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground mb-2"
+      >
+        <ArrowLeft size={14} /> zurück
+      </Link>
       <div>
         <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-1">
           MCP Server
