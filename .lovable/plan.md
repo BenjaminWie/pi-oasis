@@ -1,69 +1,84 @@
+## Was du eigentlich willst
 
-## Ziel
-Die Cloud-Seite ist die **Kontroll- und Beobachtungsschicht** für den Pi. Drei klare Bereiche statt zerfaserter Tabs:
+1. **Node-RED ↔ Pi-Hub sauber dokumentieren** — auf dem lokalen Pi sichtbar, mit allen URLs/Tokens, die dein Flow (`CLOUD_BRIDGE_URL`, `CLOUD_STRATEGY_URL`, `CLOUD_DEVICE_TOKEN`, `LOCAL_API_URL`, `PI_INGEST_TOKEN`) braucht — kopierbar wie bei Telegram/Alexa.
+2. **Connect-Karten reparieren** — MCP/Telegram/Alexa sind aktuell nicht klickbar, du kommst nicht an URL/Token.
+3. **Reasoning-Use-Case** sauber positionieren: „Alexa, schalt die Zisterne an" und „Ist meine Wäsche fertig?" (Tibber-Live + AI), nicht nur Pumpe AN/AUS.
 
-```text
-[ Geräte ]   [ Pumpe ]   [ Connect ]
+---
+
+## Plan
+
+### A) Connect-Hub reparieren (`/cloud/connections`)
+
+- Ursache: Die Karten sind als ganze `<Link>`-Blöcke gebaut, aber das `_cloud`-Layout hat `pb-28` + ein `fixed bottom-0` Nav, das auf manchen Viewports die unteren Cards überdeckt — Tap-Region geht ins Nav. Fix:
+  - `_cloud.tsx`: `pb-28` → `pb-32`, `pointer-events-none` auf den unsichtbaren Bereich rund ums Nav vermeiden, Nav bekommt klares `z-40`, Outlet-Container `relative z-0`.
+  - Connect-Cards: Karten bleiben `<Link>`, aber mit `block w-full` + `relative z-10` und Hit-Area-Test auf Mobile-Viewport per Playwright.
+- Nach dem Fix: Jede Karte führt zu einer eigenen Detailseite mit **Endpoint, Token-Erzeugung, Beispiel-Snippets, Doku-Link**.
+
+### B) Connect-Detailseiten vereinheitlichen
+
+Einheitliches Muster (wie Alexa-Page schon hat): Schritt-für-Schritt, jede Zeile mit Copy-Button, Doku-Link, Live-Status der Verbindung.
+
+- **MCP (`/connections/mcp`)** — bereits da, aber:
+  - Oben prominent ein „Quickstart"-Block: Endpoint-URL + Bearer-Token-Snippet für ChatGPT/Gemini/Claude/Open WebUI, jeweils 1 Copy-Klick.
+  - Verlinkung „Was kann ich fragen?" → Beispiele inkl. „Ist meine Wäsche fertig?" (siehe E).
+- **Telegram** — bestehender Flow bleibt, plus Link auf „Sprachbefehle & Beispiele".
+- **Alexa** — bestehende Step-by-Step bleibt, ergänzt um zwei Intents (`LaundryDoneIntent`, `EnergyAskIntent`) für Reasoning-Fragen.
+
+### C) Node-RED Integration auf dem Pi sichtbar machen
+
+Neue Pi-lokale Route `/integrations` (im Bottom-Nav klein „NR" Icon, nur wenn nicht-slim), zeigt alles, was dein Flow braucht — **alle Werte einmalig auf einer Seite kopierbar**:
+
+```
+CLOUD_BRIDGE_URL    https://pi-hub.benniwie.com/api/public/cloud-bridge/event
+CLOUD_STRATEGY_URL  https://pi-hub.benniwie.com/api/public/cloud-bridge/strategy
+CLOUD_DEVICE_TOKEN  <Button "Token holen" → öffnet /cloud/devices Pairing-Flow>
+LOCAL_API_URL       http://<pi-ip-auto-detected>:3000/api/public/ingest/event
+PI_INGEST_TOKEN     <generieren + anzeigen, hash-gespeichert>
 ```
 
-Audit, Terminal in der Cloud, und der generische „Plugins"-Tab fliegen raus. Der Use-Case ist heute Pumpe + Tibber + Wetter — also bauen wir genau das, statt eine abstrakte Plugin-Hülle.
+Zusätzlich:
+- Ein-Klick „Node-RED Flow-Template JSON herunterladen" (deine geposteten Tabs 1+ Cloud-Bridge als sauberer Subflow, vorausgefüllt mit den richtigen URLs).
+- Health-Anzeige: letzte Cloud-Push-Zeit, letzte Strategy-Poll-Zeit aus `device_events`.
+- Inline-Doku-Block (kondensiert aus `docs/nodered-integration.md`) mit den drei Punkten Direct-Ingest / Strategy-Poll / Fallback-zu-Local.
 
-## Was geändert wird
+In der Cloud-Variante (`/cloud/devices/$id`) bekommt der „Strategie"-Tab denselben Copy-Block für die Werte, damit du sie aus der Ferne einsehen kannst.
 
-### 1. Bottom-Nav reduziert auf 3 Tabs
-- **Geräte** (bleibt)
-- **Pumpe** (neu, ersetzt Plugins)
-- **Connect** (bleibt, wird klickbar gefixt)
-- ~~Audit~~ entfernt (Geräte-Detail zeigt relevante Events; MCP-Audit bleibt im Hintergrund persistiert)
+### D) Doku-File erweitern
 
-### 2. Connect-Seite klickbar + Alexa nach Telegram-Vorbild
-- Bug: Die `<Link to={s.href}>`-Targets sind als String hartcodiert, aber TanStack-Router will typsichere Routen — Klicks landen im Nichts. Auf `<Link to="/connections/telegram">` etc. mit korrektem Routing umstellen und Hover/Active-States anziehen.
-- **Telegram-Karte** bleibt im jetzigen Flow (funktioniert).
-- **Alexa-Karte** im gleichen Stil wie Telegram aufbauen:
-  - Schritt-für-Schritt-Setup mit Copy-Buttons (Endpoint, Invocation Name, JSON-Intent-Schema zum Reinpasten)
-  - Auto-generierter MCP-Token mit `control`-Scope direkt aus der UI (1-Click „Token erstellen + kopieren")
-  - Link zur Alexa Skill Builder Doku + Account-Linking-Doku
-  - Status-Anzeige: „zuletzt aufgerufen" (aus `mcp_audit` für diesen Token)
-- **MCP-Karte** bekommt analog dazu klare Copy-Blöcke (Endpoint, Token-Generierung, Modell-Hinweise für ChatGPT/Gemini/Claude).
+`docs/nodered-integration.md` erweitern um:
+- Wer triggert wen (Sequence-Diagramm in ASCII).
+- `mqtt_publish` aus der Cloud → Node-RED via `mqtt-in` auf Topic `pi-hub/strategy/+`, damit Cloud auch direkt steuern kann (zusätzlich zum Polling).
+- Failure-Modes: Cloud-Down → Local-Fallback (du hast das schon), Tibber-Down → letzte bekannte Preise, DWD-Down → konservativer Modus.
 
-### 3. Pumpe-Tab (ersetzt Plugins)
-Eigene Route `/pump` mit den heute relevanten Use-Cases gebündelt:
-- **Status-Kachel**: aktueller Watt-Wert, On/Off, letzter Lauf, heute schon gelaufen X min
-- **Manuelle Steuerung**: An (5/10/30 min), Aus, Eco-Pause-Toggle
-- **Strategie-Form**: PV-Min-Watt, Tibber-Cap (ct/kWh), Heizfenster, max. Minuten/Tag, Regen-Veto-mm → schreibt in `strategy_profiles` (existiert schon)
-- **Letzte Entscheidungen** (Timeline, gefiltert auf `component=pump` aus `device_events`): „11:42 — Started · PV 612W, Tibber 18ct" / „13:10 — Skipped · Regen vorhergesagt"
-- **Watt-Verlauf** (Recharts, letzte 24h, aus `device_events_hourly`)
-- Gerät wird oben per Dropdown gewählt (für später >1 Pi)
+### E) Reasoning-Use-Case: „Ist meine Wäsche fertig?"
 
-Das alte `smart_pump`-Plugin-Backend bleibt unangetastet — wir bauen nur die UI um diesen konkreten Use-Case herum.
+Erweiterung des MCP-Servers (`src/routes/api/public/mcp.ts` + `src/lib/mcp-tools.server.ts`):
 
-### 4. Geräte-Detailseite zeigt echte Live-Daten
-Aktuelles Problem: „Restart Pi"-Button etc. machen nichts sichtbar, Terminal-Block ist Lärm.
-- **Terminal-Sektion komplett entfernen** (Cloud ist kein SSH-Ersatz).
-- Snapshot-Kacheln (CPU/RAM/Temp/Disk) bleiben — werden aus dem regelmäßigen Heartbeat live nachgezogen (existiert bereits).
-- **Container-Liste** bleibt mit Start/Stop/Restart; jeder Aktion folgt automatisch ein `status`-Refetch, damit das Ergebnis sichtbar wird.
-- **„Restart Pi"-Button**: tatsächlich verdrahten gegen vorhandenes `enqueueCommand({kind:"system_reboot"})` (Server-fn-Schema dafür ergänzen falls fehlend) + Toast „Befehl gesendet · wird in ~30s offline gehen".
-- **Live-Event-Stream** (kleines Fenster, letzte 20 Events aus `device_events`) ersetzt das Terminal — zeigt was Node-RED / Plugins gerade tun.
-- Plugin-Sektion auf Detailseite raus (existiert dediziert im Pumpe-Tab).
+Neue Tools, die rein read-only sind und keinen Pi-Roundtrip brauchen (Daten liegen schon in `device_events`):
 
-### 5. Lokaler Pi → Cloud-Spiegelung der Live-Daten
-- Lokales Dashboard sammelt heute Containerliste + System-Snapshot. Heartbeat-Push (existiert) wird so erweitert, dass er bei jedem Tick auch die **Docker-Container-Liste** und den **Plugin-Runner-Status** in `devices.last_snapshot` schreibt (passiert teilweise schon — wir verifizieren und füllen Lücken).
-- Kein zusätzlicher Polling-Loop nötig, kein SD-Schreiben — nur den existierenden Heartbeat-Payload erweitern.
+- `get_power_history(window_minutes)` → Zeitreihe der `metrics.watts` aus `device_events` (Tibber-Pulse-Live wird ja schon gepusht via Node-RED Cloud-Bridge).
+- `get_tibber_price_now()` → aktueller Preis (aus letztem Tibber-Event).
+- `infer_appliance_state(appliance)` → Server nimmt die letzten 30 min Watt-Reihe + Tibber-Daten und gibt strukturiert zurück: `{ running: bool, since_min: number, est_finish_min: number|null, confidence }`. Heuristik: Waschmaschine = ≥150 W über ≥10 min, „fertig" wenn Watt < 5 W für ≥3 min nach aktiver Phase. Schwellwerte konfigurierbar pro `appliance_profiles`-Tabelle (neu, klein, RLS scoped).
 
-### 6. Audit-Tab + Route entfernen
-- `/_cloud/audit.tsx` Route löschen, aus Bottom-Nav raus.
-- `mcp_audit`-Tabelle bleibt (wird für „zuletzt benutzt"-Anzeige in Connect-Cards genutzt).
+Damit funktioniert in jedem MCP-Client (ChatGPT/Gemini/Claude) **und** in Alexa (über `LaundryDoneIntent` → MCP-Tool → strukturierte Antwort → TTS) **und** in Telegram die Frage „ist meine Wäsche fertig?".
 
-## Technische Notizen
-- Nav-Liste in `src/routes/_cloud.tsx`: 4 → 3 Tabs, `audit` raus, `plugins` → `pump`.
-- `src/routes/_cloud/connections.tsx`: `<Link>`-Komponenten richtig typisieren, `active:scale-[0.98]` + sichtbares `hover`.
-- Neue Route `src/routes/_cloud/pump.tsx` (ersetzt `_cloud/plugins.tsx` als Top-Level-Tab; Plugin-Detail-Route darf intern bleiben, ist aber nicht mehr in der Nav).
-- `src/routes/_cloud/devices.$id.tsx`: Terminal-Block + Plugin-Block raus, Live-Event-Stream rein, Reboot-Button verdrahten.
-- `src/routes/_cloud/connections.alexa.tsx`: ausbauen analog `connections.telegram.tsx`, mit MCP-Token-Generator (existiert in `mcp-tokens.functions.ts`).
-- Server-fns für Pumpe lesen `device_events` (component=pump) + `device_events_hourly` + `strategy_profiles` — existieren oder lassen sich aus vorhandenen Bausteinen kurz zusammensetzen.
-- Reboot-Command: `commandSchema` in `src/lib/cloud.functions.ts` um `system_reboot` erweitern; Pi-Agent-Handler (`cloud-bridge.server.ts`) führt `sudo reboot` aus (bereits vorhandenes Pattern für Terminal-Cmd wiederverwenden, mit erlauben-Liste).
+Auf der MCP-Seite ergänzen wir einen „Beispiel-Prompts"-Block mit genau diesen Fragen, damit klar ist, was geht.
 
-## Out of scope
-- Mehrere Pumpen / dynamische Geräte-Typ-UI — kommt erst, wenn ein zweiter Use-Case real ansteht.
-- Audit-Replacement-UI — wenn später nötig, kommt sie als Sub-Tab unter Geräte.
-- Plugin-Detailseiten (bleiben technisch, ohne Nav-Eintrag).
+### F) Verifizieren
+
+- Playwright-Skript: `/auth` Login, `/cloud/connections` öffnen, alle drei Karten anklicken, jeweils Screenshot dass Detailseite kommt.
+- Pi-lokal: `/integrations` aufrufen, Copy-Buttons existieren, Health-Werte rendern.
+- MCP: JSON-RPC `tools/list` enthält `infer_appliance_state`; ein Aufruf mit Demo-Daten gibt sinnvolle Response.
+
+---
+
+## Technisches (kurz)
+
+- Neue Tabelle `appliance_profiles` (`user_id`, `device_id`, `name`, `min_watts`, `min_runtime_min`, `idle_watts`, `idle_after_min`) + RLS + GRANTs.
+- Neue Server-Route `/_authenticated/integrations.tsx` (Pi-UI) + dort `host-info.functions.ts` erweitern, damit die LAN-IP automatisch angezeigt wird.
+- `mcp-tools.server.ts`: zwei neue Tools registrieren; `infer_appliance_state` ist pure Funktion über DB-Reads → kein Pi-Roundtrip → keine Latenz.
+- `_cloud.tsx` Layout-Fix + Connect-Cards `z-10`, Bottom-Nav `z-40`.
+- Node-RED Flow-Template bauen wir als statisches JSON unter `public/nodered-template.json` (Subflow „pi-hub cloud bridge" mit eingesetzten env-Defaults), Download-Link in `/integrations`.
+
+Kein Eingriff in Pump-Logik, kein Eingriff in Pairing-Flow.

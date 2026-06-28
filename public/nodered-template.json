@@ -1,0 +1,97 @@
+[
+  {
+    "id": "pihub_cloud_bridge_tab",
+    "type": "tab",
+    "label": "Pi-Hub Cloud Bridge",
+    "disabled": false,
+    "info": "Sendet Events an Pi-Hub Cloud. Setze die env-Werte unten (oder Tab-Properties) auf die Werte aus deinem Pi (siehe /integrations)."
+  },
+  {
+    "id": "pihub_env_subflow",
+    "type": "subflow",
+    "name": "pi-hub cloud push",
+    "info": "Input: msg.payload = { component, device, status, message?, strategy_applied?, metrics, ts? }\nOutput: HTTP response (200 = cloud OK)",
+    "category": "function",
+    "in": [{ "x": 40, "y": 80, "wires": [{ "id": "n_build" }] }],
+    "out": [{ "x": 720, "y": 80, "wires": [{ "id": "n_http", "port": 0 }] }],
+    "env": [
+      {
+        "name": "CLOUD_BRIDGE_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/event"
+      },
+      { "name": "CLOUD_DEVICE_TOKEN", "type": "str", "value": "" },
+      { "name": "DEFAULT_DEVICE_LABEL", "type": "str", "value": "drainpress" }
+    ],
+    "color": "#3FB950"
+  },
+  {
+    "id": "n_build",
+    "type": "function",
+    "z": "pihub_env_subflow",
+    "name": "Build cloud request",
+    "func": "msg.url = env.get('CLOUD_BRIDGE_URL');\nmsg.headers = {\n  'Authorization': 'Bearer ' + env.get('CLOUD_DEVICE_TOKEN'),\n  'Content-Type': 'application/json'\n};\nif (msg.payload && !msg.payload.ts) msg.payload.ts = new Date().toISOString();\nif (msg.payload && !msg.payload.device) msg.payload.device = env.get('DEFAULT_DEVICE_LABEL');\nreturn msg;",
+    "outputs": 1,
+    "wires": [["n_http"]],
+    "x": 280,
+    "y": 80
+  },
+  {
+    "id": "n_http",
+    "type": "http request",
+    "z": "pihub_env_subflow",
+    "name": "POST to pi-hub",
+    "method": "POST",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "x": 520,
+    "y": 80,
+    "wires": [[]]
+  },
+  {
+    "id": "pihub_strategy_subflow",
+    "type": "subflow",
+    "name": "pi-hub strategy poll",
+    "info": "Output: msg.payload = { params, eco_paused, updated_at }. Trigger this every 10 min.",
+    "category": "function",
+    "in": [{ "x": 40, "y": 80, "wires": [{ "id": "s_build" }] }],
+    "out": [{ "x": 720, "y": 80, "wires": [{ "id": "s_http", "port": 0 }] }],
+    "env": [
+      {
+        "name": "CLOUD_STRATEGY_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/strategy"
+      },
+      { "name": "CLOUD_DEVICE_TOKEN", "type": "str", "value": "" }
+    ],
+    "color": "#3FB950"
+  },
+  {
+    "id": "s_build",
+    "type": "function",
+    "z": "pihub_strategy_subflow",
+    "name": "Build strategy request",
+    "func": "msg.url = env.get('CLOUD_STRATEGY_URL');\nmsg.method = 'GET';\nmsg.headers = { 'Authorization': 'Bearer ' + env.get('CLOUD_DEVICE_TOKEN') };\nreturn msg;",
+    "outputs": 1,
+    "wires": [["s_http"]],
+    "x": 280,
+    "y": 80
+  },
+  {
+    "id": "s_http",
+    "type": "http request",
+    "z": "pihub_strategy_subflow",
+    "name": "GET strategy",
+    "method": "use",
+    "ret": "obj",
+    "url": "",
+    "x": 520,
+    "y": 80,
+    "wires": [[]]
+  }
+]

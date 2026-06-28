@@ -151,10 +151,50 @@ export const Route = createFileRoute("/api/public/voice/alexa")({
             }
             return jsonResponse(ask(`Ich konnte den Befehl ${command} nicht finden.`));
           }
+          if (intent === "LaundryDoneIntent") {
+            const appliance = slot("Appliance") || "Waschmaschine";
+            const r = (await runTool(ctx, "infer_appliance_state", {
+              appliance,
+              window_minutes: 180,
+            })) as any;
+            if (r?.available === false) {
+              return jsonResponse(
+                ask(
+                  `Ich habe noch keine Stromdaten für ${appliance}. Schau, ob Tibber Pulse oder Tasmota pusht.`,
+                ),
+              );
+            }
+            if (r.finished) {
+              return jsonResponse(
+                ask(
+                  `Ja, ${r.appliance} ist seit ${r.idle_since_min} Minuten fertig. Letzter Wert ${Math.round(r.last_watts)} Watt.`,
+                ),
+              );
+            }
+            if (r.running) {
+              return jsonResponse(
+                ask(
+                  `Nein, ${r.appliance} läuft noch. Aktuell ${Math.round(r.last_watts)} Watt, seit ${r.runtime_min} Minuten.`,
+                ),
+              );
+            }
+            return jsonResponse(
+              ask(`Aktuell sehe ich keinen Lauf für ${appliance}. Letzte Werte sind im Leerlauf.`),
+            );
+          }
+          if (intent === "EnergyAskIntent" || intent === "TibberPriceIntent") {
+            const p = (await runTool(ctx, "get_tibber_price_now", {})) as any;
+            if (!p?.available) return jsonResponse(ask("Mir fehlen aktuelle Tibber-Daten."));
+            return jsonResponse(
+              ask(
+                `Strom kostet gerade ${Number(p.tibber_ct_per_kwh).toFixed(1)} Cent pro Kilowattstunde.`,
+              ),
+            );
+          }
           if (intent === "AMAZON.HelpIntent") {
             return jsonResponse(
               ask(
-                "Du kannst sagen: Pumpe einschalten, Pumpe ausschalten, Status, oder erkläre den Plan.",
+                "Du kannst sagen: Pumpe einschalten, Pumpe ausschalten, Status, ist meine Wäsche fertig, oder wie teuer ist Strom gerade.",
                 false,
               ),
             );

@@ -23,14 +23,34 @@ const INTENT_SCHEMA = `{
           "slots": [{ "name": "minutes", "type": "AMAZON.NUMBER" }],
           "samples": [
             "Pumpe an",
-            "Gartenpumpe an",
+            "Zisterne an",
+            "Wasser an",
             "Pumpe an für {minutes} Minuten",
-            "Pumpe für {minutes} Minuten starten"
+            "Zisterne an für {minutes} Minuten"
           ]
         },
         {
           "name": "PumpOffIntent",
-          "samples": ["Pumpe aus", "Pumpe stoppen", "Gartenpumpe aus"]
+          "samples": ["Pumpe aus", "Zisterne aus", "Wasser aus"]
+        },
+        {
+          "name": "LaundryDoneIntent",
+          "slots": [{ "name": "Appliance", "type": "AMAZON.SearchQuery" }],
+          "samples": [
+            "ist die Wäsche fertig",
+            "ist meine Wäsche schon fertig",
+            "läuft die Waschmaschine noch",
+            "ist {Appliance} fertig"
+          ]
+        },
+        {
+          "name": "EnergyAskIntent",
+          "samples": [
+            "wie teuer ist Strom",
+            "wie teuer ist Strom gerade",
+            "Strompreis",
+            "aktueller Strompreis"
+          ]
         }
       ]
     }
