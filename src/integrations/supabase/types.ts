@@ -102,6 +102,56 @@ export type Database = {
           },
         ]
       }
+      appliance_profiles: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          idle_after_min: number
+          idle_watts: number
+          match_component: string | null
+          min_runtime_min: number
+          min_watts: number
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          idle_after_min?: number
+          idle_watts?: number
+          match_component?: string | null
+          min_runtime_min?: number
+          min_watts?: number
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          idle_after_min?: number
+          idle_watts?: number
+          match_component?: string | null
+          min_runtime_min?: number
+          min_watts?: number
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appliance_profiles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cloud_pairings: {
         Row: {
           claimed_at: string | null
