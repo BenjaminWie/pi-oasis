@@ -58,7 +58,7 @@ function CloudLayout() {
 
 
   return (
-    <div className="min-h-screen bg-background text-foreground max-w-md mx-auto pb-28">
+    <div className="min-h-screen bg-background text-foreground max-w-md mx-auto pb-36">
       <header className="flex items-center justify-between px-5 pt-6 pb-4">
         <div>
           <h1 className="text-lg font-mono font-bold text-primary">PI HUB</h1>
@@ -77,9 +77,11 @@ function CloudLayout() {
         </button>
       </header>
 
-      <Outlet />
+      <main className="relative z-0">
+        <Outlet />
+      </main>
 
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md border-t border-border bg-card/95 backdrop-blur">
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md border-t border-border bg-card/95 backdrop-blur z-40">
         <div className="grid grid-cols-3">
           {tabs.map((t) => {
             const active = loc.pathname.startsWith(t.to);
