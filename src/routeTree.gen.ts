@@ -24,6 +24,7 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticated/plugins'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
+import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
 import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
 import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
 import { Route as CloudConnectionsTelegramRouteImport } from './routes/_cloud/connections.telegram'
@@ -116,6 +117,12 @@ const AuthenticatedMqttRoute = AuthenticatedMqttRouteImport.update({
   path: '/mqtt',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedIntegrationsRoute =
+  AuthenticatedIntegrationsRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiPublicMcpRoute = ApiPublicMcpRouteImport.update({
   id: '/api/public/mcp',
   path: '/api/public/mcp',
@@ -219,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
+  '/integrations': typeof AuthenticatedIntegrationsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/plugins': typeof CloudPluginsRoute
@@ -251,6 +259,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
+  '/integrations': typeof AuthenticatedIntegrationsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/plugins': typeof CloudPluginsRoute
@@ -286,6 +295,7 @@ export interface FileRoutesById {
   '/_cloud': typeof CloudRouteWithChildren
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
+  '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
   '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
   '/_authenticated/plugins': typeof AuthenticatedPluginsRouteWithChildren
@@ -321,6 +331,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/login'
+    | '/integrations'
     | '/mqtt'
     | '/overview'
     | '/plugins'
@@ -353,6 +364,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/login'
+    | '/integrations'
     | '/mqtt'
     | '/overview'
     | '/plugins'
@@ -387,6 +399,7 @@ export interface FileRouteTypes {
     | '/_cloud'
     | '/auth'
     | '/login'
+    | '/_authenticated/integrations'
     | '/_authenticated/mqtt'
     | '/_authenticated/overview'
     | '/_authenticated/plugins'
@@ -544,6 +557,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMqttRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/integrations': {
+      id: '/_authenticated/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof AuthenticatedIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/api/public/mcp': {
       id: '/api/public/mcp'
       path: '/api/public/mcp'
@@ -685,6 +705,7 @@ const AuthenticatedPluginsRouteWithChildren =
   AuthenticatedPluginsRoute._addFileChildren(AuthenticatedPluginsRouteChildren)
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
   AuthenticatedMqttRoute: typeof AuthenticatedMqttRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
   AuthenticatedPluginsRoute: typeof AuthenticatedPluginsRouteWithChildren
@@ -694,6 +715,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
   AuthenticatedMqttRoute: AuthenticatedMqttRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
   AuthenticatedPluginsRoute: AuthenticatedPluginsRouteWithChildren,

@@ -207,6 +207,173 @@ export const TOOLS: ToolDef[] = [
       return { events: data ?? [] };
     },
   },
+  {
+    name: "get_power_history",
+    description:
+      "Return the recent watt timeseries the Pi has pushed to the cloud (Tibber Pulse / Tasmota). Use this to reason about household electricity usage, appliance behavior or PV surplus. No Pi round-trip.",
+    scope: "read",
+    inputSchema: z.object({
+      window_minutes: z.number().int().min(1).max(720).default(60),
+      component: z.string().min(1).max(64).optional(),
+    }),
+    async execute(args, ctx) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const since = new Date(Date.now() - (args.window_minutes ?? 60) * 60_000).toISOString();
+      let q = supabaseAdmin
+        .from("device_events")
+        .select("component, status, metrics, occurred_at")
+        .eq("device_id", ctx.deviceId)
+        .gte("occurred_at", since)
+        .order("occurred_at", { ascending: true })
+        .limit(1000);
+      if (args.component) q = q.eq("component", args.component);
+      const { data, error } = await q;
+      if (error) throw new Error(error.message);
+      const series = (data ?? [])
+        .map((r: any) => ({
+          ts: r.occurred_at,
+          watts:
+            r.metrics?.watts != null ? Number(r.metrics.watts) : null,
+          component: r.component,
+        }))
+        .filter((p) => p.watts != null);
+      return { series, count: series.length, since };
+    },
+  },
+  {
+    name: "get_tibber_price_now",
+    description:
+      "Return the most recent Tibber spot price the Pi has reported (ct/kWh) plus the timestamp it was observed. Useful for 'is electricity cheap right now?'.",
+    scope: "read",
+    inputSchema: z.object({}),
+    async execute(_args, ctx) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data } = await supabaseAdmin
+        .from("device_events")
+        .select("metrics, occurred_at, component")
+        .eq("device_id", ctx.deviceId)
+        .order("occurred_at", { ascending: false })
+        .limit(200);
+      const row = (data ?? []).find(
+        (r: any) => r?.metrics?.tibber_ct != null || r?.metrics?.tibber != null,
+      );
+      if (!row) return { available: false };
+      const ct =
+        (row as any).metrics?.tibber_ct ?? (row as any).metrics?.tibber ?? null;
+      return {
+        available: true,
+        tibber_ct_per_kwh: Number(ct),
+        observed_at: (row as any).occurred_at,
+        component: (row as any).component,
+      };
+    },
+  },
+  {
+    name: "infer_appliance_state",
+    description:
+      "Reason about whether a household appliance (washing machine, dishwasher, …) is currently running or finished, based on the watt timeseries and the appliance profile thresholds. Returns running/finished state, runtime so far, and a confidence score. Use this for questions like 'ist meine Wäsche fertig?'.",
+    scope: "read",
+    inputSchema: z.object({
+      appliance: z.string().min(1).max(64).describe("Profile name, e.g. 'Waschmaschine'"),
+      window_minutes: z.number().int().min(10).max(360).default(120),
+    }),
+    async execute(args, ctx) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: profiles } = await supabaseAdmin
+        .from("appliance_profiles")
+        .select("*")
+        .eq("device_id", ctx.deviceId);
+      const profile =
+        (profiles ?? []).find(
+          (p: any) => p.name.toLowerCase() === args.appliance.toLowerCase(),
+        ) ?? {
+          name: args.appliance,
+          min_watts: 150,
+          min_runtime_min: 10,
+          idle_watts: 5,
+          idle_after_min: 3,
+          match_component: null,
+        };
+
+      const since = new Date(
+        Date.now() - (args.window_minutes ?? 120) * 60_000,
+      ).toISOString();
+      let q = supabaseAdmin
+        .from("device_events")
+        .select("metrics, occurred_at, component")
+        .eq("device_id", ctx.deviceId)
+        .gte("occurred_at", since)
+        .order("occurred_at", { ascending: true })
+        .limit(2000);
+      if ((profile as any).match_component)
+        q = q.eq("component", (profile as any).match_component);
+      const { data } = await q;
+      const series = (data ?? [])
+        .map((r: any) => ({
+          t: new Date(r.occurred_at).getTime(),
+          w: r.metrics?.watts != null ? Number(r.metrics.watts) : null,
+        }))
+        .filter((p) => p.w != null) as Array<{ t: number; w: number }>;
+
+      if (series.length === 0) {
+        return {
+          appliance: profile.name,
+          available: false,
+          note: "Keine Watt-Daten im Fenster — Node-RED pusht eventuell nicht.",
+        };
+      }
+
+      const now = Date.now();
+      // find most recent active run: last continuous block where w >= min_watts
+      let runEnd = -1;
+      let runStart = -1;
+      for (let i = series.length - 1; i >= 0; i--) {
+        if (series[i].w >= profile.min_watts) {
+          if (runEnd === -1) runEnd = i;
+          runStart = i;
+        } else if (runEnd !== -1) {
+          break;
+        }
+      }
+      if (runEnd === -1) {
+        const last = series[series.length - 1];
+        return {
+          appliance: profile.name,
+          running: false,
+          finished: false,
+          note: `Keine Phase >= ${profile.min_watts} W in den letzten ${args.window_minutes} min. Letzter Wert ${last.w.toFixed(0)} W.`,
+        };
+      }
+
+      const runMinutes = (series[runEnd].t - series[runStart].t) / 60_000;
+      const validRun = runMinutes >= profile.min_runtime_min;
+      const lastIdx = series.length - 1;
+      const idleAfterEnd = (now - series[runEnd].t) / 60_000;
+      const tail = series.slice(runEnd + 1);
+      const tailAllIdle =
+        tail.length > 0 && tail.every((p) => p.w < profile.idle_watts);
+      const finished =
+        validRun && tailAllIdle && idleAfterEnd >= profile.idle_after_min;
+      const running = !finished && series[lastIdx].w >= profile.min_watts;
+      const confidence = validRun ? (finished ? 0.85 : running ? 0.8 : 0.5) : 0.4;
+
+      return {
+        appliance: profile.name,
+        running,
+        finished,
+        runtime_min: Math.round(runMinutes),
+        last_watts: series[lastIdx].w,
+        idle_since_min: finished ? Math.round(idleAfterEnd) : null,
+        confidence,
+        profile_used: {
+          min_watts: profile.min_watts,
+          min_runtime_min: profile.min_runtime_min,
+          idle_watts: profile.idle_watts,
+          idle_after_min: profile.idle_after_min,
+        },
+      };
+    },
+  },
 ];
 
 export async function getToolsForDevice(ctx: ToolCtx): Promise<ToolDef[]> {
