@@ -95,3 +95,37 @@ Both call `SECURITY DEFINER` SQL functions that are only `EXECUTE`-grantable to
 
 The Pi local dashboard stays minimal (slim mode); rich analytics live in the
 cloud where CPU is free.
+
+## 5. Token-Layout & Failure-Modes
+
+| Symbol             | Wofür                          | Wo eintragen                              |
+| ------------------ | ------------------------------ | ----------------------------------------- |
+| CLOUD_DEVICE_TOKEN | Bearer zum Cloud-Push & -Poll  | Subflow-env oder Tab-Property            |
+| PI_INGEST_TOKEN    | (optional) lokaler Fallback    | Tab-env, leer lassen wenn LAN-only        |
+
+Die Werte siehst du zentral im Pi-UI unter **Node-RED** (`/integrations`) — dort kannst du sie 1-Klick kopieren und das fertige Subflow-Template (`/nodered-template.json`) runterladen.
+
+```
+Tibber Pulse ──┐
+DWD Wetter ────┼──► Eco-Engine ──► (Cloud-Push subflow) ──► pi-hub.benniwie.com
+PV Sensoren ───┘                                  │
+                                                  └─► (Local fallback) ─► http://<lan-ip>:3000
+```
+
+**Failure-Modes**:
+
+* Cloud nicht erreichbar → `catch`-Node leitet Payload auf `Local Fallback Push`.
+* Tibber-API down → letzten bekannten Preis nutzen (`flow.set('tibber_last', ...)`).
+* DWD-API down → konservativer Modus (kein Gießen ohne Wetterdaten).
+
+## 6. Reasoning-Tools für die KI
+
+Cloud-MCP-Server exponiert die folgenden Tools, die direkt auf den von Node-RED gepushten Events arbeiten — kein Pi-Roundtrip:
+
+| Tool                     | Frage                                              |
+| ------------------------ | -------------------------------------------------- |
+| `get_power_history`      | "Wieviel Strom haben wir die letzte Stunde gezogen?" |
+| `get_tibber_price_now`   | "Wie teuer ist Strom gerade?"                      |
+| `infer_appliance_state`  | "Ist meine Wäsche fertig?"                         |
+
+Schwellwerte pro Gerät in `appliance_profiles` (z.B. Waschmaschine: ≥150 W läuft, &lt;5 W = Leerlauf).
