@@ -38,10 +38,28 @@ function IntegrationsPage() {
   const [tokenError, setTokenError] = useState<string | null>(null);
 
   function copy(label: string, text: string) {
-    navigator.clipboard.writeText(text).then(() => {
+    const done = () => {
       setCopied(label);
       setTimeout(() => setCopied(null), 1500);
-    });
+    };
+    if (navigator.clipboard?.writeText && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+
+  function fallbackCopy(text: string, done: () => void) {
+    const el = document.createElement("textarea");
+    el.value = text;
+    el.setAttribute("readonly", "");
+    el.style.position = "fixed";
+    el.style.opacity = "0";
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand("copy");
+    document.body.removeChild(el);
+    done();
   }
 
   function Row({ label, value, secret }: { label: string; value: string | null; secret?: boolean }) {
