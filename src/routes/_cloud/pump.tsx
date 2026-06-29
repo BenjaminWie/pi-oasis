@@ -39,7 +39,7 @@ function PumpPage() {
 
   const { data: events = [] } = useQuery({
     queryKey: ["pump-events", activeId],
-    queryFn: () => fetchEvents({ data: { deviceId: activeId, limit: 50, component: "pump" } }),
+    queryFn: () => fetchEvents({ data: { deviceId: activeId, limit: 100 } }),
     refetchInterval: 10000,
     enabled: !!activeId,
   });
@@ -75,7 +75,7 @@ function PumpPage() {
         data: {
           deviceId: activeId,
           kind: "plugin_manual",
-          payload: { id: "pump", action: vars.action, minutes: vars.minutes },
+          payload: { id: "pump", runner: "nodered", action: vars.action, minutes: vars.minutes },
         },
       }),
   });
@@ -90,8 +90,20 @@ function PumpPage() {
     }));
   const maxW = wattPoints.length ? Math.max(...wattPoints.map((p) => p.max)) : 0;
 
-  const lastWatts = (events as any[]).find((e) => (e.metrics as any)?.watts != null)?.metrics?.watts;
-  const lastDecision = events[0];
+  const pumpEvents = (events as any[]).filter((e) =>
+    ["pump_control", "pump_guard", "eco_intelligence", "tibber_pulse", "weather_dwd"].includes(
+      e.component,
+    ),
+  );
+  const lastWattEvent = pumpEvents.find((e) => {
+    const metrics = (e.metrics as any) ?? {};
+    return metrics.watts != null || metrics.watt != null || metrics.house_power != null;
+  });
+  const lastWatts = (() => {
+    const metrics = (lastWattEvent?.metrics as any) ?? {};
+    return metrics.watts ?? metrics.watt ?? metrics.house_power;
+  })();
+  const lastDecision = pumpEvents[0] ?? events[0];
 
   const fields: Array<{ key: string; label: string; suffix?: string }> = [
     { key: "pv_min_w", label: "PV-Überschuss min", suffix: "W" },
@@ -261,13 +273,14 @@ function PumpPage() {
           Letzte Entscheidungen
         </h3>
         <div className="rounded-2xl border border-border bg-card p-3 max-h-72 overflow-y-auto">
-          {events.length === 0 ? (
+          {pumpEvents.length === 0 ? (
             <p className="text-[10px] text-muted-foreground text-center py-3">
-              Noch keine Pumpen-Events. Node-RED meldet sie als component=pump.
+              Noch keine Pumpen-Events. Node-RED meldet sie als pump_control, pump_guard,
+              eco_intelligence, tibber_pulse oder weather_dwd.
             </p>
           ) : (
             <ul className="space-y-1">
-              {events.map((e: any) => (
+              {pumpEvents.map((e: any) => (
                 <li key={e.id} className="font-mono text-[10px] leading-tight">
                   <span className="text-muted-foreground">
                     {new Date(e.occurred_at).toLocaleTimeString()}{" "}
