@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { getProfile, linkTelegramBot, unlinkTelegramBot } from "@/lib/cloud.functions";
 
 export const Route = createFileRoute("/_cloud/connections/telegram")({
@@ -41,6 +42,13 @@ function TelegramPage() {
 
   return (
     <div className="px-5 space-y-4">
+      <Link
+        to="/connections"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground mb-2"
+      >
+        <ArrowLeft size={14} /> zurück
+      </Link>
+
       <h2 className="text-xs uppercase tracking-widest text-muted-foreground">Telegram-Bot</h2>
 
       {!linked ? (

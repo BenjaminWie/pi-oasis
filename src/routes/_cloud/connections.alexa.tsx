@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Copy, Check, ExternalLink, Bot, Mic } from "lucide-react";
+import { Copy, Check, ExternalLink, Bot, Mic, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_cloud/connections/alexa")({
@@ -89,6 +89,12 @@ function AlexaPage() {
 
   return (
     <div className="px-5 space-y-5">
+      <Link
+        to="/connections"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground mb-2"
+      >
+        <ArrowLeft size={14} /> zurück
+      </Link>
       <div>
         <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1.5">
           <Mic size={14} className="text-primary" /> Alexa Skill

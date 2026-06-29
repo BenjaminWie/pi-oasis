@@ -54,7 +54,7 @@ function DevicePage() {
 
   return (
     <div className="px-5 space-y-4">
-      <Link to="/devices" className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+      <Link to="/devices" className="inline-flex items-center gap-1 text-xs text-muted-foreground mb-2">
         <ArrowLeft size={14} /> zurück
       </Link>
 
