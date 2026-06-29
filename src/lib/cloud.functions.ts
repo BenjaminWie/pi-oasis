@@ -192,6 +192,7 @@ const commandSchema = z.discriminatedUnion("kind", [
       id: z.string().min(1).max(64),
       action: z.enum(["on", "off"]),
       minutes: z.number().int().min(1).max(120).optional(),
+      runner: z.enum(["nodered"]).optional(),
     }),
   }),
 ]);

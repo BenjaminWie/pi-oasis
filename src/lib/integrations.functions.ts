@@ -90,7 +90,7 @@ export const getIntegrationsInfo = createServerFn({ method: "GET" })
       cloudBridge: {
         eventUrl: `${cloudUrl}/api/public/cloud-bridge/event`,
         strategyUrl: `${cloudUrl}/api/public/cloud-bridge/strategy`,
-        commandPollUrl: `${cloudUrl}/api/public/agent/poll`,
+        commandPollUrl: `${cloudUrl}/api/public/agent/poll?runner=nodered`,
         commandResultUrl: `${cloudUrl}/api/public/agent/result`,
         deviceTokenPresent,
         deviceTokenPrefix,
