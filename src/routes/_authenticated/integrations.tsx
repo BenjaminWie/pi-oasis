@@ -98,8 +98,9 @@ function IntegrationsPage() {
     if (res.cloudDeviceToken) {
       setRevealedToken(res.cloudDeviceToken);
       setRevealedLocalToken(res.localIngestToken ?? null);
+    } else {
+      setTokenError(res.error || "Token nicht verfügbar");
     }
-    else setTokenError(res.error || "Token nicht verfügbar");
   }
 
   const envBlock = info
