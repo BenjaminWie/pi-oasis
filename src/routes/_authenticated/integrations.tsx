@@ -19,7 +19,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { getCloudDeviceToken, getIntegrationsInfo } from "@/lib/integrations.functions";
+import { getIntegrationSecrets, getIntegrationsInfo } from "@/lib/integrations.functions";
 
 export const Route = createFileRoute("/_authenticated/integrations")({
   component: IntegrationsPage,
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_authenticated/integrations")({
 
 function IntegrationsPage() {
   const fetchInfo = useServerFn(getIntegrationsInfo);
-  const fetchToken = useServerFn(getCloudDeviceToken);
+  const fetchSecrets = useServerFn(getIntegrationSecrets);
   const { data: info } = useQuery({
     queryKey: ["integrations-info"],
     queryFn: () => fetchInfo(),
@@ -35,6 +35,7 @@ function IntegrationsPage() {
   });
   const [copied, setCopied] = useState<string | null>(null);
   const [revealedToken, setRevealedToken] = useState<string | null>(null);
+  const [revealedLocalToken, setRevealedLocalToken] = useState<string | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
 
   function copy(label: string, text: string) {
@@ -93,10 +94,29 @@ function IntegrationsPage() {
 
   async function revealToken() {
     setTokenError(null);
-    const res = await fetchToken();
-    if (res.token) setRevealedToken(res.token);
+    const res = await fetchSecrets();
+    if (res.cloudDeviceToken) {
+      setRevealedToken(res.cloudDeviceToken);
+      setRevealedLocalToken(res.localIngestToken ?? null);
+    }
     else setTokenError(res.error || "Token nicht verfügbar");
   }
+
+  const envBlock = info
+    ? [
+        `CLOUD_BRIDGE_URL=${info.cloudBridge.eventUrl}`,
+        `CLOUD_STRATEGY_URL=${info.cloudBridge.strategyUrl}`,
+        `CLOUD_COMMAND_POLL_URL=${info.cloudBridge.commandPollUrl}`,
+        `CLOUD_COMMAND_RESULT_URL=${info.cloudBridge.commandResultUrl}`,
+        `CLOUD_DEVICE_TOKEN=${revealedToken ?? "<erst oben Token anzeigen>"}`,
+        `LOCAL_API_URL=${info.local.ingestUrl ?? "http://127.0.0.1:3000/api/public/ingest/event"}`,
+        `PI_INGEST_TOKEN=${revealedLocalToken ?? ""}`,
+        "DEFAULT_DEVICE_LABEL=drainpress",
+        "MQTT_COMMAND_TOPIC=cmnd/zisterne/POWER",
+        "MQTT_BROKER_HOST=mosquitto",
+        "MQTT_BROKER_PORT=1883",
+      ].join("\n")
+    : "";
 
   return (
     <div className="px-4 pb-8 space-y-5 max-w-md mx-auto">
@@ -180,8 +200,8 @@ function IntegrationsPage() {
         <Row label="LOCAL_API_URL" value={info?.local.ingestUrl ?? null} />
         <Row
           label="PI_INGEST_TOKEN"
-          value={info?.local.ingestTokenPrefix ? `${info.local.ingestTokenPrefix}…` : "LAN-only"}
-          secret={!!info?.local.ingestTokenPrefix}
+          value={revealedLocalToken ?? (info?.local.ingestTokenPrefix ? `${info.local.ingestTokenPrefix}…` : "LAN-only")}
+          secret={!!info?.local.ingestTokenPrefix && !revealedLocalToken}
         />
         <p className="text-[10px] text-muted-foreground">
           IP automatisch aus dem ersten privaten Interface erkannt
@@ -195,6 +215,29 @@ function IntegrationsPage() {
         <h2 className="text-[10px] uppercase tracking-widest text-muted-foreground">
           Schnellstart
         </h2>
+        {info && (
+          <div className="rounded-xl border border-border bg-background p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Node-RED Tab-Env kopieren
+              </span>
+              <button
+                onClick={() => copy("NODE_RED_ENV", envBlock)}
+                className="text-primary shrink-0"
+                aria-label="Node-RED Environment kopieren"
+              >
+                {copied === "NODE_RED_ENV" ? <Check size={14} /> : <Copy size={14} />}
+              </button>
+            </div>
+            <pre className="text-[10px] font-mono whitespace-pre-wrap break-all">{envBlock}</pre>
+            {!revealedToken && (
+              <p className="text-[10px] text-amber-500">
+                Klick zuerst auf „Token anzeigen“, dann enthält dieser Block den echten
+                CLOUD_DEVICE_TOKEN.
+              </p>
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <a
             href="/nodered-template.json"
