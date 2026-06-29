@@ -37,7 +37,7 @@ export const Route = createFileRoute("/api/public/agent/poll")({
             .eq("device_id", device.id)
             .eq("status", "pending")
             .order("created_at", { ascending: true })
-            .limit(20);
+            .limit(100);
 
           const cmd = (pending ?? []).find((candidate: any) => {
             const target = candidate.payload?.runner;
