@@ -47,7 +47,8 @@ export const Route = createFileRoute("/api/public/cloud-bridge/event")({
           // for hourly rollups and AI reasoning. Existing flows often emit
           // `watt` (Tasmota) or `house_power` (Tibber Pulse).
           const metrics = { ...((e.metrics ?? {}) as Record<string, unknown>) };
-          if (metrics.watts == null) metrics.watts = metrics.watt ?? metrics.house_power;
+          const watts = metrics.watt ?? metrics.house_power;
+          if (metrics.watts == null && watts != null) metrics.watts = watts;
           return {
             device_id: device.id,
             component: e.component,
