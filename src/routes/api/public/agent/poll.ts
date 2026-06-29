@@ -31,21 +31,18 @@ export const Route = createFileRoute("/api/public/agent/poll")({
         // Poll up to ~25s for a pending command
         const deadline = Date.now() + 25_000;
         while (Date.now() < deadline) {
-          let q = supabaseAdmin
+          const { data: pending } = await supabaseAdmin
             .from("agent_commands")
             .select("id, kind, payload")
             .eq("device_id", device.id)
             .eq("status", "pending")
             .order("created_at", { ascending: true })
-            .limit(1);
+            .limit(20);
 
-          if (runner === "nodered") {
-            q = q.eq("payload->>runner", "nodered");
-          } else {
-            q = q.or("payload->>runner.is.null,payload->>runner.neq.nodered");
-          }
-
-          const { data: cmd } = await q.maybeSingle();
+          const cmd = (pending ?? []).find((candidate: any) => {
+            const target = candidate.payload?.runner;
+            return runner === "nodered" ? target === "nodered" : target !== "nodered";
+          });
 
           if (cmd) {
             await supabaseAdmin
