@@ -1,0 +1,10 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="100" fill="#07090a"/>
+  <!-- Pump Body (Red) -->
+  <rect x="156" y="200" width="200" height="220" rx="40" fill="#ef4444"/>
+  <rect x="136" y="380" width="240" height="60" rx="10" fill="#334155"/>
+  <!-- Face (Error/Dizzy) -->
+  <path d="M206 270 L226 290 M206 290 L226 270" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+  <path d="M286 270 L306 290 M286 290 L306 270" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="256" cy="350" r="20" stroke="#f8fafc" stroke-width="8" fill="none"/>
+</svg>

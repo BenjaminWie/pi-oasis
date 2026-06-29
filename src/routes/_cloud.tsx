@@ -2,6 +2,8 @@ import { createFileRoute, Outlet, Link, useNavigate, useLocation } from "@tansta
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Server, LogOut, Droplets, Link2 } from "lucide-react";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
+import { useDynamicFavicon } from "@/hooks/use-dynamic-favicon";
 
 export const Route = createFileRoute("/_cloud")({
   ssr: false,
@@ -12,6 +14,9 @@ function CloudLayout() {
   const navigate = useNavigate();
   const loc = useLocation();
   const [ready, setReady] = useState(false);
+
+  // Initialize dynamic favicon
+  useDynamicFavicon();
 
   const authRedirectSearch = () => {
     if (loc.pathname !== "/pair-callback") return undefined;
@@ -80,6 +85,8 @@ function CloudLayout() {
       <main className="relative z-0">
         <Outlet />
       </main>
+
+      <InstallPWAButton />
 
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md border-t border-border bg-card/95 backdrop-blur z-40">
         <div className="grid grid-cols-3">

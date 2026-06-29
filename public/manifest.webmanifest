@@ -1,0 +1,23 @@
+{
+  "name": "PI HUB Cloud",
+  "short_name": "PI HUB",
+  "description": "Cloud control for your PI HUB smart pump system.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07090a",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "/icons/pump-idle.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/pump-idle.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

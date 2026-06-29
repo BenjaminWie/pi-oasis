@@ -1,0 +1,12 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="100" fill="#07090a"/>
+  <!-- Pump Body -->
+  <rect x="156" y="200" width="200" height="220" rx="40" fill="#0ea5e9"/>
+  <rect x="136" y="380" width="240" height="60" rx="10" fill="#334155"/>
+  <!-- Pipe -->
+  <path d="M356 280 H420 V340 H356" fill="#94a3b8"/>
+  <!-- Face (Idle) -->
+  <circle cx="216" cy="280" r="15" fill="#f8fafc"/>
+  <circle cx="296" cy="280" r="15" fill="#f8fafc"/>
+  <path d="M226 330 Q256 340 286 330" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+</svg>
