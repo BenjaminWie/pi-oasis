@@ -121,3 +121,24 @@ export const getCloudDeviceToken = createServerFn({ method: "GET" })
     if (!cfg?.deviceToken) return { token: null as string | null, error: "not paired" };
     return { token: cfg.deviceToken, error: null as string | null };
   });
+
+export const getIntegrationSecrets = createServerFn({ method: "GET" })
+  .middleware([requirePiAuth])
+  .handler(async () => {
+    const { hasProcStats } = await import("./pi-runtime.server");
+    if (!hasProcStats()) {
+      return {
+        cloudDeviceToken: null as string | null,
+        localIngestToken: null as string | null,
+        error: "not on Pi",
+      };
+    }
+
+    const { getCloudConfig } = await import("./pin-store.server");
+    const cfg = await getCloudConfig();
+    return {
+      cloudDeviceToken: cfg?.deviceToken ?? null,
+      localIngestToken: process.env.PI_INGEST_TOKEN || process.env.PI_LOCAL_INGEST_TOKEN || null,
+      error: cfg?.deviceToken ? null : "not paired",
+    };
+  });
