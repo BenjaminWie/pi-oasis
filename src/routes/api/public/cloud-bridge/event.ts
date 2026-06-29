@@ -42,24 +42,23 @@ export const Route = createFileRoute("/api/public/cloud-bridge/event")({
         }
         const events = Array.isArray(parsed) ? parsed : [parsed];
 
-        const rows = events.map((e) => ({
+        const rows = events.map((e) => {
           // Keep Node-RED flexible while preserving one canonical `watts` key
           // for hourly rollups and AI reasoning. Existing flows often emit
           // `watt` (Tasmota) or `house_power` (Tibber Pulse).
-          ...(() => {
-            const metrics = { ...((e.metrics ?? {}) as Record<string, unknown>) };
-            if (metrics.watts == null) metrics.watts = metrics.watt ?? metrics.house_power;
-            return { _metrics: metrics } as any;
-          })(),
-          device_id: device.id,
-          component: e.component,
-          device_label: e.device ?? "",
-          status: e.status,
-          message: e.message ?? null,
-          strategy_applied: e.strategy_applied ?? null,
-          metrics: undefined as any,
-          occurred_at: e.ts ?? new Date().toISOString(),
-        })).map(({ _metrics, ...row }: any) => ({ ...row, metrics: _metrics }));
+          const metrics = { ...((e.metrics ?? {}) as Record<string, unknown>) };
+          if (metrics.watts == null) metrics.watts = metrics.watt ?? metrics.house_power;
+          return {
+            device_id: device.id,
+            component: e.component,
+            device_label: e.device ?? "",
+            status: e.status,
+            message: e.message ?? null,
+            strategy_applied: e.strategy_applied ?? null,
+            metrics: metrics as any,
+            occurred_at: e.ts ?? new Date().toISOString(),
+          };
+        });
 
         const { error } = await supabaseAdmin.from("device_events").insert(rows);
         if (error) return jsonResponse({ error: error.message }, 500);
