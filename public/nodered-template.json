@@ -4,44 +4,189 @@
     "type": "tab",
     "label": "Pi-Hub Cloud Bridge",
     "disabled": false,
-    "info": "Sendet Events an Pi-Hub Cloud. Setze die env-Werte unten (oder Tab-Properties) auf die Werte aus deinem Pi (siehe /integrations)."
-  },
-  {
-    "id": "pihub_env_subflow",
-    "type": "subflow",
-    "name": "pi-hub cloud push",
-    "info": "Input: msg.payload = { component, device, status, message?, strategy_applied?, metrics, ts? }\nOutput: HTTP response (200 = cloud OK)",
-    "category": "function",
-    "in": [{ "x": 40, "y": 80, "wires": [{ "id": "n_build" }] }],
-    "out": [{ "x": 720, "y": 80, "wires": [{ "id": "n_http", "port": 0 }] }],
+    "info": "Working Pi-Hub bridge. Configure tab env values from the Pi UI /integrations. HTTP nodes intentionally use method=use, url empty, authType empty so msg.url/msg.headers are honored.",
     "env": [
       {
         "name": "CLOUD_BRIDGE_URL",
         "type": "str",
         "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/event"
       },
-      { "name": "CLOUD_DEVICE_TOKEN", "type": "str", "value": "" },
-      { "name": "DEFAULT_DEVICE_LABEL", "type": "str", "value": "drainpress" }
+      {
+        "name": "CLOUD_STRATEGY_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/strategy"
+      },
+      {
+        "name": "CLOUD_COMMAND_POLL_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/agent/poll?runner=nodered"
+      },
+      {
+        "name": "CLOUD_COMMAND_RESULT_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/agent/result"
+      },
+      {
+        "name": "CLOUD_DEVICE_TOKEN",
+        "type": "str",
+        "value": ""
+      },
+      {
+        "name": "LOCAL_API_URL",
+        "type": "str",
+        "value": "http://127.0.0.1:3000/api/public/ingest/event"
+      },
+      {
+        "name": "PI_INGEST_TOKEN",
+        "type": "str",
+        "value": ""
+      },
+      {
+        "name": "DEFAULT_DEVICE_LABEL",
+        "type": "str",
+        "value": "drainpress"
+      },
+      {
+        "name": "MQTT_COMMAND_TOPIC",
+        "type": "str",
+        "value": "cmnd/zisterne/POWER"
+      },
+      {
+        "name": "MQTT_BROKER_HOST",
+        "type": "str",
+        "value": "mosquitto"
+      },
+      {
+        "name": "MQTT_BROKER_PORT",
+        "type": "num",
+        "value": "1883"
+      }
+    ]
+  },
+  {
+    "id": "pihub_cloud_bridge_tab_env",
+    "type": "group",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Set these environment values on the tab/group before deploy",
+    "style": {
+      "label": true,
+      "fill": "#e3f3d3",
+      "color": "#1b5e20"
+    },
+    "nodes": [
+      "pihub_note_env"
     ],
-    "color": "#3FB950"
+    "x": 34,
+    "y": 19,
+    "w": 792,
+    "h": 82
   },
   {
-    "id": "n_build",
-    "type": "function",
-    "z": "pihub_env_subflow",
-    "name": "Build cloud request",
-    "func": "msg.url = env.get('CLOUD_BRIDGE_URL');\nmsg.headers = {\n  'Authorization': 'Bearer ' + env.get('CLOUD_DEVICE_TOKEN'),\n  'Content-Type': 'application/json'\n};\nif (msg.payload && !msg.payload.ts) msg.payload.ts = new Date().toISOString();\nif (msg.payload && !msg.payload.device) msg.payload.device = env.get('DEFAULT_DEVICE_LABEL');\nreturn msg;",
+    "id": "pihub_note_env",
+    "type": "comment",
+    "z": "pihub_cloud_bridge_tab",
+    "g": "pihub_cloud_bridge_tab_env",
+    "name": "Use CLOUD_DEVICE_TOKEN from Pi-Hub /integrations — not factory/reset/revocation token",
+    "info": "Do not enable the HTTP node's built-in Bearer Auth. This flow sets Authorization in msg.headers. If token is empty it will stop locally instead of spamming 401.",
+    "x": 430,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "07e310f047811d0a",
+    "type": "link in",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Event In (Eco/Hardware/Tibber/Weather)",
+    "links": [
+      "50ceea70f2c807cf",
+      "614623755bd9d72d",
+      "fc48dff7e412e1cf",
+      "afe00ea21caaec89"
+    ],
+    "x": 95,
+    "y": 160,
+    "wires": [
+      [
+        "pihub_rate_limit"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_test_event",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Test Cloud Push",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "{\"component\":\"node_red_test\",\"device\":\"drainpress\",\"status\":\"info\",\"message\":\"Node-RED cloud bridge test\",\"metrics\":{\"watts\":0}}",
+    "payloadType": "json",
+    "x": 140,
+    "y": 220,
+    "wires": [
+      [
+        "pihub_rate_limit"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_rate_limit",
+    "type": "delay",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "RAM buffer / rate limit",
+    "pauseType": "rate",
+    "timeout": "5",
+    "timeoutUnits": "seconds",
+    "rate": "50",
+    "nbRateUnits": "30",
+    "rateUnits": "second",
+    "randomFirst": "1",
+    "randomLast": "5",
+    "randomUnits": "seconds",
+    "drop": false,
+    "allowrate": false,
     "outputs": 1,
-    "wires": [["n_http"]],
-    "x": 280,
-    "y": 80
+    "x": 340,
+    "y": 180,
+    "wires": [
+      [
+        "pihub_build_cloud"
+      ]
+    ]
   },
   {
-    "id": "n_http",
+    "id": "pihub_build_cloud",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Cloud Event Request",
+    "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) {\n    node.status({fill:'red', shape:'ring', text:'CLOUD_DEVICE_TOKEN fehlt'});\n    node.error('CLOUD_DEVICE_TOKEN fehlt. In Pi-Hub /integrations anzeigen und in Node-RED Tab-Env eintragen.', msg);\n    return null;\n}\nvar payload = msg.payload || {};\nif (!payload.component) payload.component = 'node_red';\nif (!payload.status) payload.status = 'info';\nif (!payload.ts) payload.ts = new Date().toISOString();\nif (!payload.device) payload.device = env.get('DEFAULT_DEVICE_LABEL') || 'drainpress';\nmsg.payload = payload;\nmsg._pihubOriginalPayload = JSON.parse(JSON.stringify(payload));\nmsg.method = 'POST';\nmsg.url = env.get('CLOUD_BRIDGE_URL');\nmsg.headers = {\n    'Authorization': 'Bearer ' + token,\n    'Content-Type': 'application/json'\n};\nnode.status({fill:'blue', shape:'dot', text:'send cloud'});\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 600,
+    "y": 180,
+    "wires": [
+      [
+        "pihub_http_cloud"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_http_cloud",
     "type": "http request",
-    "z": "pihub_env_subflow",
-    "name": "POST to pi-hub",
-    "method": "POST",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "POST Cloud Event (dynamic)",
+    "method": "use",
     "ret": "obj",
     "paytoqs": "ignore",
     "url": "",
@@ -49,49 +194,508 @@
     "persist": false,
     "proxy": "",
     "authType": "",
-    "x": 520,
-    "y": 80,
-    "wires": [[]]
+    "senderr": true,
+    "headers": [],
+    "x": 850,
+    "y": 180,
+    "wires": [
+      [
+        "pihub_cloud_ok"
+      ]
+    ]
   },
   {
-    "id": "pihub_strategy_subflow",
-    "type": "subflow",
-    "name": "pi-hub strategy poll",
-    "info": "Output: msg.payload = { params, eco_paused, updated_at }. Trigger this every 10 min.",
-    "category": "function",
-    "in": [{ "x": 40, "y": 80, "wires": [{ "id": "s_build" }] }],
-    "out": [{ "x": 720, "y": 80, "wires": [{ "id": "s_http", "port": 0 }] }],
-    "env": [
+    "id": "pihub_cloud_ok",
+    "type": "switch",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Cloud 2xx?",
+    "property": "statusCode",
+    "propertyType": "msg",
+    "rules": [
       {
-        "name": "CLOUD_STRATEGY_URL",
-        "type": "str",
-        "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/strategy"
+        "t": "btwn",
+        "v": "200",
+        "vt": "num",
+        "v2": "299",
+        "v2t": "num"
       },
-      { "name": "CLOUD_DEVICE_TOKEN", "type": "str", "value": "" }
+      {
+        "t": "else"
+      }
     ],
-    "color": "#3FB950"
+    "checkall": "false",
+    "repair": false,
+    "outputs": 2,
+    "x": 1060,
+    "y": 180,
+    "wires": [
+      [
+        "pihub_cloud_debug_ok"
+      ],
+      [
+        "pihub_build_local_fallback"
+      ]
+    ]
   },
   {
-    "id": "s_build",
+    "id": "pihub_cloud_debug_ok",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Cloud OK",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "statusCode",
+    "statusType": "msg",
+    "x": 1260,
+    "y": 140,
+    "wires": []
+  },
+  {
+    "id": "pihub_cloud_catch",
+    "type": "catch",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Catch Cloud Push Failed",
+    "scope": [
+      "pihub_http_cloud"
+    ],
+    "uncaught": false,
+    "x": 850,
+    "y": 260,
+    "wires": [
+      [
+        "pihub_build_local_fallback"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_build_local_fallback",
     "type": "function",
-    "z": "pihub_strategy_subflow",
-    "name": "Build strategy request",
-    "func": "msg.url = env.get('CLOUD_STRATEGY_URL');\nmsg.method = 'GET';\nmsg.headers = { 'Authorization': 'Bearer ' + env.get('CLOUD_DEVICE_TOKEN') };\nreturn msg;",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Local Fallback Request",
+    "func": "var original = msg._pihubOriginalPayload || msg.payload || {};\nmsg.payload = original;\nif (!msg.payload.component) msg.payload.component = 'node_red_fallback';\nif (!msg.payload.status) msg.payload.status = 'warning';\nif (!msg.payload.ts) msg.payload.ts = new Date().toISOString();\nmsg.method = 'POST';\nmsg.url = env.get('LOCAL_API_URL') || 'http://127.0.0.1:3000/api/public/ingest/event';\nmsg.headers = { 'Content-Type': 'application/json' };\nvar localToken = env.get('PI_INGEST_TOKEN') || '';\nif (localToken) msg.headers.Authorization = 'Bearer ' + localToken;\nnode.status({fill:'yellow', shape:'ring', text:'cloud failed -> local RAM fallback'});\nnode.warn('Cloud-Bridge nicht erreichbar oder 401. Sende lokal als RAM-Fallback. Prüfe CLOUD_DEVICE_TOKEN, nicht Revocation/Factory Token.');\nreturn msg;",
     "outputs": 1,
-    "wires": [["s_http"]],
-    "x": 280,
-    "y": 80
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1280,
+    "y": 220,
+    "wires": [
+      [
+        "pihub_http_local"
+      ]
+    ]
   },
   {
-    "id": "s_http",
+    "id": "pihub_http_local",
     "type": "http request",
-    "z": "pihub_strategy_subflow",
-    "name": "GET strategy",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "POST Local RAM Fallback (dynamic)",
     "method": "use",
     "ret": "obj",
+    "paytoqs": "ignore",
     "url": "",
-    "x": 520,
-    "y": 80,
-    "wires": [[]]
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 1540,
+    "y": 220,
+    "wires": [
+      [
+        "pihub_local_debug"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_local_debug",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Local fallback result",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "statusCode",
+    "statusType": "msg",
+    "x": 1770,
+    "y": 220,
+    "wires": []
+  },
+  {
+    "id": "pihub_default_strategy_inject",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Default Strategy on Deploy",
+    "props": [],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 0.3,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 170,
+    "y": 380,
+    "wires": [
+      [
+        "pihub_default_strategy"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_default_strategy",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Set Default Strategy",
+    "func": "global.set('zisterne_strategy', {\n    pv_min_w: 300, tibber_max_ct: 30, heat_start_hour: 11, heat_end_hour: 16,\n    run_minutes: 10, max_minutes_per_day: 30, rain_veto_mm: 0.1\n});\nglobal.set('zisterne_eco_paused', false);\nreturn null;",
+    "outputs": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 380,
+    "wires": []
+  },
+  {
+    "id": "pihub_strategy_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Poll Cloud Strategy (10m)",
+    "props": [],
+    "repeat": "600",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "5",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 170,
+    "y": 460,
+    "wires": [
+      [
+        "pihub_build_strategy"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_build_strategy",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Strategy Request",
+    "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) {\n    node.status({fill:'red', shape:'ring', text:'CLOUD_DEVICE_TOKEN fehlt'});\n    return null;\n}\nmsg.method = 'GET';\nmsg.url = env.get('CLOUD_STRATEGY_URL');\nmsg.headers = { 'Authorization': 'Bearer ' + token };\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 460,
+    "wires": [
+      [
+        "pihub_http_strategy"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_http_strategy",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "GET Strategy (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 660,
+    "y": 460,
+    "wires": [
+      [
+        "pihub_store_strategy"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_store_strategy",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Store Strategy",
+    "func": "if (msg.statusCode >= 200 && msg.statusCode < 300 && msg.payload && msg.payload.params) {\n    global.set('zisterne_strategy', msg.payload.params);\n    global.set('zisterne_eco_paused', msg.payload.eco_paused === true);\n    node.status({fill:'green', shape:'dot', text:'strategy updated'});\n} else {\n    node.status({fill:'yellow', shape:'ring', text:'strategy failed ' + msg.statusCode});\n    node.warn(msg.payload || msg.error || 'Strategy poll failed');\n}\nreturn null;",
+    "outputs": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 890,
+    "y": 460,
+    "wires": []
+  },
+  {
+    "id": "pihub_command_poll_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Poll Cloud Commands (30s long-poll)",
+    "props": [],
+    "repeat": "30",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "7",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 200,
+    "y": 620,
+    "wires": [
+      [
+        "pihub_build_command_poll"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_build_command_poll",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Command Poll",
+    "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) { node.status({fill:'red', shape:'ring', text:'CLOUD_DEVICE_TOKEN fehlt'}); return null; }\nmsg.method = 'GET';\nmsg.url = env.get('CLOUD_COMMAND_POLL_URL');\nmsg.headers = { 'Authorization': 'Bearer ' + token };\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 480,
+    "y": 620,
+    "wires": [
+      [
+        "pihub_http_command_poll"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_http_command_poll",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "GET Command (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 730,
+    "y": 620,
+    "wires": [
+      [
+        "pihub_command_switch"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_command_switch",
+    "type": "switch",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Command?",
+    "property": "statusCode",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "200",
+        "vt": "num"
+      },
+      {
+        "t": "eq",
+        "v": "204",
+        "vt": "num"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "checkall": "false",
+    "repair": false,
+    "outputs": 3,
+    "x": 950,
+    "y": 620,
+    "wires": [
+      [
+        "pihub_execute_command"
+      ],
+      [],
+      [
+        "pihub_command_error"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_command_error",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Command poll error",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "statusCode",
+    "statusType": "msg",
+    "x": 1170,
+    "y": 700,
+    "wires": []
+  },
+  {
+    "id": "pihub_execute_command",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Execute Pump/MQTT Command",
+    "func": "var cmd = msg.payload && msg.payload.command;\nif (!cmd || !cmd.id) return null;\nvar kind = cmd.kind;\nvar p = cmd.payload || {};\nvar result = { id: cmd.id, ok: true, result: { handled_by: 'nodered', kind: kind } };\n\nif (kind === 'plugin_manual') {\n    var action = (p.action === 'off') ? 'OFF' : 'ON';\n    var minutes = Number(p.minutes || 10);\n    var mqtt = {\n        topic: env.get('MQTT_COMMAND_TOPIC') || 'cmnd/zisterne/POWER',\n        payload: action,\n        _pihubCommandId: cmd.id\n    };\n    result.result.action = action;\n    result.result.minutes = minutes;\n    result.result.topic = mqtt.topic;\n    return [mqtt, { payload: result }];\n}\n\nif (kind === 'mqtt_publish') {\n    var topic = String(p.topic || '');\n    if (!topic) return [null, { payload: { id: cmd.id, ok: false, result: { error: 'missing topic' } } }];\n    var mqtt2 = { topic: topic, payload: String(p.payload || ''), _pihubCommandId: cmd.id };\n    result.result.topic = topic;\n    return [mqtt2, { payload: result }];\n}\n\nreturn [null, { payload: { id: cmd.id, ok: false, result: { error: 'unsupported command for Node-RED runner: ' + kind } } }];",
+    "outputs": 2,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1200,
+    "y": 620,
+    "wires": [
+      [
+        "pihub_mqtt_out"
+      ],
+      [
+        "pihub_build_result"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_mqtt_out",
+    "type": "mqtt out",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Send Tasmota/MQTT Command",
+    "topic": "",
+    "qos": "1",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "pihub_mqtt_broker",
+    "x": 1490,
+    "y": 580,
+    "wires": []
+  },
+  {
+    "id": "pihub_build_result",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Command Result",
+    "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) { node.error('CLOUD_DEVICE_TOKEN fehlt; kann Command Result nicht senden.', msg); return null; }\nmsg.method = 'POST';\nmsg.url = env.get('CLOUD_COMMAND_RESULT_URL');\nmsg.headers = {\n    'Authorization': 'Bearer ' + token,\n    'Content-Type': 'application/json'\n};\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1490,
+    "y": 660,
+    "wires": [
+      [
+        "pihub_http_result"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_http_result",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "POST Command Result (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 1750,
+    "y": 660,
+    "wires": [
+      [
+        "pihub_result_debug"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_result_debug",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Command result posted",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "statusCode",
+    "statusType": "msg",
+    "x": 1990,
+    "y": 660,
+    "wires": []
+  },
+  {
+    "id": "pihub_weather_example",
+    "type": "comment",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Analytics payloads: weather_dwd, tibber_pulse, pump_guard, pump_control",
+    "info": "Wire your existing Tibber/Weather/Pump metric nodes into Event In. Use component names weather_dwd, tibber_pulse, pump_guard, pump_control so cloud charts and AI reasoning can find them.",
+    "x": 340,
+    "y": 780,
+    "wires": []
+  },
+  {
+    "id": "pihub_mqtt_broker",
+    "type": "mqtt-broker",
+    "name": "Local Mosquitto",
+    "broker": "mosquitto",
+    "port": "1883",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": "",
+    "willMsg": {},
+    "sessionExpiry": ""
   }
 ]

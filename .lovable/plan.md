@@ -1,84 +1,86 @@
-## Was du eigentlich willst
+## What I found
 
-1. **Node-RED ↔ Pi-Hub sauber dokumentieren** — auf dem lokalen Pi sichtbar, mit allen URLs/Tokens, die dein Flow (`CLOUD_BRIDGE_URL`, `CLOUD_STRATEGY_URL`, `CLOUD_DEVICE_TOKEN`, `LOCAL_API_URL`, `PI_INGEST_TOKEN`) braucht — kopierbar wie bei Telegram/Alexa.
-2. **Connect-Karten reparieren** — MCP/Telegram/Alexa sind aktuell nicht klickbar, du kommst nicht an URL/Token.
-3. **Reasoning-Use-Case** sauber positionieren: „Alexa, schalt die Zisterne an" und „Ist meine Wäsche fertig?" (Tibber-Live + AI), nicht nur Pumpe AN/AUS.
-
----
+- The production logs show repeated `POST /api/public/cloud-bridge/event → 401`, while `/api/public/agent/poll → 204` is healthy. That means the Pi cloud bridge itself is connected, but the Node-RED event push is using the wrong/missing token.
+- In your pasted flow, `CLOUD_DEVICE_TOKEN` is empty, one function has a hardcoded old token, and the HTTP request nodes have fixed URL/auth settings. Node-RED is warning that `msg.url`/`msg.headers` can no longer override those fixed node settings, so the function-generated request is being ignored.
+- The local fallback URL is mixed up: it points to cloud-bridge-style routes, but local fallback should be a separate lightweight local ingest route, not the cloud route.
+- Cloud pump commands currently enqueue `plugin_manual`, but the Node-RED flow has no command polling/input path for that. So cloud buttons/Alexa/MCP can enqueue commands, but Node-RED never receives them.
 
 ## Plan
 
-### A) Connect-Hub reparieren (`/cloud/connections`)
+1. **Fix token access in the Pi UI**
+   - Add a safe “Node-RED Setup” panel in `/_authenticated/integrations` that shows:
+     - Cloud event URL
+     - Strategy URL
+     - Command poll URL
+     - Local fallback ingest URL
+     - Cloud device token with a reveal/copy control after local Pi auth
+   - Do not rely on the Node-RED copy button; provide ready-to-copy values and a ready-to-import flow from the Pi UI.
+   - Make the token display explicitly say: use the Cloud Device Token, not the factory/reset/revocation token.
 
-- Ursache: Die Karten sind als ganze `<Link>`-Blöcke gebaut, aber das `_cloud`-Layout hat `pb-28` + ein `fixed bottom-0` Nav, das auf manchen Viewports die unteren Cards überdeckt — Tap-Region geht ins Nav. Fix:
-  - `_cloud.tsx`: `pb-28` → `pb-32`, `pointer-events-none` auf den unsichtbaren Bereich rund ums Nav vermeiden, Nav bekommt klares `z-40`, Outlet-Container `relative z-0`.
-  - Connect-Cards: Karten bleiben `<Link>`, aber mit `block w-full` + `relative z-10` und Hit-Area-Test auf Mobile-Viewport per Playwright.
-- Nach dem Fix: Jede Karte führt zu einer eigenen Detailseite mit **Endpoint, Token-Erzeugung, Beispiel-Snippets, Doku-Link**.
+2. **Make local auth clear and practical**
+   - Document and surface that:
+     - The Pi web UI uses local PIN auth and sends `X-Pi-Auth` only for dashboard server calls.
+     - Node-RED cloud calls use `Authorization: Bearer <CLOUD_DEVICE_TOKEN>`.
+     - Local Node-RED fallback uses a local-only ingest token if configured, or LAN-only mode if no token is set.
+   - Add a lightweight local ingest endpoint for Node-RED fallback so local dashboard data can be accepted into RAM without SD writes.
 
-### B) Connect-Detailseiten vereinheitlichen
+3. **Replace the downloadable Node-RED flow with a working full flow**
+   - Update `public/nodered-template.json` so HTTP request nodes use dynamic `msg.url`, `msg.method`, and `msg.headers` only.
+   - Remove Node-RED UI “Bearer Authentication” from the HTTP nodes to avoid masked/un-copyable auth fields.
+   - Validate token presence in function nodes before sending; if empty, emit a clear debug error instead of spamming 401s.
+   - Fix the disabled `Cloud-Bridge` tab and remove hardcoded stale tokens.
+   - Include a “Test Cloud Push” inject node that posts a known event and makes 200/401 diagnosis obvious.
 
-Einheitliches Muster (wie Alexa-Page schon hat): Schritt-für-Schritt, jede Zeile mit Copy-Button, Doku-Link, Live-Status der Verbindung.
+4. **Connect cloud commands to Node-RED**
+   - Add a cloud command polling endpoint for Node-RED using the same device bearer token.
+   - Add a Node-RED command poll subflow:
+     - `GET /api/public/agent/poll`
+     - if command is `plugin_manual` or `mqtt_publish`, map it to your Tasmota topic `cmnd/zisterne/POWER`.
+     - POST result to `/api/public/agent/result`.
+   - Update the cloud pump UI to send a Node-RED-friendly command payload for the pump (`id: pump`, action `on/off`, minutes).
+   - Keep safety local: Node-RED still owns hard-failsafe, dry-run, overload, and runtime limits.
 
-- **MCP (`/connections/mcp`)** — bereits da, aber:
-  - Oben prominent ein „Quickstart"-Block: Endpoint-URL + Bearer-Token-Snippet für ChatGPT/Gemini/Claude/Open WebUI, jeweils 1 Copy-Klick.
-  - Verlinkung „Was kann ich fragen?" → Beispiele inkl. „Ist meine Wäsche fertig?" (siehe E).
-- **Telegram** — bestehender Flow bleibt, plus Link auf „Sprachbefehle & Beispiele".
-- **Alexa** — bestehende Step-by-Step bleibt, ergänzt um zwei Intents (`LaundryDoneIntent`, `EnergyAskIntent`) für Reasoning-Fragen.
+5. **Fix cloud analytics event naming**
+   - Align emitted event components with the UI/MCP expectations:
+     - `pump_control` and `pump_guard` for pump state/control
+     - `eco_intelligence` for strategy decisions
+     - `tibber_pulse` for live consumption
+     - `weather_dwd` for weather
+   - Adjust the Pump Control page to read those components instead of only `component=pump`, so events actually appear.
 
-### C) Node-RED Integration auf dem Pi sichtbar machen
+6. **Add storage for weather, Tibber, and pump usage without Pi SD writes**
+   - Store time-series in Lovable Cloud via `device_events`; no local disk writes on the Pi.
+   - Update the flow to push low-rate analytics events:
+     - Tibber live wattage: throttled/downsampled
+     - Weather: every 10 minutes
+     - Pump telemetry: on change and periodic snapshot
+   - Use the existing hourly aggregation job to build charts and AI reasoning inputs.
+   - Extend docs with the exact payload examples and throttle recommendations for Pi 3.
 
-Neue Pi-lokale Route `/integrations` (im Bottom-Nav klein „NR" Icon, nur wenn nicht-slim), zeigt alles, was dein Flow braucht — **alle Werte einmalig auf einer Seite kopierbar**:
+7. **Verify**
+   - Use server logs to confirm 401s stop after the flow uses a real token.
+   - Test public API behavior with missing token, wrong token, and structurally valid request.
+   - Verify the downloadable JSON has no hardcoded token, no fixed HTTP-node URL that blocks `msg.url`, and includes command poll/result nodes.
+   - Verify cloud pump command path: UI/Alexa/MCP → `agent_commands` → Node-RED poll → MQTT command → result back to cloud.
 
+## Technical notes
+
+```text
+Node-RED -> Cloud analytics
+POST https://pi-hub.benniwie.com/api/public/cloud-bridge/event
+Authorization: Bearer <CLOUD_DEVICE_TOKEN>
+
+Node-RED -> Cloud strategy
+GET https://pi-hub.benniwie.com/api/public/cloud-bridge/strategy
+Authorization: Bearer <CLOUD_DEVICE_TOKEN>
+
+Node-RED -> Cloud commands
+GET https://pi-hub.benniwie.com/api/public/agent/poll
+Authorization: Bearer <CLOUD_DEVICE_TOKEN>
+
+Node-RED -> Command result
+POST https://pi-hub.benniwie.com/api/public/agent/result
+Authorization: Bearer <CLOUD_DEVICE_TOKEN>
 ```
-CLOUD_BRIDGE_URL    https://pi-hub.benniwie.com/api/public/cloud-bridge/event
-CLOUD_STRATEGY_URL  https://pi-hub.benniwie.com/api/public/cloud-bridge/strategy
-CLOUD_DEVICE_TOKEN  <Button "Token holen" → öffnet /cloud/devices Pairing-Flow>
-LOCAL_API_URL       http://<pi-ip-auto-detected>:3000/api/public/ingest/event
-PI_INGEST_TOKEN     <generieren + anzeigen, hash-gespeichert>
-```
 
-Zusätzlich:
-- Ein-Klick „Node-RED Flow-Template JSON herunterladen" (deine geposteten Tabs 1+ Cloud-Bridge als sauberer Subflow, vorausgefüllt mit den richtigen URLs).
-- Health-Anzeige: letzte Cloud-Push-Zeit, letzte Strategy-Poll-Zeit aus `device_events`.
-- Inline-Doku-Block (kondensiert aus `docs/nodered-integration.md`) mit den drei Punkten Direct-Ingest / Strategy-Poll / Fallback-zu-Local.
-
-In der Cloud-Variante (`/cloud/devices/$id`) bekommt der „Strategie"-Tab denselben Copy-Block für die Werte, damit du sie aus der Ferne einsehen kannst.
-
-### D) Doku-File erweitern
-
-`docs/nodered-integration.md` erweitern um:
-- Wer triggert wen (Sequence-Diagramm in ASCII).
-- `mqtt_publish` aus der Cloud → Node-RED via `mqtt-in` auf Topic `pi-hub/strategy/+`, damit Cloud auch direkt steuern kann (zusätzlich zum Polling).
-- Failure-Modes: Cloud-Down → Local-Fallback (du hast das schon), Tibber-Down → letzte bekannte Preise, DWD-Down → konservativer Modus.
-
-### E) Reasoning-Use-Case: „Ist meine Wäsche fertig?"
-
-Erweiterung des MCP-Servers (`src/routes/api/public/mcp.ts` + `src/lib/mcp-tools.server.ts`):
-
-Neue Tools, die rein read-only sind und keinen Pi-Roundtrip brauchen (Daten liegen schon in `device_events`):
-
-- `get_power_history(window_minutes)` → Zeitreihe der `metrics.watts` aus `device_events` (Tibber-Pulse-Live wird ja schon gepusht via Node-RED Cloud-Bridge).
-- `get_tibber_price_now()` → aktueller Preis (aus letztem Tibber-Event).
-- `infer_appliance_state(appliance)` → Server nimmt die letzten 30 min Watt-Reihe + Tibber-Daten und gibt strukturiert zurück: `{ running: bool, since_min: number, est_finish_min: number|null, confidence }`. Heuristik: Waschmaschine = ≥150 W über ≥10 min, „fertig" wenn Watt < 5 W für ≥3 min nach aktiver Phase. Schwellwerte konfigurierbar pro `appliance_profiles`-Tabelle (neu, klein, RLS scoped).
-
-Damit funktioniert in jedem MCP-Client (ChatGPT/Gemini/Claude) **und** in Alexa (über `LaundryDoneIntent` → MCP-Tool → strukturierte Antwort → TTS) **und** in Telegram die Frage „ist meine Wäsche fertig?".
-
-Auf der MCP-Seite ergänzen wir einen „Beispiel-Prompts"-Block mit genau diesen Fragen, damit klar ist, was geht.
-
-### F) Verifizieren
-
-- Playwright-Skript: `/auth` Login, `/cloud/connections` öffnen, alle drei Karten anklicken, jeweils Screenshot dass Detailseite kommt.
-- Pi-lokal: `/integrations` aufrufen, Copy-Buttons existieren, Health-Werte rendern.
-- MCP: JSON-RPC `tools/list` enthält `infer_appliance_state`; ein Aufruf mit Demo-Daten gibt sinnvolle Response.
-
----
-
-## Technisches (kurz)
-
-- Neue Tabelle `appliance_profiles` (`user_id`, `device_id`, `name`, `min_watts`, `min_runtime_min`, `idle_watts`, `idle_after_min`) + RLS + GRANTs.
-- Neue Server-Route `/_authenticated/integrations.tsx` (Pi-UI) + dort `host-info.functions.ts` erweitern, damit die LAN-IP automatisch angezeigt wird.
-- `mcp-tools.server.ts`: zwei neue Tools registrieren; `infer_appliance_state` ist pure Funktion über DB-Reads → kein Pi-Roundtrip → keine Latenz.
-- `_cloud.tsx` Layout-Fix + Connect-Cards `z-10`, Bottom-Nav `z-40`.
-- Node-RED Flow-Template bauen wir als statisches JSON unter `public/nodered-template.json` (Subflow „pi-hub cloud bridge" mit eingesetzten env-Defaults), Download-Link in `/integrations`.
-
-Kein Eingriff in Pump-Logik, kein Eingriff in Pairing-Flow.
+The key rework is: Node-RED should use one Cloud Device Token everywhere for cloud communication, and command polling must be part of the flow so cloud buttons/Alexa/MCP can actually reach your Tasmota pump.

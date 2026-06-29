@@ -251,6 +251,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             kind: cmd.type === "control" ? "plugin_manual" : "plugin_get",
             payload: {
               id: plugin.id,
+              ...(cmd.type === "control" ? { runner: "nodered" } : {}),
               action: cmd.name.includes("off") ? "off" : "on",
               command: cmd.name
             },

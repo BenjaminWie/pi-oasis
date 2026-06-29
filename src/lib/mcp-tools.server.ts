@@ -171,7 +171,7 @@ export const TOOLS: ToolDef[] = [
       minutes: z.number().int().min(1).max(120).optional(),
     }),
     async execute(args, ctx) {
-      return await enqueueAndWait(ctx, "plugin_manual", args);
+      return await enqueueAndWait(ctx, "plugin_manual", { ...args, runner: "nodered" });
     },
   },
   {
@@ -400,6 +400,7 @@ export async function getToolsForDevice(ctx: ToolCtx): Promise<ToolDef[]> {
             // If the command is generic, we might need a more generic plugin_cmd later.
             return await enqueueAndWait(ctx, "plugin_manual", {
               id: p.id,
+              runner: "nodered",
               action: c.name.includes("off") ? "off" : "on",
               minutes: args.minutes,
               command: c.name

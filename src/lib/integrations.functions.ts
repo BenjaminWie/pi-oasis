@@ -12,6 +12,8 @@ export interface IntegrationsInfo {
   cloudBridge: {
     eventUrl: string;
     strategyUrl: string;
+    commandPollUrl: string;
+    commandResultUrl: string;
     deviceTokenPresent: boolean;
     deviceTokenPrefix: string | null;
     deviceName: string | null;
@@ -21,6 +23,8 @@ export interface IntegrationsInfo {
     lanIp: string | null;
     port: number;
     ingestUrl: string | null;
+    ingestTokenPresent: boolean;
+    ingestTokenPrefix: string | null;
   };
   examples: {
     nodeRedTemplateUrl: string;
@@ -86,6 +90,8 @@ export const getIntegrationsInfo = createServerFn({ method: "GET" })
       cloudBridge: {
         eventUrl: `${cloudUrl}/api/public/cloud-bridge/event`,
         strategyUrl: `${cloudUrl}/api/public/cloud-bridge/strategy`,
+        commandPollUrl: `${cloudUrl}/api/public/agent/poll?runner=nodered`,
+        commandResultUrl: `${cloudUrl}/api/public/agent/result`,
         deviceTokenPresent,
         deviceTokenPrefix,
         deviceName,
@@ -94,11 +100,45 @@ export const getIntegrationsInfo = createServerFn({ method: "GET" })
       local: {
         lanIp,
         port,
-        ingestUrl: lanIp ? `http://${lanIp}:${port}/api/public/cloud-bridge/event` : null,
+        ingestUrl: lanIp ? `http://${lanIp}:${port}/api/public/ingest/event` : null,
+        ingestTokenPresent: !!(process.env.PI_INGEST_TOKEN || process.env.PI_LOCAL_INGEST_TOKEN),
+        ingestTokenPrefix: (process.env.PI_INGEST_TOKEN || process.env.PI_LOCAL_INGEST_TOKEN)?.slice(0, 10) ?? null,
       },
       examples: {
         nodeRedTemplateUrl: `${cloudUrl}/nodered-template.json`,
         docsUrl: `${cloudUrl}/docs/nodered`,
       },
+    };
+  });
+
+export const getCloudDeviceToken = createServerFn({ method: "GET" })
+  .middleware([requirePiAuth])
+  .handler(async () => {
+    const { hasProcStats } = await import("./pi-runtime.server");
+    if (!hasProcStats()) return { token: null as string | null, error: "not on Pi" };
+    const { getCloudConfig } = await import("./pin-store.server");
+    const cfg = await getCloudConfig();
+    if (!cfg?.deviceToken) return { token: null as string | null, error: "not paired" };
+    return { token: cfg.deviceToken, error: null as string | null };
+  });
+
+export const getIntegrationSecrets = createServerFn({ method: "GET" })
+  .middleware([requirePiAuth])
+  .handler(async () => {
+    const { hasProcStats } = await import("./pi-runtime.server");
+    if (!hasProcStats()) {
+      return {
+        cloudDeviceToken: null as string | null,
+        localIngestToken: null as string | null,
+        error: "not on Pi",
+      };
+    }
+
+    const { getCloudConfig } = await import("./pin-store.server");
+    const cfg = await getCloudConfig();
+    return {
+      cloudDeviceToken: cfg?.deviceToken ?? null,
+      localIngestToken: process.env.PI_INGEST_TOKEN || process.env.PI_LOCAL_INGEST_TOKEN || null,
+      error: cfg?.deviceToken ? null : "not paired",
     };
   });

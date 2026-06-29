@@ -16,8 +16,10 @@ import {
   Network,
   AlertTriangle,
   CheckCircle2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
-import { getIntegrationsInfo } from "@/lib/integrations.functions";
+import { getIntegrationSecrets, getIntegrationsInfo } from "@/lib/integrations.functions";
 
 export const Route = createFileRoute("/_authenticated/integrations")({
   component: IntegrationsPage,
@@ -25,18 +27,40 @@ export const Route = createFileRoute("/_authenticated/integrations")({
 
 function IntegrationsPage() {
   const fetchInfo = useServerFn(getIntegrationsInfo);
+  const fetchSecrets = useServerFn(getIntegrationSecrets);
   const { data: info } = useQuery({
     queryKey: ["integrations-info"],
     queryFn: () => fetchInfo(),
     refetchInterval: 15_000,
   });
   const [copied, setCopied] = useState<string | null>(null);
+  const [revealedToken, setRevealedToken] = useState<string | null>(null);
+  const [revealedLocalToken, setRevealedLocalToken] = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState<string | null>(null);
 
   function copy(label: string, text: string) {
-    navigator.clipboard.writeText(text).then(() => {
+    const done = () => {
       setCopied(label);
       setTimeout(() => setCopied(null), 1500);
-    });
+    };
+    if (navigator.clipboard?.writeText && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+
+  function fallbackCopy(text: string, done: () => void) {
+    const el = document.createElement("textarea");
+    el.value = text;
+    el.setAttribute("readonly", "");
+    el.style.position = "fixed";
+    el.style.opacity = "0";
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand("copy");
+    document.body.removeChild(el);
+    done();
   }
 
   function Row({ label, value, secret }: { label: string; value: string | null; secret?: boolean }) {
@@ -67,6 +91,33 @@ function IntegrationsPage() {
       </div>
     );
   }
+
+  async function revealToken() {
+    setTokenError(null);
+    const res = await fetchSecrets();
+    if (res.cloudDeviceToken) {
+      setRevealedToken(res.cloudDeviceToken);
+      setRevealedLocalToken(res.localIngestToken ?? null);
+    } else {
+      setTokenError(res.error || "Token nicht verfügbar");
+    }
+  }
+
+  const envBlock = info
+    ? [
+        `CLOUD_BRIDGE_URL=${info.cloudBridge.eventUrl}`,
+        `CLOUD_STRATEGY_URL=${info.cloudBridge.strategyUrl}`,
+        `CLOUD_COMMAND_POLL_URL=${info.cloudBridge.commandPollUrl}`,
+        `CLOUD_COMMAND_RESULT_URL=${info.cloudBridge.commandResultUrl}`,
+        `CLOUD_DEVICE_TOKEN=${revealedToken ?? "<erst oben Token anzeigen>"}`,
+        `LOCAL_API_URL=${info.local.ingestUrl ?? "http://127.0.0.1:3000/api/public/ingest/event"}`,
+        `PI_INGEST_TOKEN=${revealedLocalToken ?? ""}`,
+        "DEFAULT_DEVICE_LABEL=drainpress",
+        "MQTT_COMMAND_TOPIC=cmnd/zisterne/POWER",
+        "MQTT_BROKER_HOST=mosquitto",
+        "MQTT_BROKER_PORT=1883",
+      ].join("\n")
+    : "";
 
   return (
     <div className="px-4 pb-8 space-y-5 max-w-md mx-auto">
@@ -99,15 +150,42 @@ function IntegrationsPage() {
         </div>
         <Row label="CLOUD_BRIDGE_URL" value={info?.cloudBridge.eventUrl ?? null} />
         <Row label="CLOUD_STRATEGY_URL" value={info?.cloudBridge.strategyUrl ?? null} />
+        <Row label="CLOUD_COMMAND_POLL_URL" value={info?.cloudBridge.commandPollUrl ?? null} />
+        <Row label="CLOUD_COMMAND_RESULT_URL" value={info?.cloudBridge.commandResultUrl ?? null} />
         <Row
           label="CLOUD_DEVICE_TOKEN"
-          value={info?.cloudBridge.deviceTokenPrefix ? `${info.cloudBridge.deviceTokenPrefix}…` : null}
-          secret
+          value={revealedToken ?? (info?.cloudBridge.deviceTokenPrefix ? `${info.cloudBridge.deviceTokenPrefix}…` : null)}
+          secret={!revealedToken}
         />
+        {info?.cloudBridge.deviceTokenPresent && (
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => (revealedToken ? setRevealedToken(null) : revealToken())}
+              className="rounded-xl border border-border bg-card py-2 text-[10px] uppercase tracking-widest flex items-center justify-center gap-1"
+            >
+              {revealedToken ? <EyeOff size={12} /> : <Eye size={12} />}
+              {revealedToken ? "Verbergen" : "Token anzeigen"}
+            </button>
+            <button
+              disabled={!revealedToken}
+              onClick={() => revealedToken && copy("CLOUD_DEVICE_TOKEN", revealedToken)}
+              className="rounded-xl border border-border bg-card py-2 text-[10px] uppercase tracking-widest flex items-center justify-center gap-1 disabled:opacity-40"
+            >
+              {copied === "CLOUD_DEVICE_TOKEN" ? <Check size={12} /> : <Copy size={12} />}
+              Token kopieren
+            </button>
+          </div>
+        )}
+        {tokenError && <p className="text-[10px] text-destructive">{tokenError}</p>}
+        <p className="text-[10px] text-muted-foreground">
+          Für Node-RED immer diesen Cloud Device Token verwenden — nicht Factory-, Reset- oder
+          Revocation-Token. Im Node-RED HTTP Request keine eingebaute Bearer-Auth aktivieren; der
+          Flow setzt den Header selbst.
+        </p>
         {!info?.cloudBridge.deviceTokenPresent && (
           <p className="text-[11px] text-muted-foreground">
-            Erst pairen in <code>System → Cloud verbinden</code>, dann erscheint der Token im
-            Pairing-Dialog (einmalig anzeigt) — kopiere ihn dort direkt in den Node-RED-Env-Block.
+            Erst pairen in <code>System → Cloud verbinden</code>, dann kannst du den Token hier
+            anzeigen und in den Node-RED-Env-Block kopieren.
           </p>
         )}
       </section>
@@ -121,10 +199,15 @@ function IntegrationsPage() {
           </h2>
         </div>
         <Row label="LOCAL_API_URL" value={info?.local.ingestUrl ?? null} />
+        <Row
+          label="PI_INGEST_TOKEN"
+          value={revealedLocalToken ?? (info?.local.ingestTokenPrefix ? `${info.local.ingestTokenPrefix}…` : "LAN-only")}
+          secret={!!info?.local.ingestTokenPrefix && !revealedLocalToken}
+        />
         <p className="text-[10px] text-muted-foreground">
           IP automatisch aus dem ersten privaten Interface erkannt
-          {info?.local.lanIp ? ` (${info.local.lanIp})` : ""}. Bei Cloud-Ausfall pushst du auf
-          dieselbe Route lokal — gleiche Payload, kein Token nötig im selben LAN.
+          {info?.local.lanIp ? ` (${info.local.lanIp})` : ""}. Bei Cloud-Ausfall pushst du auf die
+          lokale Ingest-Route. Wenn kein PI_INGEST_TOKEN gesetzt ist, akzeptiert sie nur LAN-Clients.
         </p>
       </section>
 
@@ -133,6 +216,29 @@ function IntegrationsPage() {
         <h2 className="text-[10px] uppercase tracking-widest text-muted-foreground">
           Schnellstart
         </h2>
+        {info && (
+          <div className="rounded-xl border border-border bg-background p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Node-RED Tab-Env kopieren
+              </span>
+              <button
+                onClick={() => copy("NODE_RED_ENV", envBlock)}
+                className="text-primary shrink-0"
+                aria-label="Node-RED Environment kopieren"
+              >
+                {copied === "NODE_RED_ENV" ? <Check size={14} /> : <Copy size={14} />}
+              </button>
+            </div>
+            <pre className="text-[10px] font-mono whitespace-pre-wrap break-all">{envBlock}</pre>
+            {!revealedToken && (
+              <p className="text-[10px] text-amber-500">
+                Klick zuerst auf „Token anzeigen“, dann enthält dieser Block den echten
+                CLOUD_DEVICE_TOKEN.
+              </p>
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <a
             href="/nodered-template.json"
@@ -176,6 +282,13 @@ Authorization: Bearer {CLOUD_DEVICE_TOKEN}
   "metrics": { "watts": 412, "tibber_ct": 28 },
   "ts": "${new Date().toISOString()}"
 }`}
+        </pre>
+        <pre className="rounded-xl border border-border bg-background p-3 text-[10px] font-mono overflow-x-auto">
+{`GET {CLOUD_COMMAND_POLL_URL}
+Authorization: Bearer {CLOUD_DEVICE_TOKEN}
+
+// command.kind=plugin_manual -> cmnd/zisterne/POWER ON/OFF
+// danach POST {CLOUD_COMMAND_RESULT_URL}`}
         </pre>
       </section>
     </div>
