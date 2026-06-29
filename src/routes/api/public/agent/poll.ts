@@ -20,6 +20,7 @@ export const Route = createFileRoute("/api/public/agent/poll")({
         if (!token) return jsonResponse({ error: "no token" }, 401);
         const device = await findDevice(token);
         if (!device) return jsonResponse({ error: "unknown device" }, 401);
+        const runner = new URL(request.url).searchParams.get("runner");
 
         // Touch last_seen
         await supabaseAdmin
@@ -30,14 +31,21 @@ export const Route = createFileRoute("/api/public/agent/poll")({
         // Poll up to ~25s for a pending command
         const deadline = Date.now() + 25_000;
         while (Date.now() < deadline) {
-          const { data: cmd } = await supabaseAdmin
+          let q = supabaseAdmin
             .from("agent_commands")
             .select("id, kind, payload")
             .eq("device_id", device.id)
             .eq("status", "pending")
             .order("created_at", { ascending: true })
-            .limit(1)
-            .maybeSingle();
+            .limit(1);
+
+          if (runner === "nodered") {
+            q = q.eq("payload->>runner", "nodered");
+          } else {
+            q = q.or("payload->>runner.is.null,payload->>runner.neq.nodered");
+          }
+
+          const { data: cmd } = await q.maybeSingle();
 
           if (cmd) {
             await supabaseAdmin
