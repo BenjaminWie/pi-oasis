@@ -25,6 +25,9 @@ import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
 import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
+import { Route as CloudDevicesIndexRouteImport } from './routes/_cloud/devices.index'
+import { Route as CloudConnectionsIndexRouteImport } from './routes/_cloud/connections.index'
+import { Route as AuthenticatedPluginsIndexRouteImport } from './routes/_authenticated/plugins.index'
 import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
 import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
 import { Route as CloudConnectionsTelegramRouteImport } from './routes/_cloud/connections.telegram'
@@ -122,6 +125,22 @@ const AuthenticatedIntegrationsRoute =
     id: '/integrations',
     path: '/integrations',
     getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const CloudDevicesIndexRoute = CloudDevicesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CloudDevicesRoute,
+} as any)
+const CloudConnectionsIndexRoute = CloudConnectionsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CloudConnectionsRoute,
+} as any)
+const AuthenticatedPluginsIndexRoute =
+  AuthenticatedPluginsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedPluginsRoute,
   } as any)
 const ApiPublicMcpRoute = ApiPublicMcpRouteImport.update({
   id: '/api/public/mcp',
@@ -243,6 +262,9 @@ export interface FileRoutesByFullPath {
   '/connections/telegram': typeof CloudConnectionsTelegramRoute
   '/devices/$id': typeof CloudDevicesIdRoute
   '/api/public/mcp': typeof ApiPublicMcpRoute
+  '/plugins/': typeof AuthenticatedPluginsIndexRoute
+  '/connections/': typeof CloudConnectionsIndexRoute
+  '/devices/': typeof CloudDevicesIndexRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
@@ -262,12 +284,10 @@ export interface FileRoutesByTo {
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
-  '/plugins': typeof CloudPluginsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
-  '/connections': typeof CloudConnectionsRouteWithChildren
-  '/devices': typeof CloudDevicesRouteWithChildren
   '/pair-callback': typeof CloudPairCallbackRoute
+  '/plugins': typeof AuthenticatedPluginsIndexRoute
   '/pump': typeof CloudPumpRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/plugins/$id': typeof AuthenticatedPluginsIdRoute
@@ -276,6 +296,8 @@ export interface FileRoutesByTo {
   '/connections/telegram': typeof CloudConnectionsTelegramRoute
   '/devices/$id': typeof CloudDevicesIdRoute
   '/api/public/mcp': typeof ApiPublicMcpRoute
+  '/connections': typeof CloudConnectionsIndexRoute
+  '/devices': typeof CloudDevicesIndexRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
@@ -313,6 +335,9 @@ export interface FileRoutesById {
   '/_cloud/connections/telegram': typeof CloudConnectionsTelegramRoute
   '/_cloud/devices/$id': typeof CloudDevicesIdRoute
   '/api/public/mcp': typeof ApiPublicMcpRoute
+  '/_authenticated/plugins/': typeof AuthenticatedPluginsIndexRoute
+  '/_cloud/connections/': typeof CloudConnectionsIndexRoute
+  '/_cloud/devices/': typeof CloudDevicesIndexRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
@@ -348,6 +373,9 @@ export interface FileRouteTypes {
     | '/connections/telegram'
     | '/devices/$id'
     | '/api/public/mcp'
+    | '/plugins/'
+    | '/connections/'
+    | '/devices/'
     | '/api/public/agent/heartbeat'
     | '/api/public/agent/poll'
     | '/api/public/agent/register'
@@ -367,12 +395,10 @@ export interface FileRouteTypes {
     | '/integrations'
     | '/mqtt'
     | '/overview'
-    | '/plugins'
     | '/settings'
     | '/terminal'
-    | '/connections'
-    | '/devices'
     | '/pair-callback'
+    | '/plugins'
     | '/pump'
     | '/container/$id'
     | '/plugins/$id'
@@ -381,6 +407,8 @@ export interface FileRouteTypes {
     | '/connections/telegram'
     | '/devices/$id'
     | '/api/public/mcp'
+    | '/connections'
+    | '/devices'
     | '/api/public/agent/heartbeat'
     | '/api/public/agent/poll'
     | '/api/public/agent/register'
@@ -417,6 +445,9 @@ export interface FileRouteTypes {
     | '/_cloud/connections/telegram'
     | '/_cloud/devices/$id'
     | '/api/public/mcp'
+    | '/_authenticated/plugins/'
+    | '/_cloud/connections/'
+    | '/_cloud/devices/'
     | '/api/public/agent/heartbeat'
     | '/api/public/agent/poll'
     | '/api/public/agent/register'
@@ -564,6 +595,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIntegrationsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_cloud/devices/': {
+      id: '/_cloud/devices/'
+      path: '/'
+      fullPath: '/devices/'
+      preLoaderRoute: typeof CloudDevicesIndexRouteImport
+      parentRoute: typeof CloudDevicesRoute
+    }
+    '/_cloud/connections/': {
+      id: '/_cloud/connections/'
+      path: '/'
+      fullPath: '/connections/'
+      preLoaderRoute: typeof CloudConnectionsIndexRouteImport
+      parentRoute: typeof CloudConnectionsRoute
+    }
+    '/_authenticated/plugins/': {
+      id: '/_authenticated/plugins/'
+      path: '/'
+      fullPath: '/plugins/'
+      preLoaderRoute: typeof AuthenticatedPluginsIndexRouteImport
+      parentRoute: typeof AuthenticatedPluginsRoute
+    }
     '/api/public/mcp': {
       id: '/api/public/mcp'
       path: '/api/public/mcp'
@@ -695,10 +747,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedPluginsRouteChildren {
   AuthenticatedPluginsIdRoute: typeof AuthenticatedPluginsIdRoute
+  AuthenticatedPluginsIndexRoute: typeof AuthenticatedPluginsIndexRoute
 }
 
 const AuthenticatedPluginsRouteChildren: AuthenticatedPluginsRouteChildren = {
   AuthenticatedPluginsIdRoute: AuthenticatedPluginsIdRoute,
+  AuthenticatedPluginsIndexRoute: AuthenticatedPluginsIndexRoute,
 }
 
 const AuthenticatedPluginsRouteWithChildren =
@@ -732,12 +786,14 @@ interface CloudConnectionsRouteChildren {
   CloudConnectionsAlexaRoute: typeof CloudConnectionsAlexaRoute
   CloudConnectionsMcpRoute: typeof CloudConnectionsMcpRoute
   CloudConnectionsTelegramRoute: typeof CloudConnectionsTelegramRoute
+  CloudConnectionsIndexRoute: typeof CloudConnectionsIndexRoute
 }
 
 const CloudConnectionsRouteChildren: CloudConnectionsRouteChildren = {
   CloudConnectionsAlexaRoute: CloudConnectionsAlexaRoute,
   CloudConnectionsMcpRoute: CloudConnectionsMcpRoute,
   CloudConnectionsTelegramRoute: CloudConnectionsTelegramRoute,
+  CloudConnectionsIndexRoute: CloudConnectionsIndexRoute,
 }
 
 const CloudConnectionsRouteWithChildren =
@@ -745,10 +801,12 @@ const CloudConnectionsRouteWithChildren =
 
 interface CloudDevicesRouteChildren {
   CloudDevicesIdRoute: typeof CloudDevicesIdRoute
+  CloudDevicesIndexRoute: typeof CloudDevicesIndexRoute
 }
 
 const CloudDevicesRouteChildren: CloudDevicesRouteChildren = {
   CloudDevicesIdRoute: CloudDevicesIdRoute,
+  CloudDevicesIndexRoute: CloudDevicesIndexRoute,
 }
 
 const CloudDevicesRouteWithChildren = CloudDevicesRoute._addFileChildren(
@@ -795,13 +853,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

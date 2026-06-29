@@ -16,8 +16,10 @@ import {
   Network,
   AlertTriangle,
   CheckCircle2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
-import { getIntegrationsInfo } from "@/lib/integrations.functions";
+import { getCloudDeviceToken, getIntegrationsInfo } from "@/lib/integrations.functions";
 
 export const Route = createFileRoute("/_authenticated/integrations")({
   component: IntegrationsPage,
@@ -25,12 +27,15 @@ export const Route = createFileRoute("/_authenticated/integrations")({
 
 function IntegrationsPage() {
   const fetchInfo = useServerFn(getIntegrationsInfo);
+  const fetchToken = useServerFn(getCloudDeviceToken);
   const { data: info } = useQuery({
     queryKey: ["integrations-info"],
     queryFn: () => fetchInfo(),
     refetchInterval: 15_000,
   });
   const [copied, setCopied] = useState<string | null>(null);
+  const [revealedToken, setRevealedToken] = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState<string | null>(null);
 
   function copy(label: string, text: string) {
     navigator.clipboard.writeText(text).then(() => {
@@ -68,6 +73,13 @@ function IntegrationsPage() {
     );
   }
 
+  async function revealToken() {
+    setTokenError(null);
+    const res = await fetchToken();
+    if (res.token) setRevealedToken(res.token);
+    else setTokenError(res.error || "Token nicht verfügbar");
+  }
+
   return (
     <div className="px-4 pb-8 space-y-5 max-w-md mx-auto">
       <header className="flex items-center gap-2 pt-2">
@@ -99,15 +111,42 @@ function IntegrationsPage() {
         </div>
         <Row label="CLOUD_BRIDGE_URL" value={info?.cloudBridge.eventUrl ?? null} />
         <Row label="CLOUD_STRATEGY_URL" value={info?.cloudBridge.strategyUrl ?? null} />
+        <Row label="CLOUD_COMMAND_POLL_URL" value={info?.cloudBridge.commandPollUrl ?? null} />
+        <Row label="CLOUD_COMMAND_RESULT_URL" value={info?.cloudBridge.commandResultUrl ?? null} />
         <Row
           label="CLOUD_DEVICE_TOKEN"
-          value={info?.cloudBridge.deviceTokenPrefix ? `${info.cloudBridge.deviceTokenPrefix}…` : null}
-          secret
+          value={revealedToken ?? (info?.cloudBridge.deviceTokenPrefix ? `${info.cloudBridge.deviceTokenPrefix}…` : null)}
+          secret={!revealedToken}
         />
+        {info?.cloudBridge.deviceTokenPresent && (
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => (revealedToken ? setRevealedToken(null) : revealToken())}
+              className="rounded-xl border border-border bg-card py-2 text-[10px] uppercase tracking-widest flex items-center justify-center gap-1"
+            >
+              {revealedToken ? <EyeOff size={12} /> : <Eye size={12} />}
+              {revealedToken ? "Verbergen" : "Token anzeigen"}
+            </button>
+            <button
+              disabled={!revealedToken}
+              onClick={() => revealedToken && copy("CLOUD_DEVICE_TOKEN", revealedToken)}
+              className="rounded-xl border border-border bg-card py-2 text-[10px] uppercase tracking-widest flex items-center justify-center gap-1 disabled:opacity-40"
+            >
+              {copied === "CLOUD_DEVICE_TOKEN" ? <Check size={12} /> : <Copy size={12} />}
+              Token kopieren
+            </button>
+          </div>
+        )}
+        {tokenError && <p className="text-[10px] text-destructive">{tokenError}</p>}
+        <p className="text-[10px] text-muted-foreground">
+          Für Node-RED immer diesen Cloud Device Token verwenden — nicht Factory-, Reset- oder
+          Revocation-Token. Im Node-RED HTTP Request keine eingebaute Bearer-Auth aktivieren; der
+          Flow setzt den Header selbst.
+        </p>
         {!info?.cloudBridge.deviceTokenPresent && (
           <p className="text-[11px] text-muted-foreground">
-            Erst pairen in <code>System → Cloud verbinden</code>, dann erscheint der Token im
-            Pairing-Dialog (einmalig anzeigt) — kopiere ihn dort direkt in den Node-RED-Env-Block.
+            Erst pairen in <code>System → Cloud verbinden</code>, dann kannst du den Token hier
+            anzeigen und in den Node-RED-Env-Block kopieren.
           </p>
         )}
       </section>
@@ -121,10 +160,15 @@ function IntegrationsPage() {
           </h2>
         </div>
         <Row label="LOCAL_API_URL" value={info?.local.ingestUrl ?? null} />
+        <Row
+          label="PI_INGEST_TOKEN"
+          value={info?.local.ingestTokenPrefix ? `${info.local.ingestTokenPrefix}…` : "LAN-only"}
+          secret={!!info?.local.ingestTokenPrefix}
+        />
         <p className="text-[10px] text-muted-foreground">
           IP automatisch aus dem ersten privaten Interface erkannt
-          {info?.local.lanIp ? ` (${info.local.lanIp})` : ""}. Bei Cloud-Ausfall pushst du auf
-          dieselbe Route lokal — gleiche Payload, kein Token nötig im selben LAN.
+          {info?.local.lanIp ? ` (${info.local.lanIp})` : ""}. Bei Cloud-Ausfall pushst du auf die
+          lokale Ingest-Route. Wenn kein PI_INGEST_TOKEN gesetzt ist, akzeptiert sie nur LAN-Clients.
         </p>
       </section>
 
@@ -176,6 +220,13 @@ Authorization: Bearer {CLOUD_DEVICE_TOKEN}
   "metrics": { "watts": 412, "tibber_ct": 28 },
   "ts": "${new Date().toISOString()}"
 }`}
+        </pre>
+        <pre className="rounded-xl border border-border bg-background p-3 text-[10px] font-mono overflow-x-auto">
+{`GET {CLOUD_COMMAND_POLL_URL}
+Authorization: Bearer {CLOUD_DEVICE_TOKEN}
+
+// command.kind=plugin_manual -> cmnd/zisterne/POWER ON/OFF
+// danach POST {CLOUD_COMMAND_RESULT_URL}`}
         </pre>
       </section>
     </div>
