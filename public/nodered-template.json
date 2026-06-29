@@ -4,34 +4,82 @@
     "type": "tab",
     "label": "Pi-Hub Cloud Bridge",
     "disabled": false,
-    "info": "Working Pi-Hub bridge. Configure tab env values from the Pi UI /integrations. HTTP nodes intentionally use method=use, url empty, authType empty so msg.url/msg.headers are honored."
+    "info": "Working Pi-Hub bridge. Configure tab env values from the Pi UI /integrations. HTTP nodes intentionally use method=use, url empty, authType empty so msg.url/msg.headers are honored.",
+    "env": [
+      {
+        "name": "CLOUD_BRIDGE_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/event"
+      },
+      {
+        "name": "CLOUD_STRATEGY_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/strategy"
+      },
+      {
+        "name": "CLOUD_COMMAND_POLL_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/agent/poll?runner=nodered"
+      },
+      {
+        "name": "CLOUD_COMMAND_RESULT_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/agent/result"
+      },
+      {
+        "name": "CLOUD_DEVICE_TOKEN",
+        "type": "str",
+        "value": ""
+      },
+      {
+        "name": "LOCAL_API_URL",
+        "type": "str",
+        "value": "http://127.0.0.1:3000/api/public/ingest/event"
+      },
+      {
+        "name": "PI_INGEST_TOKEN",
+        "type": "str",
+        "value": ""
+      },
+      {
+        "name": "DEFAULT_DEVICE_LABEL",
+        "type": "str",
+        "value": "drainpress"
+      },
+      {
+        "name": "MQTT_COMMAND_TOPIC",
+        "type": "str",
+        "value": "cmnd/zisterne/POWER"
+      },
+      {
+        "name": "MQTT_BROKER_HOST",
+        "type": "str",
+        "value": "mosquitto"
+      },
+      {
+        "name": "MQTT_BROKER_PORT",
+        "type": "num",
+        "value": "1883"
+      }
+    ]
   },
   {
     "id": "pihub_cloud_bridge_tab_env",
     "type": "group",
     "z": "pihub_cloud_bridge_tab",
     "name": "Set these environment values on the tab/group before deploy",
-    "style": { "label": true, "fill": "#e3f3d3", "color": "#1b5e20" },
+    "style": {
+      "label": true,
+      "fill": "#e3f3d3",
+      "color": "#1b5e20"
+    },
     "nodes": [
       "pihub_note_env"
     ],
     "x": 34,
     "y": 19,
     "w": 792,
-    "h": 82,
-    "env": [
-      { "name": "CLOUD_BRIDGE_URL", "type": "str", "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/event" },
-      { "name": "CLOUD_STRATEGY_URL", "type": "str", "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/strategy" },
-      { "name": "CLOUD_COMMAND_POLL_URL", "type": "str", "value": "https://pi-hub.benniwie.com/api/public/agent/poll?runner=nodered" },
-      { "name": "CLOUD_COMMAND_RESULT_URL", "type": "str", "value": "https://pi-hub.benniwie.com/api/public/agent/result" },
-      { "name": "CLOUD_DEVICE_TOKEN", "type": "str", "value": "" },
-      { "name": "LOCAL_API_URL", "type": "str", "value": "http://127.0.0.1:3000/api/public/ingest/event" },
-      { "name": "PI_INGEST_TOKEN", "type": "str", "value": "" },
-      { "name": "DEFAULT_DEVICE_LABEL", "type": "str", "value": "drainpress" },
-      { "name": "MQTT_COMMAND_TOPIC", "type": "str", "value": "cmnd/zisterne/POWER" },
-      { "name": "MQTT_BROKER_HOST", "type": "str", "value": "mosquitto" },
-      { "name": "MQTT_BROKER_PORT", "type": "num", "value": "1883" }
-    ]
+    "h": 82
   },
   {
     "id": "pihub_note_env",
@@ -52,14 +100,22 @@
     "links": [],
     "x": 95,
     "y": 160,
-    "wires": [["pihub_rate_limit"]]
+    "wires": [
+      [
+        "pihub_rate_limit"
+      ]
+    ]
   },
   {
     "id": "pihub_test_event",
     "type": "inject",
     "z": "pihub_cloud_bridge_tab",
     "name": "Test Cloud Push",
-    "props": [{ "p": "payload" }],
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
     "repeat": "",
     "crontab": "",
     "once": false,
@@ -69,7 +125,11 @@
     "payloadType": "json",
     "x": 140,
     "y": 220,
-    "wires": [["pihub_rate_limit"]]
+    "wires": [
+      [
+        "pihub_rate_limit"
+      ]
+    ]
   },
   {
     "id": "pihub_rate_limit",
@@ -90,7 +150,11 @@
     "outputs": 1,
     "x": 340,
     "y": 180,
-    "wires": [["pihub_build_cloud"]]
+    "wires": [
+      [
+        "pihub_build_cloud"
+      ]
+    ]
   },
   {
     "id": "pihub_build_cloud",
@@ -106,7 +170,11 @@
     "libs": [],
     "x": 600,
     "y": 180,
-    "wires": [["pihub_http_cloud"]]
+    "wires": [
+      [
+        "pihub_http_cloud"
+      ]
+    ]
   },
   {
     "id": "pihub_http_cloud",
@@ -125,7 +193,11 @@
     "headers": [],
     "x": 850,
     "y": 180,
-    "wires": [["pihub_cloud_ok"]]
+    "wires": [
+      [
+        "pihub_cloud_ok"
+      ]
+    ]
   },
   {
     "id": "pihub_cloud_ok",
@@ -135,15 +207,30 @@
     "property": "statusCode",
     "propertyType": "msg",
     "rules": [
-      { "t": "btwn", "v": "200", "vt": "num", "v2": "299", "v2t": "num" },
-      { "t": "else" }
+      {
+        "t": "btwn",
+        "v": "200",
+        "vt": "num",
+        "v2": "299",
+        "v2t": "num"
+      },
+      {
+        "t": "else"
+      }
     ],
     "checkall": "false",
     "repair": false,
     "outputs": 2,
     "x": 1060,
     "y": 180,
-    "wires": [["pihub_cloud_debug_ok"], ["pihub_build_local_fallback"]]
+    "wires": [
+      [
+        "pihub_cloud_debug_ok"
+      ],
+      [
+        "pihub_build_local_fallback"
+      ]
+    ]
   },
   {
     "id": "pihub_cloud_debug_ok",
@@ -167,11 +254,17 @@
     "type": "catch",
     "z": "pihub_cloud_bridge_tab",
     "name": "Catch Cloud Push Failed",
-    "scope": ["pihub_http_cloud"],
+    "scope": [
+      "pihub_http_cloud"
+    ],
     "uncaught": false,
     "x": 850,
     "y": 260,
-    "wires": [["pihub_build_local_fallback"]]
+    "wires": [
+      [
+        "pihub_build_local_fallback"
+      ]
+    ]
   },
   {
     "id": "pihub_build_local_fallback",
@@ -187,7 +280,11 @@
     "libs": [],
     "x": 1280,
     "y": 220,
-    "wires": [["pihub_http_local"]]
+    "wires": [
+      [
+        "pihub_http_local"
+      ]
+    ]
   },
   {
     "id": "pihub_http_local",
@@ -206,7 +303,11 @@
     "headers": [],
     "x": 1540,
     "y": 220,
-    "wires": [["pihub_local_debug"]]
+    "wires": [
+      [
+        "pihub_local_debug"
+      ]
+    ]
   },
   {
     "id": "pihub_local_debug",
@@ -240,7 +341,11 @@
     "payloadType": "date",
     "x": 170,
     "y": 380,
-    "wires": [["pihub_default_strategy"]]
+    "wires": [
+      [
+        "pihub_default_strategy"
+      ]
+    ]
   },
   {
     "id": "pihub_default_strategy",
@@ -272,7 +377,11 @@
     "payloadType": "date",
     "x": 170,
     "y": 460,
-    "wires": [["pihub_build_strategy"]]
+    "wires": [
+      [
+        "pihub_build_strategy"
+      ]
+    ]
   },
   {
     "id": "pihub_build_strategy",
@@ -287,7 +396,11 @@
     "libs": [],
     "x": 430,
     "y": 460,
-    "wires": [["pihub_http_strategy"]]
+    "wires": [
+      [
+        "pihub_http_strategy"
+      ]
+    ]
   },
   {
     "id": "pihub_http_strategy",
@@ -306,7 +419,11 @@
     "headers": [],
     "x": 660,
     "y": 460,
-    "wires": [["pihub_store_strategy"]]
+    "wires": [
+      [
+        "pihub_store_strategy"
+      ]
+    ]
   },
   {
     "id": "pihub_store_strategy",
@@ -338,7 +455,11 @@
     "payloadType": "date",
     "x": 200,
     "y": 620,
-    "wires": [["pihub_build_command_poll"]]
+    "wires": [
+      [
+        "pihub_build_command_poll"
+      ]
+    ]
   },
   {
     "id": "pihub_build_command_poll",
@@ -353,7 +474,11 @@
     "libs": [],
     "x": 480,
     "y": 620,
-    "wires": [["pihub_http_command_poll"]]
+    "wires": [
+      [
+        "pihub_http_command_poll"
+      ]
+    ]
   },
   {
     "id": "pihub_http_command_poll",
@@ -372,7 +497,11 @@
     "headers": [],
     "x": 730,
     "y": 620,
-    "wires": [["pihub_command_switch"]]
+    "wires": [
+      [
+        "pihub_command_switch"
+      ]
+    ]
   },
   {
     "id": "pihub_command_switch",
@@ -382,16 +511,34 @@
     "property": "statusCode",
     "propertyType": "msg",
     "rules": [
-      { "t": "eq", "v": "200", "vt": "num" },
-      { "t": "eq", "v": "204", "vt": "num" },
-      { "t": "else" }
+      {
+        "t": "eq",
+        "v": "200",
+        "vt": "num"
+      },
+      {
+        "t": "eq",
+        "v": "204",
+        "vt": "num"
+      },
+      {
+        "t": "else"
+      }
     ],
     "checkall": "false",
     "repair": false,
     "outputs": 3,
     "x": 950,
     "y": 620,
-    "wires": [["pihub_execute_command"], [], ["pihub_command_error"]]
+    "wires": [
+      [
+        "pihub_execute_command"
+      ],
+      [],
+      [
+        "pihub_command_error"
+      ]
+    ]
   },
   {
     "id": "pihub_command_error",
@@ -424,7 +571,14 @@
     "libs": [],
     "x": 1200,
     "y": 620,
-    "wires": [["pihub_mqtt_out"], ["pihub_build_result"]]
+    "wires": [
+      [
+        "pihub_mqtt_out"
+      ],
+      [
+        "pihub_build_result"
+      ]
+    ]
   },
   {
     "id": "pihub_mqtt_out",
@@ -457,7 +611,11 @@
     "libs": [],
     "x": 1490,
     "y": 660,
-    "wires": [["pihub_http_result"]]
+    "wires": [
+      [
+        "pihub_http_result"
+      ]
+    ]
   },
   {
     "id": "pihub_http_result",
@@ -476,7 +634,11 @@
     "headers": [],
     "x": 1750,
     "y": 660,
-    "wires": [["pihub_result_debug"]]
+    "wires": [
+      [
+        "pihub_result_debug"
+      ]
+    ]
   },
   {
     "id": "pihub_result_debug",
