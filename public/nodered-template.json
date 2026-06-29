@@ -93,11 +93,16 @@
     "wires": []
   },
   {
-    "id": "pihub_event_in",
+    "id": "07e310f047811d0a",
     "type": "link in",
     "z": "pihub_cloud_bridge_tab",
     "name": "Event In (Eco/Hardware/Tibber/Weather)",
-    "links": [],
+    "links": [
+      "50ceea70f2c807cf",
+      "614623755bd9d72d",
+      "fc48dff7e412e1cf",
+      "afe00ea21caaec89"
+    ],
     "x": 95,
     "y": 160,
     "wires": [
