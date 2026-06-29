@@ -2,8 +2,20 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Droplets, Play, Pause, Power, Save, Cloud, Zap } from "lucide-react";
+import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun } from "lucide-react";
 import { listDevices, enqueueCommand } from "@/lib/cloud.functions";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Area,
+  ComposedChart,
+} from "recharts";
 import {
   listDeviceEvents,
   listEventBuckets,
@@ -80,15 +92,36 @@ function PumpPage() {
       }),
   });
 
-  const wattPoints = buckets
-    .filter((r: any) => r.watts_avg != null)
-    .slice(-48)
-    .map((r: any) => ({
-      t: new Date(r.bucket).toLocaleString(undefined, { day: "2-digit", hour: "2-digit" }),
-      avg: Number(r.watts_avg),
-      max: Number(r.watts_max),
-    }));
-  const maxW = wattPoints.length ? Math.max(...wattPoints.map((p) => p.max)) : 0;
+  const [visibleMetrics, setVisibleMetrics] = useState<Record<string, boolean>>({
+    watts: true,
+    temp: true,
+    rain: true,
+    pv: true,
+    allowed: true,
+  });
+
+  const chartData = useMemo(() => {
+    const grouped = buckets.reduce((acc: Record<string, any>, r: any) => {
+      const bucketIso = new Date(r.bucket).toISOString();
+      if (!acc[bucketIso]) {
+        acc[bucketIso] = {
+          t: new Date(r.bucket).toLocaleString(undefined, { day: "2-digit", hour: "2-digit" }),
+          raw: bucketIso,
+        };
+      }
+      const item = acc[bucketIso];
+      if (r.watts_avg != null) item.watts = Number(r.watts_avg);
+      if (r.temp_avg != null) item.temp = Number(r.temp_avg);
+      if (r.rain_sum != null) item.rain = Number(r.rain_sum);
+      if (r.pv_surplus_avg != null) item.pv = Number(r.pv_surplus_avg);
+      if (r.pumping_allowed_ratio != null) item.allowed = Number(r.pumping_allowed_ratio) * 100;
+      return acc;
+    }, {});
+
+    return Object.values(grouped)
+      .sort((a: any, b: any) => a.raw.localeCompare(b.raw))
+      .slice(-48);
+  }, [buckets]);
 
   const pumpEvents = (events as any[]).filter((e) =>
     ["pump_control", "pump_guard", "eco_intelligence", "tibber_pulse", "weather_dwd"].includes(
@@ -104,6 +137,15 @@ function PumpPage() {
     return metrics.watts ?? metrics.watt ?? metrics.house_power;
   })();
   const lastDecision = pumpEvents[0] ?? events[0];
+
+  const latestMetric = (key: string) => {
+    const ev = pumpEvents.find((e) => (e.metrics as any)?.[key] !== undefined);
+    return (ev?.metrics as any)?.[key];
+  };
+
+  const curTemp = latestMetric("outside_temp");
+  const curRain = latestMetric("precipitation_mm");
+  const curPv = latestMetric("pv_surplus_watt");
 
   const fields: Array<{ key: string; label: string; suffix?: string }> = [
     { key: "pv_min_w", label: "PV-Überschuss min", suffix: "W" },
@@ -162,13 +204,49 @@ function PumpPage() {
               {lastWatts != null ? `${Math.round(lastWatts)} W` : "—"}
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-right flex flex-col items-end">
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Eco</div>
-            <div className={`text-xs font-mono ${strategy?.eco_paused ? "text-amber-500" : "text-primary"}`}>
+            <div
+              className={`text-xs font-mono px-2 py-0.5 rounded ${
+                strategy?.eco_paused
+                  ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                  : "bg-primary/10 text-primary border border-primary/20"
+              }`}
+            >
               {strategy?.eco_paused ? "PAUSIERT" : "AKTIV"}
             </div>
           </div>
         </div>
+
+        {(curTemp != null || curPv != null || curRain != null) && (
+          <div className="grid grid-cols-3 gap-2 border-t border-border pt-3">
+            {curPv != null && (
+              <div className="space-y-0.5">
+                <div className="text-[9px] uppercase text-muted-foreground flex items-center gap-1">
+                  <Sun size={10} className="text-amber-500" /> PV
+                </div>
+                <div className="text-xs font-mono font-bold">{Math.round(curPv)} W</div>
+              </div>
+            )}
+            {curTemp != null && (
+              <div className="space-y-0.5">
+                <div className="text-[9px] uppercase text-muted-foreground flex items-center gap-1">
+                  <Thermometer size={10} className="text-rose-500" /> Temp
+                </div>
+                <div className="text-xs font-mono font-bold">{curTemp}°C</div>
+              </div>
+            )}
+            {curRain != null && (
+              <div className="space-y-0.5">
+                <div className="text-[9px] uppercase text-muted-foreground flex items-center gap-1">
+                  <CloudRain size={10} className="text-indigo-500" /> Regen
+                </div>
+                <div className="text-xs font-mono font-bold">{curRain} mm</div>
+              </div>
+            )}
+          </div>
+        )}
+
         {lastDecision && (
           <div className="text-[11px] text-muted-foreground font-mono border-t border-border pt-2">
             <span className="text-foreground">
@@ -213,21 +291,125 @@ function PumpPage() {
         </div>
       </div>
 
-      {/* Watt history */}
-      {wattPoints.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-            <Zap size={10} /> Watt-Verlauf · Skala bis {Math.round(maxW)} W
-          </p>
-          <div className="flex items-end gap-px h-24">
-            {wattPoints.map((p, i) => (
-              <div
-                key={i}
-                title={`${p.t}: ø ${Math.round(p.avg)}W / max ${Math.round(p.max)}W`}
-                className="flex-1 bg-primary/40 hover:bg-primary transition-colors rounded-t"
-                style={{ height: `${(p.avg / maxW) * 100}%`, minWidth: 3 }}
-              />
-            ))}
+      {/* History chart */}
+      {chartData.length > 0 && (
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+              <Zap size={10} /> Analyse-Historie (48h)
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {[
+                { key: "watts", label: "Pumpe", color: "#0ea5e9", icon: Zap },
+                { key: "pv", label: "PV", color: "#eab308", icon: Sun },
+                { key: "temp", label: "Temp", color: "#f43f5e", icon: Thermometer },
+                { key: "rain", label: "Regen", color: "#6366f1", icon: CloudRain },
+                { key: "allowed", label: "Eco-Slot", color: "#22c55e", icon: Power },
+              ].map((m) => (
+                <button
+                  key={m.key}
+                  onClick={() => setVisibleMetrics((prev) => ({ ...prev, [m.key]: !prev[m.key] }))}
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono transition-colors ${
+                    visibleMetrics[m.key]
+                      ? "bg-muted text-foreground border border-border"
+                      : "opacity-30 grayscale border border-transparent"
+                  }`}
+                  style={{ color: visibleMetrics[m.key] ? m.color : undefined }}
+                >
+                  <m.icon size={10} /> {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                <XAxis
+                  dataKey="t"
+                  fontSize={9}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis yAxisId="left" fontSize={9} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="right" orientation="right" fontSize={9} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#171717", border: "1px solid #262626", fontSize: "10px", borderRadius: "8px" }}
+                  itemStyle={{ padding: "0 2px" }}
+                  formatter={(value: any, name: string) => {
+                    const val = typeof value === 'number' ? value.toFixed(1) : value;
+                    if (name.includes("(W)")) return [`${Math.round(value)} W`, name];
+                    if (name.includes("(°C)")) return [`${val} °C`, name];
+                    if (name.includes("(mm)")) return [`${val} mm`, name];
+                    if (name.includes("%")) return [`${Math.round(value)}%`, name];
+                    return [val, name];
+                  }}
+                />
+
+                {visibleMetrics.allowed && (
+                  <Area
+                    yAxisId="right"
+                    type="stepAfter"
+                    dataKey="allowed"
+                    stroke="none"
+                    fill="#22c55e"
+                    fillOpacity={0.05}
+                    name="Eco Slot %"
+                  />
+                )}
+
+                {visibleMetrics.pv && (
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="pv"
+                    stroke="#eab308"
+                    strokeWidth={1}
+                    dot={false}
+                    name="PV Überschuss (W)"
+                  />
+                )}
+
+                {visibleMetrics.watts && (
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="watts"
+                    stroke="#0ea5e9"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Pumpe (W)"
+                  />
+                )}
+
+                {visibleMetrics.temp && (
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="temp"
+                    stroke="#f43f5e"
+                    strokeWidth={1}
+                    strokeDasharray="4 4"
+                    dot={false}
+                    name="Temp (°C)"
+                  />
+                )}
+
+                {visibleMetrics.rain && (
+                  <Area
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="rain"
+                    stroke="#6366f1"
+                    fill="#6366f1"
+                    fillOpacity={0.2}
+                    name="Regen (mm)"
+                  />
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}

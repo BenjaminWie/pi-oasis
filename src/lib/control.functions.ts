@@ -42,7 +42,9 @@ export const listEventBuckets = createServerFn({ method: "GET" })
     const since = data.sinceIso ?? new Date(Date.now() - 7 * 86400_000).toISOString();
     const { data: rows, error } = await context.supabase
       .from("device_events_hourly")
-      .select("bucket, component, status, event_count, watts_avg, watts_max, watts_min")
+      .select(
+        "bucket, component, status, event_count, watts_avg, watts_max, watts_min, temp_avg, rain_sum, pv_surplus_avg, pumping_allowed_ratio",
+      )
       .eq("device_id", data.deviceId)
       .gte("bucket", since)
       .order("bucket", { ascending: true });
