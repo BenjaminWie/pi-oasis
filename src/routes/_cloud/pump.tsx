@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
-import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun } from "lucide-react";
-import { listDevices, enqueueCommand } from "@/lib/cloud.functions";
+import { useState, useMemo, useEffect } from "react";
+import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun, Loader2, Info } from "lucide-react";
+import { listDevices, enqueueCommand, getDevice } from "@/lib/cloud.functions";
 import {
   LineChart,
   Line,
@@ -29,6 +29,7 @@ export const Route = createFileRoute("/_cloud/pump")({
 
 function PumpPage() {
   const fetchDevices = useServerFn(listDevices);
+  const fetchDeviceDetails = useServerFn(getDevice);
   const fetchEvents = useServerFn(listDeviceEvents);
   const fetchBuckets = useServerFn(listEventBuckets);
   const fetchStrategy = useServerFn(getStrategy);
@@ -39,6 +40,7 @@ function PumpPage() {
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
     queryFn: () => fetchDevices(),
+    refetchInterval: 30000,
   });
 
   const paired = devices.filter((d: any) => d.paired);
@@ -68,6 +70,60 @@ function PumpPage() {
     enabled: !!activeId,
   });
 
+  const { data: details } = useQuery({
+    queryKey: ["device-details", activeId],
+    queryFn: () => fetchDeviceDetails({ data: { id: activeId } }),
+    enabled: !!activeId,
+    refetchInterval: 5000,
+  });
+
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const [localAction, setLocalAction] = useState<{
+    id?: string;
+    action: "on" | "off";
+    minutes?: number;
+    expiresAt?: number;
+  } | null>(null);
+
+  const latestManual = details?.commands?.find((c: any) => c.kind === "plugin_manual");
+
+  useEffect(() => {
+    if (latestManual) {
+      if (
+        latestManual.payload?.action === "off" &&
+        (latestManual.status === "done" || latestManual.status === "delivered")
+      ) {
+        setLocalAction(null);
+      }
+      if (latestManual.id === localAction?.id && latestManual.status === "failed") {
+        setLocalAction(null);
+      }
+    }
+  }, [latestManual, localAction?.id]);
+
+  const activeMinutes = useMemo(() => {
+    if (localAction?.action === "on" && localAction.expiresAt && localAction.expiresAt > now) {
+      return localAction.minutes;
+    }
+    if (
+      latestManual?.payload?.action === "on" &&
+      (latestManual.status === "done" || latestManual.status === "delivered")
+    ) {
+      const mins = latestManual.payload?.minutes || 10;
+      const completedAt = latestManual.completed_at || latestManual.delivered_at || latestManual.created_at;
+      const startTime = new Date(completedAt).getTime();
+      if (now < startTime + mins * 60 * 1000) {
+        return mins;
+      }
+    }
+    return null;
+  }, [localAction, latestManual, now]);
+
   const params = (strategy?.params as any) ?? {};
   const [form, setForm] = useState<Record<string, any>>({});
   const merged = { ...params, ...form };
@@ -90,6 +146,16 @@ function PumpPage() {
           payload: { id: "pump", runner: "nodered", action: vars.action, minutes: vars.minutes },
         },
       }),
+    onSuccess: (data, vars) => {
+      setLocalAction({
+        id: data.id,
+        action: vars.action,
+        minutes: vars.minutes,
+        expiresAt:
+          vars.action === "on" ? Date.now() + (vars.minutes || 10) * 60 * 1000 : undefined,
+      });
+      qc.invalidateQueries({ queryKey: ["device-details", activeId] });
+    },
   });
 
   const [visibleMetrics, setVisibleMetrics] = useState<Record<string, boolean>>({
@@ -263,23 +329,56 @@ function PumpPage() {
           Manuelle Steuerung
         </h3>
         <div className="grid grid-cols-3 gap-2">
-          {[5, 10, 30].map((m) => (
-            <button
-              key={m}
-              onClick={() => manualMut.mutate({ action: "on", minutes: m })}
-              disabled={manualMut.isPending}
-              className="rounded-xl border border-primary/30 bg-primary/5 text-primary py-3 text-xs uppercase tracking-widest flex flex-col items-center gap-1 active:scale-95 transition-transform"
-            >
-              <Play size={14} /> {m}m
-            </button>
-          ))}
+          {[5, 10, 30].map((m) => {
+            const isActive = activeMinutes === m;
+            const isPending =
+              (manualMut.isPending && manualMut.variables?.minutes === m) ||
+              (latestManual?.status === "pending" &&
+                latestManual.id === localAction?.id &&
+                localAction?.minutes === m);
+
+            return (
+              <button
+                key={m}
+                onClick={() => manualMut.mutate({ action: "on", minutes: m })}
+                disabled={manualMut.isPending}
+                className={`rounded-xl border py-3 text-xs uppercase tracking-widest flex flex-col items-center gap-1 active:scale-95 transition-all ${
+                  isActive
+                    ? "bg-green-500/20 border-green-500 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
+                    : isPending
+                      ? "bg-amber-500/10 border-amber-500/50 text-amber-500"
+                      : "border-primary/30 bg-primary/5 text-primary"
+                }`}
+              >
+                {isPending ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Play size={14} className={isActive ? "fill-green-500/30" : ""} />
+                )}
+                {m}m
+              </button>
+            );
+          })}
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => manualMut.mutate({ action: "off" })}
-            className="rounded-xl border border-border py-2.5 text-xs uppercase tracking-widest flex items-center justify-center gap-1"
+            disabled={manualMut.isPending}
+            className={`rounded-xl border py-2.5 text-xs uppercase tracking-widest flex items-center justify-center gap-1 transition-all ${
+              (manualMut.isPending && manualMut.variables?.action === "off") ||
+              (latestManual?.status === "pending" &&
+                latestManual.payload?.action === "off" &&
+                latestManual.id === localAction?.id)
+                ? "bg-destructive/20 border-destructive text-destructive shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+                : "border-border"
+            }`}
           >
-            <Power size={12} /> Stopp
+            {manualMut.isPending && manualMut.variables?.action === "off" ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <Power size={12} />
+            )}
+            Stopp
           </button>
           <button
             onClick={() => saveMut.mutate({ ecoPaused: !strategy?.eco_paused })}
@@ -420,34 +519,60 @@ function PumpPage() {
         <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
           <Cloud size={10} /> Strategie (Cloud → Pi & Node-RED)
         </h3>
-        <div className="grid grid-cols-2 gap-2">
-          {fields.map((f) => (
-            <label
-              key={f.key}
-              className="text-[9px] uppercase tracking-widest text-muted-foreground"
+        {strategy?.eco_paused ? (
+          <div className="py-8 text-center border border-dashed border-border rounded-xl bg-muted/20">
+            <p className="text-[10px] text-muted-foreground italic px-6">
+              Strategie ist pausiert. Die Werte sind ausgeblendet. Aktiviere "Eco", um Einstellungen zu sehen und anzupassen.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              {fields.map((f) => (
+                <label
+                  key={f.key}
+                  className="text-[9px] uppercase tracking-widest text-muted-foreground"
+                >
+                  {f.label} {f.suffix && `(${f.suffix})`}
+                  <input
+                    type="number"
+                    value={merged[f.key] ?? ""}
+                    onChange={(e) =>
+                      setForm((s) => ({
+                        ...s,
+                        [f.key]: e.target.value === "" ? undefined : Number(e.target.value),
+                      }))
+                    }
+                    className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono normal-case"
+                  />
+                </label>
+              ))}
+            </div>
+            <button
+              disabled={!dirty || saveMut.isPending}
+              onClick={() => saveMut.mutate({ params: { ...params, ...form } })}
+              className="w-full rounded-lg bg-primary text-primary-foreground py-2 text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-1"
             >
-              {f.label} {f.suffix && `(${f.suffix})`}
-              <input
-                type="number"
-                value={merged[f.key] ?? ""}
-                onChange={(e) =>
-                  setForm((s) => ({
-                    ...s,
-                    [f.key]: e.target.value === "" ? undefined : Number(e.target.value),
-                  }))
-                }
-                className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono normal-case"
-              />
-            </label>
-          ))}
+              <Save size={12} /> Speichern
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Debug & Status */}
+      <div className="px-1 flex items-center justify-between opacity-50 grayscale hover:grayscale-0 transition-all">
+        <div className="flex items-center gap-1.5 text-[9px] font-mono text-muted-foreground">
+          <Info size={10} />
+          <span>ID: {activeId?.slice(0, 8)}...</span>
+          <span>•</span>
+          <span>
+            POLL:{" "}
+            {selected?.lastSeenAt ? new Date(selected.lastSeenAt).toLocaleTimeString() : "nie"}
+          </span>
         </div>
-        <button
-          disabled={!dirty || saveMut.isPending}
-          onClick={() => saveMut.mutate({ params: { ...params, ...form } })}
-          className="w-full rounded-lg bg-primary text-primary-foreground py-2 text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-1"
-        >
-          <Save size={12} /> Speichern
-        </button>
+        <div className="text-[9px] font-mono text-muted-foreground">
+          {selected?.paired ? "RUNNER: ONLINE" : "RUNNER: OFFLINE"}
+        </div>
       </div>
 
       {/* Decisions timeline */}
