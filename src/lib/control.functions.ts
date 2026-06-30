@@ -18,7 +18,9 @@ export const listDeviceEvents = createServerFn({ method: "GET" })
     // RLS ensures only owner can see
     let q = context.supabase
       .from("device_events")
-      .select("id, occurred_at, component, device_label, status, message, strategy_applied, metrics")
+      .select(
+        "id, occurred_at, component, device_label, status, message, strategy_applied, metrics",
+      )
       .eq("device_id", data.deviceId)
       .order("occurred_at", { ascending: false })
       .limit(data.limit);

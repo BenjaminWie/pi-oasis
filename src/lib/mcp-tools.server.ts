@@ -123,7 +123,11 @@ export const TOOLS: ToolDef[] = [
       "Start, stop, or restart a Docker container on the Pi by name. Requires the 'control' scope.",
     scope: "control",
     inputSchema: z.object({
-      name: z.string().min(1).max(128).regex(/^[a-zA-Z0-9_.\-]+$/),
+      name: z
+        .string()
+        .min(1)
+        .max(128)
+        .regex(/^[a-zA-Z0-9_.\-]+$/),
       action: z.enum(["start", "stop", "restart"]),
     }),
     async execute(args, ctx) {
@@ -180,9 +184,19 @@ export const TOOLS: ToolDef[] = [
       "Publish a raw MQTT message via the Pi's broker. Topic must match [a-zA-Z0-9_/+#.\\-]; payload max 64KB. Requires the 'control' scope.",
     scope: "control",
     inputSchema: z.object({
-      topic: z.string().min(1).max(512).regex(/^[a-zA-Z0-9_/+#.\-]+$/),
-      payload: z.string().max(64 * 1024).default(""),
-      broker: z.string().regex(/^[a-zA-Z0-9_.\-:]{1,253}$/).optional(),
+      topic: z
+        .string()
+        .min(1)
+        .max(512)
+        .regex(/^[a-zA-Z0-9_/+#.\-]+$/),
+      payload: z
+        .string()
+        .max(64 * 1024)
+        .default(""),
+      broker: z
+        .string()
+        .regex(/^[a-zA-Z0-9_.\-:]{1,253}$/)
+        .optional(),
       port: z.number().int().min(1).max(65535).optional(),
     }),
     async execute(args, ctx) {
@@ -232,8 +246,7 @@ export const TOOLS: ToolDef[] = [
       const series = (data ?? [])
         .map((r: any) => ({
           ts: r.occurred_at,
-          watts:
-            r.metrics?.watts != null ? Number(r.metrics.watts) : null,
+          watts: r.metrics?.watts != null ? Number(r.metrics.watts) : null,
           component: r.component,
         }))
         .filter((p) => p.watts != null);
@@ -258,8 +271,7 @@ export const TOOLS: ToolDef[] = [
         (r: any) => r?.metrics?.tibber_ct != null || r?.metrics?.tibber != null,
       );
       if (!row) return { available: false };
-      const ct =
-        (row as any).metrics?.tibber_ct ?? (row as any).metrics?.tibber ?? null;
+      const ct = (row as any).metrics?.tibber_ct ?? (row as any).metrics?.tibber ?? null;
       return {
         available: true,
         tibber_ct_per_kwh: Number(ct),
@@ -283,21 +295,18 @@ export const TOOLS: ToolDef[] = [
         .from("appliance_profiles")
         .select("*")
         .eq("device_id", ctx.deviceId);
-      const profile =
-        (profiles ?? []).find(
-          (p: any) => p.name.toLowerCase() === args.appliance.toLowerCase(),
-        ) ?? {
-          name: args.appliance,
-          min_watts: 150,
-          min_runtime_min: 10,
-          idle_watts: 5,
-          idle_after_min: 3,
-          match_component: null,
-        };
+      const profile = (profiles ?? []).find(
+        (p: any) => p.name.toLowerCase() === args.appliance.toLowerCase(),
+      ) ?? {
+        name: args.appliance,
+        min_watts: 150,
+        min_runtime_min: 10,
+        idle_watts: 5,
+        idle_after_min: 3,
+        match_component: null,
+      };
 
-      const since = new Date(
-        Date.now() - (args.window_minutes ?? 120) * 60_000,
-      ).toISOString();
+      const since = new Date(Date.now() - (args.window_minutes ?? 120) * 60_000).toISOString();
       let q = supabaseAdmin
         .from("device_events")
         .select("metrics, occurred_at, component")
@@ -305,8 +314,7 @@ export const TOOLS: ToolDef[] = [
         .gte("occurred_at", since)
         .order("occurred_at", { ascending: true })
         .limit(2000);
-      if ((profile as any).match_component)
-        q = q.eq("component", (profile as any).match_component);
+      if ((profile as any).match_component) q = q.eq("component", (profile as any).match_component);
       const { data } = await q;
       const series = (data ?? [])
         .map((r: any) => ({
@@ -350,10 +358,8 @@ export const TOOLS: ToolDef[] = [
       const lastIdx = series.length - 1;
       const idleAfterEnd = (now - series[runEnd].t) / 60_000;
       const tail = series.slice(runEnd + 1);
-      const tailAllIdle =
-        tail.length > 0 && tail.every((p) => p.w < profile.idle_watts);
-      const finished =
-        validRun && tailAllIdle && idleAfterEnd >= profile.idle_after_min;
+      const tailAllIdle = tail.length > 0 && tail.every((p) => p.w < profile.idle_watts);
+      const finished = validRun && tailAllIdle && idleAfterEnd >= profile.idle_after_min;
       const running = !finished && series[lastIdx].w >= profile.min_watts;
       const confidence = validRun ? (finished ? 0.85 : running ? 0.8 : 0.5) : 0.4;
 
@@ -392,7 +398,13 @@ export async function getToolsForDevice(ctx: ToolCtx): Promise<ToolDef[]> {
         description: `${c.description || c.label} (Plugin: ${p.name})`,
         scope: c.type === "control" ? "control" : "read",
         inputSchema: z.object({
-          minutes: z.number().int().min(1).max(120).optional().describe("Duration in minutes (if applicable)"),
+          minutes: z
+            .number()
+            .int()
+            .min(1)
+            .max(120)
+            .optional()
+            .describe("Duration in minutes (if applicable)"),
         }),
         async execute(args, ctx) {
           if (c.type === "control") {
@@ -403,7 +415,7 @@ export async function getToolsForDevice(ctx: ToolCtx): Promise<ToolDef[]> {
               runner: "nodered",
               action: c.name.includes("off") ? "off" : "on",
               minutes: args.minutes,
-              command: c.name
+              command: c.name,
             });
           } else {
             return await enqueueAndWait(ctx, "plugin_get", { id: p.id });
@@ -423,15 +435,17 @@ export async function findTool(name: string, ctx?: ToolCtx): Promise<ToolDef | n
 
 // ---- token verification + audit -------------------------------------------
 
-
 function sha256Hex(s: string): string {
   return createHash("sha256").update(s).digest("hex");
 }
 
-export async function resolveToken(rawToken: string): Promise<{
-  ok: true;
-  ctx: ToolCtx;
-} | { ok: false; error: string }> {
+export async function resolveToken(rawToken: string): Promise<
+  | {
+      ok: true;
+      ctx: ToolCtx;
+    }
+  | { ok: false; error: string }
+> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const hash = sha256Hex(rawToken);
   const { data: tok } = await supabaseAdmin

@@ -1,6 +1,7 @@
 ## Plan: Enable enhanced pump analytics (DB + integration verification)
 
 ### 1. Database migration
+
 Extend `device_events_hourly` and the `aggregate_device_events()` function to store the eco-intelligence metrics Node-RED already sends.
 
 - `ALTER TABLE public.device_events_hourly` — add columns:
@@ -17,6 +18,7 @@ Extend `device_events_hourly` and the `aggregate_device_events()` function to st
 No new tables, so no GRANT/RLS changes required.
 
 ### 2. Verify integration with existing code
+
 After the migration is approved, confirm the pieces already in the repo line up:
 
 - `src/lib/control.functions.ts` → `listEventBuckets` must already select `temp_avg, rain_sum, pv_surplus_avg, pumping_allowed_ratio` (the Pump UI in `src/routes/_cloud/pump.tsx` already reads these keys). If the select list is still the old shape, widen it.
@@ -26,9 +28,11 @@ After the migration is approved, confirm the pieces already in the repo line up:
 - Sanity-check the Pump page chart toggles (`watts / pv / temp / rain / allowed`) render with the new bucket fields.
 
 ### 3. Out of scope
+
 - No frontend redesign — chart, toggles, and strategy form stay as they are.
 - No Node-RED flow changes — the user confirmed payload keys are compatible.
 - No new MCP tools or auth changes.
 
 ### Technical detail
+
 Single migration file containing the `ALTER TABLE … ADD COLUMN IF NOT EXISTS` block and a `CREATE OR REPLACE FUNCTION public.aggregate_device_events()` matching the SQL in the user's message. After approval, read `control.functions.ts` to confirm the bucket query already returns the new columns; patch only if needed.

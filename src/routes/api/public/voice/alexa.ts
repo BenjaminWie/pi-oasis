@@ -139,9 +139,10 @@ export const Route = createFileRoute("/api/public/voice/alexa")({
             for (const p of list) {
               if (pluginName && !p.name.toLowerCase().includes(pluginName.toLowerCase())) continue;
               if (!p.commands) continue;
-              const c = p.commands.find((c: any) =>
-                c.label.toLowerCase().includes(command.toLowerCase()) ||
-                c.name.toLowerCase().includes(command.toLowerCase())
+              const c = p.commands.find(
+                (c: any) =>
+                  c.label.toLowerCase().includes(command.toLowerCase()) ||
+                  c.name.toLowerCase().includes(command.toLowerCase()),
               );
               if (c) {
                 const toolName = `${p.name.toLowerCase().replace(/\s+/g, "_")}_${c.name.toLowerCase()}`;

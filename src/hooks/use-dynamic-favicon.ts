@@ -48,8 +48,10 @@ export function useDynamicFavicon() {
       status = "error";
     } else if (watts > 10) {
       status = "active";
-    } else if (lastEvent.message?.toLowerCase().includes("pause") ||
-               lastEvent.strategy_applied?.toLowerCase().includes("pause")) {
+    } else if (
+      lastEvent.message?.toLowerCase().includes("pause") ||
+      lastEvent.strategy_applied?.toLowerCase().includes("pause")
+    ) {
       status = "paused";
     }
 

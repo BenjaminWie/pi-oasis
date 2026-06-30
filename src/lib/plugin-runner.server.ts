@@ -60,7 +60,12 @@ async function tickPlugin(pluginId: string) {
   // 1) Honor manual override first
   const override = await takeOverrideStore(pluginId);
   if (override) {
-    await applyAction(pluginId, override.action, (plugin.config as any).simulated, plugin.config as any);
+    await applyAction(
+      pluginId,
+      override.action,
+      (plugin.config as any).simulated,
+      plugin.config as any,
+    );
     return; // decision row was already written when the override was queued
   }
 

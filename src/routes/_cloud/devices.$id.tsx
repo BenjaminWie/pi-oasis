@@ -54,7 +54,10 @@ function DevicePage() {
 
   return (
     <div className="px-5 space-y-4">
-      <Link to="/devices" className="inline-flex items-center gap-1 text-xs text-muted-foreground mb-2">
+      <Link
+        to="/devices"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground mb-2"
+      >
         <ArrowLeft size={14} /> zurück
       </Link>
 
@@ -112,10 +115,34 @@ function DevicePage() {
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <StatGauge label="CPU" value={snap.cpu != null ? `${Math.round(snap.cpu)}` : "—"} unit="%" pct={snap.cpu ?? 0} tone={snap.cpu > 75 ? "warn" : "ok"} />
-              <StatGauge label="RAM" value={snap.ram != null ? `${Math.round(snap.ram)}` : "—"} unit="%" pct={snap.ram ?? 0} tone={snap.ram > 80 ? "warn" : "ok"} />
-              <StatGauge label="TMP" value={snap.temp != null ? `${Math.round(snap.temp)}` : "—"} unit="°C" pct={snap.temp != null ? (snap.temp / 85) * 100 : 0} tone={snap.temp > 70 ? "crit" : "accent"} />
-              <StatGauge label="Disk" value={snap.disk != null ? `${Math.round(snap.disk)}` : "—"} unit="%" pct={snap.disk ?? 0} tone={snap.disk > 90 ? "crit" : "ok"} />
+              <StatGauge
+                label="CPU"
+                value={snap.cpu != null ? `${Math.round(snap.cpu)}` : "—"}
+                unit="%"
+                pct={snap.cpu ?? 0}
+                tone={snap.cpu > 75 ? "warn" : "ok"}
+              />
+              <StatGauge
+                label="RAM"
+                value={snap.ram != null ? `${Math.round(snap.ram)}` : "—"}
+                unit="%"
+                pct={snap.ram ?? 0}
+                tone={snap.ram > 80 ? "warn" : "ok"}
+              />
+              <StatGauge
+                label="TMP"
+                value={snap.temp != null ? `${Math.round(snap.temp)}` : "—"}
+                unit="°C"
+                pct={snap.temp != null ? (snap.temp / 85) * 100 : 0}
+                tone={snap.temp > 70 ? "crit" : "accent"}
+              />
+              <StatGauge
+                label="Disk"
+                value={snap.disk != null ? `${Math.round(snap.disk)}` : "—"}
+                unit="%"
+                pct={snap.disk ?? 0}
+                tone={snap.disk > 90 ? "crit" : "ok"}
+              />
             </div>
           </div>
 
@@ -128,24 +155,60 @@ function DevicePage() {
                 <div key={c.name} className="bg-card border border-border rounded-2xl p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <div className={`size-2 rounded-full ${c.status === "running" ? "bg-status-ok glow-ok" : "bg-status-crit glow-crit"}`} />
+                      <div
+                        className={`size-2 rounded-full ${c.status === "running" ? "bg-status-ok glow-ok" : "bg-status-crit glow-crit"}`}
+                      />
                       <span className="font-mono font-bold text-sm">{c.name}</span>
                     </div>
                     <div className="flex gap-1">
-                      <ActionBtn icon={Play} onClick={() => cmd.mutate({ kind: "container_action", payload: { name: c.name, action: "start" } })} />
-                      <ActionBtn icon={Square} onClick={() => cmd.mutate({ kind: "container_action", payload: { name: c.name, action: "stop" } })} />
-                      <ActionBtn icon={RotateCcw} onClick={() => cmd.mutate({ kind: "container_action", payload: { name: c.name, action: "restart" } })} />
+                      <ActionBtn
+                        icon={Play}
+                        onClick={() =>
+                          cmd.mutate({
+                            kind: "container_action",
+                            payload: { name: c.name, action: "start" },
+                          })
+                        }
+                      />
+                      <ActionBtn
+                        icon={Square}
+                        onClick={() =>
+                          cmd.mutate({
+                            kind: "container_action",
+                            payload: { name: c.name, action: "stop" },
+                          })
+                        }
+                      />
+                      <ActionBtn
+                        icon={RotateCcw}
+                        onClick={() =>
+                          cmd.mutate({
+                            kind: "container_action",
+                            payload: { name: c.name, action: "restart" },
+                          })
+                        }
+                      />
                     </div>
                   </div>
-                  <div className="text-[10px] text-muted-foreground font-mono truncate mb-2">{c.image}</div>
+                  <div className="text-[10px] text-muted-foreground font-mono truncate mb-2">
+                    {c.image}
+                  </div>
                   <div className="flex gap-2">
                     <div className="py-1.5 px-2 bg-white/5 rounded-lg border border-border">
-                      <span className="block text-[8px] uppercase text-muted-foreground font-bold">Port</span>
-                      <span className="font-mono text-[10px] text-primary">{c.ports?.[0] ?? "—"}</span>
+                      <span className="block text-[8px] uppercase text-muted-foreground font-bold">
+                        Port
+                      </span>
+                      <span className="font-mono text-[10px] text-primary">
+                        {c.ports?.[0] ?? "—"}
+                      </span>
                     </div>
                     <div className="py-1.5 px-2 bg-white/5 rounded-lg border border-border">
-                      <span className="block text-[8px] uppercase text-muted-foreground font-bold">CPU / MEM</span>
-                      <span className="font-mono text-[10px]">{c.cpu ?? 0}% · {c.mem ?? 0}M</span>
+                      <span className="block text-[8px] uppercase text-muted-foreground font-bold">
+                        CPU / MEM
+                      </span>
+                      <span className="font-mono text-[10px]">
+                        {c.cpu ?? 0}% · {c.mem ?? 0}M
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -171,12 +234,22 @@ function DevicePage() {
                 <ul className="space-y-1">
                   {events.map((e: any) => (
                     <li key={e.id} className="font-mono text-[10px] leading-tight">
-                      <span className="text-muted-foreground">{new Date(e.occurred_at).toLocaleTimeString()} </span>
-                      <span className={
-                        e.status === "critical" ? "text-destructive" :
-                        e.status === "warning" ? "text-amber-500" :
-                        e.status === "info" ? "text-sky-500" : "text-primary"
-                      }>[{e.status}]</span>{" "}
+                      <span className="text-muted-foreground">
+                        {new Date(e.occurred_at).toLocaleTimeString()}{" "}
+                      </span>
+                      <span
+                        className={
+                          e.status === "critical"
+                            ? "text-destructive"
+                            : e.status === "warning"
+                              ? "text-amber-500"
+                              : e.status === "info"
+                                ? "text-sky-500"
+                                : "text-primary"
+                        }
+                      >
+                        [{e.status}]
+                      </span>{" "}
                       <span>{e.component}</span>
                       {e.message && <span className="text-muted-foreground"> — {e.message}</span>}
                     </li>

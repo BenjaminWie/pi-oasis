@@ -14,6 +14,8 @@ export function isSlimMode() {
     return false;
   }
 
-  const v = (globalThis as any).VITE_PI_SLIM_MODE ?? (typeof process !== "undefined" ? process.env.VITE_PI_SLIM_MODE : undefined);
+  const v =
+    (globalThis as any).VITE_PI_SLIM_MODE ??
+    (typeof process !== "undefined" ? process.env.VITE_PI_SLIM_MODE : undefined);
   return v === "true" || v === true;
 }

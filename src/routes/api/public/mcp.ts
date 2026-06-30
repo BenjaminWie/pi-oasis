@@ -133,7 +133,10 @@ function methodNotAllowed() {
       error: { code: -32000, message: "Method not allowed. Use POST." },
       id: null,
     }),
-    { status: 405, headers: { ...CORS_HEADERS, "Content-Type": "application/json", Allow: "POST, OPTIONS" } },
+    {
+      status: 405,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json", Allow: "POST, OPTIONS" },
+    },
   );
 }
 
@@ -172,22 +175,29 @@ export const Route = createFileRoute("/api/public/mcp")({
         if (needsAuth && !ctx) {
           return new Response(
             JSON.stringify(rpcError(items[0]?.id ?? null, -32001, "unauthorized")),
-            { status: 401, headers: { ...CORS_HEADERS, "Content-Type": "application/json", "WWW-Authenticate": "Bearer" } },
+            {
+              status: 401,
+              headers: {
+                ...CORS_HEADERS,
+                "Content-Type": "application/json",
+                "WWW-Authenticate": "Bearer",
+              },
+            },
           );
         }
 
-        const responses = (
-          await Promise.all(items.map((m) => handleRpc(m, ctx)))
-        ).filter((r) => r !== null);
+        const responses = (await Promise.all(items.map((m) => handleRpc(m, ctx)))).filter(
+          (r) => r !== null,
+        );
 
         if (responses.length === 0) {
           return new Response(null, { status: 202, headers: CORS_HEADERS });
         }
 
-        return new Response(
-          JSON.stringify(isBatch ? responses : responses[0]),
-          { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } },
-        );
+        return new Response(JSON.stringify(isBatch ? responses : responses[0]), {
+          status: 200,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        });
       },
     },
   },

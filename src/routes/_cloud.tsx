@@ -61,7 +61,6 @@ function CloudLayout() {
     { to: "/connections", label: "Connect", icon: Link2 },
   ];
 
-
   return (
     <div className="min-h-screen bg-background text-foreground max-w-md mx-auto pb-36">
       <header className="flex items-center justify-between px-5 pt-6 pb-4">

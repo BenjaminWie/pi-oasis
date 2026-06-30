@@ -207,14 +207,22 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
 
         if (text.startsWith("/plugins")) {
           const allPlugins = paired.flatMap((d) =>
-            ((d.last_snapshot as any)?.plugins || []).map((p: any) => ({ ...p, deviceName: d.name }))
+            ((d.last_snapshot as any)?.plugins || []).map((p: any) => ({
+              ...p,
+              deviceName: d.name,
+            })),
           );
           if (allPlugins.length === 0) {
             await reply("Keine Plugins gefunden.");
           } else {
             await reply(
               "*Plugins:*\n" +
-              allPlugins.map((p) => `🧩 *${p.name}* (${p.deviceName})\n   Befehle: ${p.commands?.map((c: any) => c.label).join(", ") || "keine"}`).join("\n\n")
+                allPlugins
+                  .map(
+                    (p) =>
+                      `🧩 *${p.name}* (${p.deviceName})\n   Befehle: ${p.commands?.map((c: any) => c.label).join(", ") || "keine"}`,
+                  )
+                  .join("\n\n"),
             );
           }
           return jsonResponse({ ok: true });
@@ -226,18 +234,25 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
           const commandLabel = parts.slice(2).join(" ");
 
           const allPlugins = paired.flatMap((d) =>
-            ((d.last_snapshot as any)?.plugins || []).map((p: any) => ({ ...p, deviceId: d.id, deviceName: d.name }))
+            ((d.last_snapshot as any)?.plugins || []).map((p: any) => ({
+              ...p,
+              deviceId: d.id,
+              deviceName: d.name,
+            })),
           );
 
-          const plugin = allPlugins.find(p => p.name.toLowerCase().includes(pluginName?.toLowerCase()));
+          const plugin = allPlugins.find((p) =>
+            p.name.toLowerCase().includes(pluginName?.toLowerCase()),
+          );
           if (!plugin) {
             await reply(`Plugin "${pluginName}" nicht gefunden. Nutze /plugins für eine Liste.`);
             return jsonResponse({ ok: true });
           }
 
-          const cmd = plugin.commands?.find((c: any) =>
-            c.label.toLowerCase().includes(commandLabel.toLowerCase()) ||
-            c.name.toLowerCase().includes(commandLabel.toLowerCase())
+          const cmd = plugin.commands?.find(
+            (c: any) =>
+              c.label.toLowerCase().includes(commandLabel.toLowerCase()) ||
+              c.name.toLowerCase().includes(commandLabel.toLowerCase()),
           );
 
           if (!cmd) {
@@ -253,7 +268,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
               id: plugin.id,
               ...(cmd.type === "control" ? { runner: "nodered" } : {}),
               action: cmd.name.includes("off") ? "off" : "on",
-              command: cmd.name
+              command: cmd.name,
             },
             source: "telegram",
           });

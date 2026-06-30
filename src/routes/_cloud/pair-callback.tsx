@@ -31,7 +31,9 @@ function PairCallback() {
     const guardKey = `pi-hub-pairing:${search.nonce}`;
     const existingState = window.sessionStorage.getItem(guardKey);
     if (existingState === "running" || existingState === "ok") {
-      setMessage("Pairing läuft bereits …\nKehre zum Pi-Dashboard zurück — die Verbindung wird automatisch hergestellt.");
+      setMessage(
+        "Pairing läuft bereits …\nKehre zum Pi-Dashboard zurück — die Verbindung wird automatisch hergestellt.",
+      );
       return;
     }
     window.sessionStorage.setItem(guardKey, "running");

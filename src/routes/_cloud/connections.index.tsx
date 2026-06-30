@@ -9,9 +9,7 @@ function ConnectionsIndexPage() {
   return (
     <div className="px-5 space-y-6">
       <div>
-        <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-1">
-          Connect
-        </h2>
+        <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Connect</h2>
         <p className="text-xs text-muted-foreground">
           Externe Zugänge, die mit deiner Pumpe und deinen Geräten sprechen.
         </p>

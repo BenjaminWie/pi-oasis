@@ -48,8 +48,6 @@ line that `pm2 startup` printed at the end of the install.
 
 Prefer raw systemd? `./scripts/install-systemd.sh` writes a unit file.
 
-
-
 ## Run on your laptop (preview with mock data)
 
 ```bash
@@ -88,7 +86,6 @@ on the device.
 For local development on a laptop, `./scripts/install.sh` does the full
 source build (Node 22+, ≥ 4 GB RAM recommended). See
 [docs/pi-slim.md](./docs/pi-slim.md) for what's stripped on the slim build.
-
 
 ## Real data vs demo
 

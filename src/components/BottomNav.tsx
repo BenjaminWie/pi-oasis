@@ -1,7 +1,14 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Activity, TerminalSquare, Settings as SettingsIcon, Radio, Puzzle, Cable } from "lucide-react";
+import {
+  Activity,
+  TerminalSquare,
+  Settings as SettingsIcon,
+  Radio,
+  Puzzle,
+  Cable,
+} from "lucide-react";
 import { listMqttBrokers } from "@/lib/mqtt.functions";
 
 const baseTabs = [

@@ -2,7 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun } from "lucide-react";
+import {
+  Droplets,
+  Play,
+  Pause,
+  Power,
+  Save,
+  Cloud,
+  Zap,
+  Thermometer,
+  CloudRain,
+  Sun,
+} from "lucide-react";
 import { listDevices, enqueueCommand } from "@/lib/cloud.functions";
 import {
   LineChart,
@@ -123,29 +134,40 @@ function PumpPage() {
       .slice(-48);
   }, [buckets]);
 
-  const pumpEvents = (events as any[]).filter((e) =>
-    ["pump_control", "pump_guard", "eco_intelligence", "tibber_pulse", "weather_dwd"].includes(
-      e.component,
-    ),
+  const pumpEvents = useMemo(
+    () =>
+      (events as any[]).filter((e) =>
+        ["pump_control", "pump_guard", "eco_intelligence", "tibber_pulse", "weather_dwd"].includes(
+          e.component,
+        ),
+      ),
+    [events],
   );
-  const lastWattEvent = pumpEvents.find((e) => {
-    const metrics = (e.metrics as any) ?? {};
-    return metrics.watts != null || metrics.watt != null || metrics.house_power != null;
-  });
-  const lastWatts = (() => {
+  const lastWattEvent = useMemo(
+    () =>
+      pumpEvents.find((e) => {
+        const metrics = (e.metrics as any) ?? {};
+        return metrics.watts != null || metrics.watt != null || metrics.house_power != null;
+      }),
+    [pumpEvents],
+  );
+  const lastWatts = useMemo(() => {
     const metrics = (lastWattEvent?.metrics as any) ?? {};
     return metrics.watts ?? metrics.watt ?? metrics.house_power;
-  })();
-  const lastDecision = pumpEvents[0] ?? events[0];
+  }, [lastWattEvent]);
+  const lastDecision = useMemo(() => pumpEvents[0] ?? events[0], [pumpEvents, events]);
 
-  const latestMetric = (key: string) => {
-    const ev = pumpEvents.find((e) => (e.metrics as any)?.[key] !== undefined);
-    return (ev?.metrics as any)?.[key];
-  };
+  const latestMetric = useMemo(
+    () => (key: string) => {
+      const ev = pumpEvents.find((e) => (e.metrics as any)?.[key] !== undefined);
+      return (ev?.metrics as any)?.[key];
+    },
+    [pumpEvents],
+  );
 
-  const curTemp = latestMetric("outside_temp");
-  const curRain = latestMetric("precipitation_mm");
-  const curPv = latestMetric("pv_surplus_watt");
+  const curTemp = useMemo(() => latestMetric("outside_temp"), [latestMetric]);
+  const curRain = useMemo(() => latestMetric("precipitation_mm"), [latestMetric]);
+  const curPv = useMemo(() => latestMetric("pv_surplus_watt"), [latestMetric]);
 
   const fields: Array<{ key: string; label: string; suffix?: string }> = [
     { key: "pv_min_w", label: "PV-Überschuss min", suffix: "W" },
@@ -190,7 +212,9 @@ function PumpPage() {
           className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm"
         >
           {paired.map((d: any) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
           ))}
         </select>
       )}
@@ -325,7 +349,11 @@ function PumpPage() {
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="rgba(255,255,255,0.05)"
+                />
                 <XAxis
                   dataKey="t"
                   fontSize={9}
@@ -334,12 +362,23 @@ function PumpPage() {
                   interval="preserveStartEnd"
                 />
                 <YAxis yAxisId="left" fontSize={9} tickLine={false} axisLine={false} />
-                <YAxis yAxisId="right" orientation="right" fontSize={9} tickLine={false} axisLine={false} />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  fontSize={9}
+                  tickLine={false}
+                  axisLine={false}
+                />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#171717", border: "1px solid #262626", fontSize: "10px", borderRadius: "8px" }}
+                  contentStyle={{
+                    backgroundColor: "#171717",
+                    border: "1px solid #262626",
+                    fontSize: "10px",
+                    borderRadius: "8px",
+                  }}
                   itemStyle={{ padding: "0 2px" }}
                   formatter={(value: any, name: any) => {
-                    const val = typeof value === 'number' ? value.toFixed(1) : value;
+                    const val = typeof value === "number" ? value.toFixed(1) : value;
                     const label = String(name ?? "");
                     if (label.includes("(W)")) return [`${Math.round(value)} W`, label];
                     if (label.includes("(°C)")) return [`${val} °C`, label];
@@ -468,12 +507,22 @@ function PumpPage() {
                   <span className="text-muted-foreground">
                     {new Date(e.occurred_at).toLocaleTimeString()}{" "}
                   </span>
-                  <span className={
-                    e.status === "critical" ? "text-destructive" :
-                    e.status === "warning" ? "text-amber-500" :
-                    e.status === "info" ? "text-sky-500" : "text-primary"
-                  }>[{e.status}]</span>
-                  {e.strategy_applied && <span className="text-primary"> {e.strategy_applied}</span>}
+                  <span
+                    className={
+                      e.status === "critical"
+                        ? "text-destructive"
+                        : e.status === "warning"
+                          ? "text-amber-500"
+                          : e.status === "info"
+                            ? "text-sky-500"
+                            : "text-primary"
+                    }
+                  >
+                    [{e.status}]
+                  </span>
+                  {e.strategy_applied && (
+                    <span className="text-primary"> {e.strategy_applied}</span>
+                  )}
                   {e.message && <span className="text-muted-foreground"> — {e.message}</span>}
                 </li>
               ))}

@@ -6,23 +6,23 @@ device.
 
 ## Install paths
 
-| Audience | Command | What runs |
-|---|---|---|
+| Audience          | Command                                                   | What runs                                                                                                                        |
+| ----------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **End user (Pi)** | `curl -fsSL https://pi-hub.benniwie.com/install.sh \| sh` | Downloads the prebuilt `pi-hub-linux-arm64.tar.gz` from GitHub Releases and starts it under PM2. **No `npm install`, no build.** |
-| **Contributor** | `./scripts/install.sh` | Full local build (Vite, esbuild, all dev deps). Requires ≥ 4 GB RAM. Marked dev-only in the script header. |
-| **Cloud** | Lovable deploy pipeline | Full landing + cloud dashboard at `pi-hub.benniwie.com`. Built without `VITE_PI_SLIM_MODE`. |
+| **Contributor**   | `./scripts/install.sh`                                    | Full local build (Vite, esbuild, all dev deps). Requires ≥ 4 GB RAM. Marked dev-only in the script header.                       |
+| **Cloud**         | Lovable deploy pipeline                                   | Full landing + cloud dashboard at `pi-hub.benniwie.com`. Built without `VITE_PI_SLIM_MODE`.                                      |
 
 ## What's stripped on the Pi
 
 The release build is produced with `VITE_PI_SLIM_MODE=true`. At runtime
 `isSlimMode()` flips the following:
 
-| Surface | Pi (slim) | Cloud (full) |
-|---|---|---|
-| Landing route `/` | Redirects to `/overview` before render — framer-motion + marketing tree never load | Full animated cyberpunk landing |
-| `/_cloud/*` (devices, telegram, MCP, audit) | Not reachable | Available |
-| Plugin charts | Inline SVG sparkline | Recharts |
-| Background loops (AI planner, MCP poll) | Only run after cloud pairing | Always |
+| Surface                                     | Pi (slim)                                                                          | Cloud (full)                    |
+| ------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------- |
+| Landing route `/`                           | Redirects to `/overview` before render — framer-motion + marketing tree never load | Full animated cyberpunk landing |
+| `/_cloud/*` (devices, telegram, MCP, audit) | Not reachable                                                                      | Available                       |
+| Plugin charts                               | Inline SVG sparkline                                                               | Recharts                        |
+| Background loops (AI planner, MCP poll)     | Only run after cloud pairing                                                       | Always                          |
 
 ## What's bundled vs. external on the Pi
 

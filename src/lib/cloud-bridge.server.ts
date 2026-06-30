@@ -99,12 +99,8 @@ async function execCommand(cmd: any) {
       return { ok: true, result: { plugins: await listPluginsStore() } };
     }
     if (cmd.kind === "plugin_get") {
-      const {
-        getPluginStore,
-        getPlanStore,
-        listDecisionsStore,
-        getSimStateStore,
-      } = await import("./plugins-store.server");
+      const { getPluginStore, getPlanStore, listDecisionsStore, getSimStateStore } =
+        await import("./plugins-store.server");
       const id = String(cmd.payload?.id ?? "");
       const plugin = await getPluginStore(id);
       if (!plugin) return { ok: false, result: { error: "plugin not found" } };
@@ -125,9 +121,8 @@ async function execCommand(cmd: any) {
       return { ok: true, result: { plan } };
     }
     if (cmd.kind === "plugin_manual") {
-      const { queueOverrideStore, recordDecisionStore, getPluginStore } = await import(
-        "./plugins-store.server"
-      );
+      const { queueOverrideStore, recordDecisionStore, getPluginStore } =
+        await import("./plugins-store.server");
       const id = String(cmd.payload?.id ?? "");
       const action = cmd.payload?.action === "off" ? "off" : "on";
       const minutes = Math.max(1, Math.min(120, Number(cmd.payload?.minutes) || 10));
