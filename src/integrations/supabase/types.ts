@@ -250,7 +250,11 @@ export type Database = {
           created_at: string
           device_id: string
           event_count: number
+          pumping_allowed_ratio: number | null
+          pv_surplus_avg: number | null
+          rain_sum: number | null
           status: string
+          temp_avg: number | null
           watts_avg: number | null
           watts_max: number | null
           watts_min: number | null
@@ -261,7 +265,11 @@ export type Database = {
           created_at?: string
           device_id: string
           event_count?: number
+          pumping_allowed_ratio?: number | null
+          pv_surplus_avg?: number | null
+          rain_sum?: number | null
           status: string
+          temp_avg?: number | null
           watts_avg?: number | null
           watts_max?: number | null
           watts_min?: number | null
@@ -272,7 +280,11 @@ export type Database = {
           created_at?: string
           device_id?: string
           event_count?: number
+          pumping_allowed_ratio?: number | null
+          pv_surplus_avg?: number | null
+          rain_sum?: number | null
           status?: string
+          temp_avg?: number | null
           watts_avg?: number | null
           watts_max?: number | null
           watts_min?: number | null
