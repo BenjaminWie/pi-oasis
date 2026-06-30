@@ -77,9 +77,7 @@ function EventsTab({ deviceId }: { deviceId: string }) {
             <span className={color}>[{e.status}]</span>{" "}
             <span className="text-foreground">{e.component}</span>
             {e.device_label && <span className="text-muted-foreground">/{e.device_label}</span>}
-            {e.strategy_applied && (
-              <span className="text-primary"> ⇒ {e.strategy_applied}</span>
-            )}
+            {e.strategy_applied && <span className="text-primary"> ⇒ {e.strategy_applied}</span>}
             {e.message && <span className="text-muted-foreground"> — {e.message}</span>}
           </li>
         );
@@ -146,7 +144,11 @@ function StrategyTab({ deviceId }: { deviceId: string }) {
   const overrideMut = useMutation({
     mutationFn: (minutes: number) =>
       sendCmd({
-        data: { deviceId, kind: "terminal", payload: { command: `echo pump-override ${minutes}m` } },
+        data: {
+          deviceId,
+          kind: "terminal",
+          payload: { command: `echo pump-override ${minutes}m` },
+        },
       }),
   });
 
@@ -184,13 +186,19 @@ function StrategyTab({ deviceId }: { deviceId: string }) {
 
       <div className="grid grid-cols-2 gap-2">
         {fields.map((f) => (
-          <label key={f.key} className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          <label
+            key={f.key}
+            className="text-[10px] uppercase tracking-widest text-muted-foreground"
+          >
             {f.label} {f.suffix && `(${f.suffix})`}
             <input
               type="number"
               value={merged[f.key] ?? ""}
               onChange={(e) =>
-                setForm((s) => ({ ...s, [f.key]: e.target.value === "" ? undefined : Number(e.target.value) }))
+                setForm((s) => ({
+                  ...s,
+                  [f.key]: e.target.value === "" ? undefined : Number(e.target.value),
+                }))
               }
               className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono text-foreground normal-case"
             />

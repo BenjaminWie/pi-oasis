@@ -31,8 +31,12 @@ function OverviewPage() {
   });
 
   const s = stats.data;
-  const failing = Array.isArray(containers.data) ? containers.data.filter((c) => c.status === "exited").length : 0;
-  const running = Array.isArray(containers.data) ? containers.data.filter((c) => c.status === "running").length : 0;
+  const failing = Array.isArray(containers.data)
+    ? containers.data.filter((c) => c.status === "exited").length
+    : 0;
+  const running = Array.isArray(containers.data)
+    ? containers.data.filter((c) => c.status === "running").length
+    : 0;
 
   return (
     <div className="px-4 pt-6">

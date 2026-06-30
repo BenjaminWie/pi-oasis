@@ -3,7 +3,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, Copy, Check, Bot, ShieldCheck, Zap, ArrowLeft } from "lucide-react";
-import { listMcpTokens, createMcpToken, deleteMcpToken, listMcpAudit } from "@/lib/mcp-tokens.functions";
+import {
+  listMcpTokens,
+  createMcpToken,
+  deleteMcpToken,
+  listMcpAudit,
+} from "@/lib/mcp-tokens.functions";
 import { listDevices } from "@/lib/cloud.functions";
 
 export const Route = createFileRoute("/_cloud/connections/mcp")({
@@ -61,7 +66,8 @@ function McpPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["mcp-tokens"] }),
   });
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://pi-hub.benniwie.com";
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://pi-hub.benniwie.com";
   const mcpUrl = `${origin}/api/public/mcp`;
 
   function copy(label: string, text: string) {
@@ -80,9 +86,7 @@ function McpPage() {
         <ArrowLeft size={14} /> zurück
       </Link>
       <div>
-        <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-1">
-          MCP Server
-        </h2>
+        <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-1">MCP Server</h2>
         <p className="text-xs text-muted-foreground">
           Verbinde ChatGPT, Gemini, Claude, Alexa oder andere Modelle mit deinem Pi.
         </p>
@@ -127,7 +131,7 @@ function McpPage() {
           <details className="text-[11px] text-muted-foreground">
             <summary className="cursor-pointer">Claude Desktop config</summary>
             <pre className="mt-2 rounded bg-background border border-border p-2 overflow-x-auto">
-{`{
+              {`{
   "mcpServers": {
     "pi-hub": {
       "url": "${mcpUrl}",
@@ -142,9 +146,7 @@ function McpPage() {
 
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs uppercase tracking-widest text-muted-foreground">
-            Tokens
-          </h3>
+          <h3 className="text-xs uppercase tracking-widest text-muted-foreground">Tokens</h3>
           <button
             onClick={() => setShowForm((v) => !v)}
             className="rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-xs uppercase tracking-widest flex items-center gap-1"
@@ -203,7 +205,8 @@ function McpPage() {
                 <div className="text-sm font-mono truncate">{t.name}</div>
                 <div className="text-[10px] text-muted-foreground font-mono">
                   {t.token_prefix}… · {t.scopes.join(", ")}
-                  {t.last_used_at && ` · letzte Nutzung ${new Date(t.last_used_at).toLocaleString()}`}
+                  {t.last_used_at &&
+                    ` · letzte Nutzung ${new Date(t.last_used_at).toLocaleString()}`}
                 </div>
               </div>
               <button
@@ -228,14 +231,30 @@ function McpPage() {
           Was kann ich fragen?
         </h3>
         <ul className="text-[11px] space-y-1 text-muted-foreground">
-          <li>• <span className="text-foreground">"Ist meine Wäsche fertig?"</span> → <code className="text-primary">infer_appliance_state</code></li>
-          <li>• <span className="text-foreground">"Wie teuer ist Strom gerade?"</span> → <code className="text-primary">get_tibber_price_now</code></li>
-          <li>• <span className="text-foreground">"Zeig mir die Leistung der letzten Stunde."</span> → <code className="text-primary">get_power_history</code></li>
-          <li>• <span className="text-foreground">"Schalt die Zisterne für 10 Minuten an."</span> → <code className="text-primary">pump_set</code></li>
-          <li>• <span className="text-foreground">"Was läuft gerade auf dem Pi?"</span> → <code className="text-primary">list_containers</code></li>
+          <li>
+            • <span className="text-foreground">"Ist meine Wäsche fertig?"</span> →{" "}
+            <code className="text-primary">infer_appliance_state</code>
+          </li>
+          <li>
+            • <span className="text-foreground">"Wie teuer ist Strom gerade?"</span> →{" "}
+            <code className="text-primary">get_tibber_price_now</code>
+          </li>
+          <li>
+            • <span className="text-foreground">"Zeig mir die Leistung der letzten Stunde."</span> →{" "}
+            <code className="text-primary">get_power_history</code>
+          </li>
+          <li>
+            • <span className="text-foreground">"Schalt die Zisterne für 10 Minuten an."</span> →{" "}
+            <code className="text-primary">pump_set</code>
+          </li>
+          <li>
+            • <span className="text-foreground">"Was läuft gerade auf dem Pi?"</span> →{" "}
+            <code className="text-primary">list_containers</code>
+          </li>
         </ul>
         <p className="text-[10px] text-muted-foreground pt-1">
-          Tipp: Lege in deinem Gerät unter <em>Geräte-Detail → Appliance-Profile</em> Schwellwerte für deine Waschmaschine fest (Standard: 150 W läuft, &lt; 5 W = fertig).
+          Tipp: Lege in deinem Gerät unter <em>Geräte-Detail → Appliance-Profile</em> Schwellwerte
+          für deine Waschmaschine fest (Standard: 150 W läuft, &lt; 5 W = fertig).
         </p>
       </div>
 

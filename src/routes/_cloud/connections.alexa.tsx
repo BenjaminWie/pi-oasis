@@ -107,7 +107,9 @@ function AlexaPage() {
       <ol className="space-y-3">
         <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">1</span>
+            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">
+              1
+            </span>
             <span className="text-xs font-bold">Custom Skill anlegen</span>
           </div>
           <a
@@ -126,7 +128,9 @@ function AlexaPage() {
 
         <li className="rounded-2xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">2</span>
+            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">
+              2
+            </span>
             <span className="text-xs font-bold">Endpoint & Invocation</span>
           </div>
           <p className="text-[11px] text-muted-foreground">
@@ -135,13 +139,16 @@ function AlexaPage() {
           <CopyRow label="endpoint" value={alexaUrl} />
           <CopyRow label="invocation" value="pi hub" />
           <p className="text-[10px] text-muted-foreground">
-            SSL-Zertifikat-Auswahl: <em>My development endpoint has a certificate from a trusted CA</em>.
+            SSL-Zertifikat-Auswahl:{" "}
+            <em>My development endpoint has a certificate from a trusted CA</em>.
           </p>
         </li>
 
         <li className="rounded-2xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">3</span>
+            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">
+              3
+            </span>
             <span className="text-xs font-bold">Intent-Schema einfügen</span>
           </div>
           <p className="text-[11px] text-muted-foreground">
@@ -149,7 +156,7 @@ function AlexaPage() {
           </p>
           <div className="relative">
             <pre className="rounded-xl border border-border bg-background p-3 text-[10px] font-mono overflow-x-auto max-h-60">
-{INTENT_SCHEMA}
+              {INTENT_SCHEMA}
             </pre>
             <button
               onClick={() => copy("schema", INTENT_SCHEMA)}
@@ -162,7 +169,9 @@ function AlexaPage() {
 
         <li className="rounded-2xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">4</span>
+            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">
+              4
+            </span>
             <span className="text-xs font-bold">Account Linking + Token</span>
           </div>
           <p className="text-[11px] text-muted-foreground">
@@ -188,7 +197,9 @@ function AlexaPage() {
 
         <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">5</span>
+            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">
+              5
+            </span>
             <span className="text-xs font-bold">Testen</span>
           </div>
           <ul className="text-[11px] font-mono text-muted-foreground space-y-1">

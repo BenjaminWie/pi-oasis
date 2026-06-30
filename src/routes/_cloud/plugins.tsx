@@ -2,7 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Puzzle, Plus, Settings2, Activity, Zap, Trash2, Save, Info, ArrowLeft } from "lucide-react";
+import {
+  Puzzle,
+  Plus,
+  Settings2,
+  Activity,
+  Zap,
+  Trash2,
+  Save,
+  Info,
+  ArrowLeft,
+} from "lucide-react";
 import { listDevices, enqueueCommand } from "@/lib/cloud.functions";
 
 export const Route = createFileRoute("/_cloud/plugins")({
@@ -23,7 +33,7 @@ function PluginsPage() {
   });
 
   const plugins = devices.flatMap((d: any) =>
-    (d.snapshot?.plugins || []).map((p: any) => ({ ...p, deviceId: d.id, deviceName: d.name }))
+    (d.snapshot?.plugins || []).map((p: any) => ({ ...p, deviceId: d.id, deviceName: d.name })),
   );
 
   const cmd = useMutation({
@@ -91,9 +101,7 @@ function PluginsPage() {
             {plugins.length === 0 && (
               <div className="rounded-2xl border border-dashed border-border p-8 text-center space-y-3">
                 <Puzzle size={32} className="mx-auto text-muted-foreground/40" />
-                <p className="text-xs text-muted-foreground">
-                  Noch keine Plugins konfiguriert.
-                </p>
+                <p className="text-xs text-muted-foreground">Noch keine Plugins konfiguriert.</p>
               </div>
             )}
           </div>
@@ -156,15 +164,24 @@ function PluginForm({ plugin, devices, onSave, onCancel, onDelete }: any) {
   const [commands, setCommands] = useState<any[]>(plugin?.commands || []);
 
   const addCommand = () => {
-    setCommands([...commands, { id: Math.random().toString(36).slice(2, 9), name: "", label: "", type: "control", description: "" }]);
+    setCommands([
+      ...commands,
+      {
+        id: Math.random().toString(36).slice(2, 9),
+        name: "",
+        label: "",
+        type: "control",
+        description: "",
+      },
+    ]);
   };
 
   const updateCommand = (id: string, patch: any) => {
-    setCommands(commands.map(c => c.id === id ? { ...c, ...patch } : c));
+    setCommands(commands.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   };
 
   const removeCommand = (id: string) => {
-    setCommands(commands.filter(c => c.id !== id));
+    setCommands(commands.filter((c) => c.id !== id));
   };
 
   return (
@@ -174,7 +191,10 @@ function PluginForm({ plugin, devices, onSave, onCancel, onDelete }: any) {
           {plugin ? "Plugin bearbeiten" : "Neues Plugin"}
         </h3>
         {plugin && (
-          <button onClick={onDelete} className="text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors">
+          <button
+            onClick={onDelete}
+            className="text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors"
+          >
             <Trash2 size={16} />
           </button>
         )}
@@ -182,7 +202,9 @@ function PluginForm({ plugin, devices, onSave, onCancel, onDelete }: any) {
 
       <div className="space-y-3">
         <div className="space-y-1">
-          <label className="text-[10px] uppercase tracking-widest text-muted-foreground ml-1">Name</label>
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground ml-1">
+            Name
+          </label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -193,16 +215,22 @@ function PluginForm({ plugin, devices, onSave, onCancel, onDelete }: any) {
 
         {!plugin && (
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-muted-foreground ml-1">Gerät</label>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground ml-1">
+              Gerät
+            </label>
             <select
               value={deviceId}
               onChange={(e) => setDeviceId(e.target.value)}
               className="w-full rounded-xl bg-background border border-border px-3 py-2 text-sm focus:ring-2 ring-primary/20 outline-none"
             >
               <option value="">Wähle ein Gerät...</option>
-              {devices.filter((d: any) => d.paired).map((d: any) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
+              {devices
+                .filter((d: any) => d.paired)
+                .map((d: any) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
             </select>
           </div>
         )}
@@ -221,7 +249,9 @@ function PluginForm({ plugin, devices, onSave, onCancel, onDelete }: any) {
 
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
-            <label className="text-[10px] uppercase tracking-widest text-muted-foreground ml-1">Commands (Control & Monitor)</label>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground ml-1">
+              Commands (Control & Monitor)
+            </label>
             <button
               onClick={addCommand}
               className="text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-1 hover:bg-primary/5 px-2 py-1 rounded"
@@ -232,7 +262,10 @@ function PluginForm({ plugin, devices, onSave, onCancel, onDelete }: any) {
 
           <div className="space-y-3">
             {commands.map((c) => (
-              <div key={c.id} className="p-3 rounded-xl border border-border bg-background/50 space-y-2 relative group">
+              <div
+                key={c.id}
+                className="p-3 rounded-xl border border-border bg-background/50 space-y-2 relative group"
+              >
                 <button
                   onClick={() => removeCommand(c.id)}
                   className="absolute -top-2 -right-2 bg-background border border-border rounded-full p-1 text-muted-foreground hover:text-destructive shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"

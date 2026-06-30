@@ -63,8 +63,7 @@ export const getIntegrationsInfo = createServerFn({ method: "GET" })
   .handler(async (): Promise<IntegrationsInfo> => {
     const { hasProcStats } = await import("./pi-runtime.server");
     const isPi = hasProcStats();
-    const cloudUrl =
-      process.env.VITE_PI_HUB_CLOUD_URL || "https://pi-hub.benniwie.com";
+    const cloudUrl = process.env.VITE_PI_HUB_CLOUD_URL || "https://pi-hub.benniwie.com";
 
     let deviceTokenPresent = false;
     let deviceTokenPrefix: string | null = null;
@@ -102,7 +101,8 @@ export const getIntegrationsInfo = createServerFn({ method: "GET" })
         port,
         ingestUrl: lanIp ? `http://${lanIp}:${port}/api/public/ingest/event` : null,
         ingestTokenPresent: !!(process.env.PI_INGEST_TOKEN || process.env.PI_LOCAL_INGEST_TOKEN),
-        ingestTokenPrefix: (process.env.PI_INGEST_TOKEN || process.env.PI_LOCAL_INGEST_TOKEN)?.slice(0, 10) ?? null,
+        ingestTokenPrefix:
+          (process.env.PI_INGEST_TOKEN || process.env.PI_LOCAL_INGEST_TOKEN)?.slice(0, 10) ?? null,
       },
       examples: {
         nodeRedTemplateUrl: `${cloudUrl}/nodered-template.json`,

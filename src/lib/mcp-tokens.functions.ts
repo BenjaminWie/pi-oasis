@@ -74,10 +74,7 @@ export const deleteMcpToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }).parse)
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("mcp_tokens")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await context.supabase.from("mcp_tokens").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

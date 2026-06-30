@@ -37,10 +37,10 @@ nightly aggregation job — only `info / warning / critical` stay forever.
 Import `/nodered-template.json` from the Pi UI. Important settings in every
 HTTP request node:
 
-* **Method:** `use msg.method`
-* **URL:** empty
-* **Authentication:** disabled / empty
-* **Headers:** empty
+- **Method:** `use msg.method`
+- **URL:** empty
+- **Authentication:** disabled / empty
+- **Headers:** empty
 
 The function nodes set `msg.method`, `msg.url` and `msg.headers`. If the HTTP
 node has a fixed URL or built-in Bearer auth, Node-RED 3/4 prints
@@ -121,14 +121,14 @@ Send these standard components to the same event endpoint. They are stored in
 `device_events` in the cloud and rolled up into `device_events_hourly` for
 charts/AI. Local fallback stores only in RAM.
 
-| Component          | Important metrics                                       | Purpose                         |
-| ------------------ | ------------------------------------------------------- | ------------------------------- |
-| `weather_dwd`      | `temp_c`, `cloud_pct`, `humidity_percent`, `rain_mm`    | watering veto / evaporation     |
-| `tibber_price`     | `tibber_ct`                                             | price-aware automation          |
-| `tibber_pulse`     | `house_power`, `power_production`, `watts`              | PV surplus, laundry reasoning   |
-| `pump_guard`       | `watt`, `voltage`, `today_kwh`                          | dry-run / overload detection    |
-| `pump_control`     | `runtime_min`, `source`, `command`                      | audit of manual/eco starts      |
-| `eco_intelligence` | `pumping_allowed`, `pv_surplus_watt`, `strategy_applied` | explain decisions               |
+| Component          | Important metrics                                        | Purpose                       |
+| ------------------ | -------------------------------------------------------- | ----------------------------- |
+| `weather_dwd`      | `temp_c`, `cloud_pct`, `humidity_percent`, `rain_mm`     | watering veto / evaporation   |
+| `tibber_price`     | `tibber_ct`                                              | price-aware automation        |
+| `tibber_pulse`     | `house_power`, `power_production`, `watts`               | PV surplus, laundry reasoning |
+| `pump_guard`       | `watt`, `voltage`, `today_kwh`                           | dry-run / overload detection  |
+| `pump_control`     | `runtime_min`, `source`, `command`                       | audit of manual/eco starts    |
+| `eco_intelligence` | `pumping_allowed`, `pv_surplus_watt`, `strategy_applied` | explain decisions             |
 
 Example Tibber Pulse event:
 
@@ -148,10 +148,10 @@ Example Tibber Pulse event:
 These run server-side, no Pi load. Wire them in Supabase `pg_cron` (or any
 external scheduler) and POST with the project's anon key as `apikey` header:
 
-| Endpoint                                | Suggested schedule | Purpose                                            |
-| --------------------------------------- | ------------------ | -------------------------------------------------- |
-| `/api/public/hooks/aggregate-events`    | `5 3 * * *`        | hourly buckets + prune `healthy` events > 7 d      |
-| `/api/public/hooks/anomaly-scan`        | `15 * * * *`       | recompute watt μ/σ baseline per device             |
+| Endpoint                             | Suggested schedule | Purpose                                       |
+| ------------------------------------ | ------------------ | --------------------------------------------- |
+| `/api/public/hooks/aggregate-events` | `5 3 * * *`        | hourly buckets + prune `healthy` events > 7 d |
+| `/api/public/hooks/anomaly-scan`     | `15 * * * *`       | recompute watt μ/σ baseline per device        |
 
 Both call `SECURITY DEFINER` SQL functions that are only `EXECUTE`-grantable to
 `service_role`, so they're safe to expose publicly behind the apikey gate.
@@ -160,20 +160,20 @@ Both call `SECURITY DEFINER` SQL functions that are only `EXECUTE`-grantable to
 
 `/cloud/devices/<id>` now has four tabs:
 
-* **Timeline** — last 100 events, live (10 s refresh).
-* **Verlauf** — sparkline of hourly average watts (7 d).
-* **Strategie** — edit thresholds, pause/resume eco mode, send pump-overrides.
-* **Anomalien** — μ/σ baselines from the anomaly job.
+- **Timeline** — last 100 events, live (10 s refresh).
+- **Verlauf** — sparkline of hourly average watts (7 d).
+- **Strategie** — edit thresholds, pause/resume eco mode, send pump-overrides.
+- **Anomalien** — μ/σ baselines from the anomaly job.
 
 The Pi local dashboard stays minimal (slim mode); rich analytics live in the
 cloud where CPU is free.
 
 ## 7. Token-Layout, local auth & Failure-Modes
 
-| Symbol             | Wofür                          | Wo eintragen                              |
-| ------------------ | ------------------------------ | ----------------------------------------- |
-| CLOUD_DEVICE_TOKEN | Bearer zum Cloud-Push, Strategie und Commands | Node-RED Tab-env                         |
-| PI_INGEST_TOKEN    | (optional) lokaler RAM-Fallback              | Tab-env, leer lassen wenn LAN-only       |
+| Symbol             | Wofür                                         | Wo eintragen                       |
+| ------------------ | --------------------------------------------- | ---------------------------------- |
+| CLOUD_DEVICE_TOKEN | Bearer zum Cloud-Push, Strategie und Commands | Node-RED Tab-env                   |
+| PI_INGEST_TOKEN    | (optional) lokaler RAM-Fallback               | Tab-env, leer lassen wenn LAN-only |
 
 Die Werte siehst du zentral im Pi-UI unter **Node-RED** (`/integrations`) — dort kannst du sie 1-Klick kopieren und das fertige Subflow-Template (`/nodered-template.json`) runterladen.
 
@@ -196,19 +196,19 @@ PV Sensoren ───┘                                  │
 
 **Failure-Modes**:
 
-* Cloud 401 → wrong/empty `CLOUD_DEVICE_TOKEN` or HTTP node built-in auth overriding headers.
-* Cloud nicht erreichbar → `catch`-Node leitet Payload auf `Local Fallback Push`.
-* Tibber-API down → letzten bekannten Preis nutzen (`flow.set('tibber_last', ...)`).
-* DWD-API down → konservativer Modus (kein Gießen ohne Wetterdaten).
+- Cloud 401 → wrong/empty `CLOUD_DEVICE_TOKEN` or HTTP node built-in auth overriding headers.
+- Cloud nicht erreichbar → `catch`-Node leitet Payload auf `Local Fallback Push`.
+- Tibber-API down → letzten bekannten Preis nutzen (`flow.set('tibber_last', ...)`).
+- DWD-API down → konservativer Modus (kein Gießen ohne Wetterdaten).
 
 ## 8. Reasoning-Tools für die KI
 
 Cloud-MCP-Server exponiert die folgenden Tools, die direkt auf den von Node-RED gepushten Events arbeiten — kein Pi-Roundtrip:
 
-| Tool                     | Frage                                              |
-| ------------------------ | -------------------------------------------------- |
-| `get_power_history`      | "Wieviel Strom haben wir die letzte Stunde gezogen?" |
-| `get_tibber_price_now`   | "Wie teuer ist Strom gerade?"                      |
-| `infer_appliance_state`  | "Ist meine Wäsche fertig?"                         |
+| Tool                    | Frage                                                |
+| ----------------------- | ---------------------------------------------------- |
+| `get_power_history`     | "Wieviel Strom haben wir die letzte Stunde gezogen?" |
+| `get_tibber_price_now`  | "Wie teuer ist Strom gerade?"                        |
+| `infer_appliance_state` | "Ist meine Wäsche fertig?"                           |
 
 Schwellwerte pro Gerät in `appliance_profiles` (z.B. Waschmaschine: ≥150 W läuft, &lt;5 W = Leerlauf).

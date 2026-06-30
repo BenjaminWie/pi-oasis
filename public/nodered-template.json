@@ -73,9 +73,7 @@
       "fill": "#e3f3d3",
       "color": "#1b5e20"
     },
-    "nodes": [
-      "pihub_note_env"
-    ],
+    "nodes": ["pihub_note_env"],
     "x": 34,
     "y": 19,
     "w": 792,
@@ -97,19 +95,10 @@
     "type": "link in",
     "z": "pihub_cloud_bridge_tab",
     "name": "Event In (Eco/Hardware/Tibber/Weather)",
-    "links": [
-      "50ceea70f2c807cf",
-      "614623755bd9d72d",
-      "fc48dff7e412e1cf",
-      "afe00ea21caaec89"
-    ],
+    "links": ["50ceea70f2c807cf", "614623755bd9d72d", "fc48dff7e412e1cf", "afe00ea21caaec89"],
     "x": 95,
     "y": 160,
-    "wires": [
-      [
-        "pihub_rate_limit"
-      ]
-    ]
+    "wires": [["pihub_rate_limit"]]
   },
   {
     "id": "pihub_test_event",
@@ -130,11 +119,7 @@
     "payloadType": "json",
     "x": 140,
     "y": 220,
-    "wires": [
-      [
-        "pihub_rate_limit"
-      ]
-    ]
+    "wires": [["pihub_rate_limit"]]
   },
   {
     "id": "pihub_rate_limit",
@@ -155,11 +140,7 @@
     "outputs": 1,
     "x": 340,
     "y": 180,
-    "wires": [
-      [
-        "pihub_build_cloud"
-      ]
-    ]
+    "wires": [["pihub_build_cloud"]]
   },
   {
     "id": "pihub_build_cloud",
@@ -175,11 +156,7 @@
     "libs": [],
     "x": 600,
     "y": 180,
-    "wires": [
-      [
-        "pihub_http_cloud"
-      ]
-    ]
+    "wires": [["pihub_http_cloud"]]
   },
   {
     "id": "pihub_http_cloud",
@@ -198,11 +175,7 @@
     "headers": [],
     "x": 850,
     "y": 180,
-    "wires": [
-      [
-        "pihub_cloud_ok"
-      ]
-    ]
+    "wires": [["pihub_cloud_ok"]]
   },
   {
     "id": "pihub_cloud_ok",
@@ -228,14 +201,7 @@
     "outputs": 2,
     "x": 1060,
     "y": 180,
-    "wires": [
-      [
-        "pihub_cloud_debug_ok"
-      ],
-      [
-        "pihub_build_local_fallback"
-      ]
-    ]
+    "wires": [["pihub_cloud_debug_ok"], ["pihub_build_local_fallback"]]
   },
   {
     "id": "pihub_cloud_debug_ok",
@@ -259,17 +225,11 @@
     "type": "catch",
     "z": "pihub_cloud_bridge_tab",
     "name": "Catch Cloud Push Failed",
-    "scope": [
-      "pihub_http_cloud"
-    ],
+    "scope": ["pihub_http_cloud"],
     "uncaught": false,
     "x": 850,
     "y": 260,
-    "wires": [
-      [
-        "pihub_build_local_fallback"
-      ]
-    ]
+    "wires": [["pihub_build_local_fallback"]]
   },
   {
     "id": "pihub_build_local_fallback",
@@ -285,11 +245,7 @@
     "libs": [],
     "x": 1280,
     "y": 220,
-    "wires": [
-      [
-        "pihub_http_local"
-      ]
-    ]
+    "wires": [["pihub_http_local"]]
   },
   {
     "id": "pihub_http_local",
@@ -308,11 +264,7 @@
     "headers": [],
     "x": 1540,
     "y": 220,
-    "wires": [
-      [
-        "pihub_local_debug"
-      ]
-    ]
+    "wires": [["pihub_local_debug"]]
   },
   {
     "id": "pihub_local_debug",
@@ -346,11 +298,7 @@
     "payloadType": "date",
     "x": 170,
     "y": 380,
-    "wires": [
-      [
-        "pihub_default_strategy"
-      ]
-    ]
+    "wires": [["pihub_default_strategy"]]
   },
   {
     "id": "pihub_default_strategy",
@@ -382,11 +330,7 @@
     "payloadType": "date",
     "x": 170,
     "y": 460,
-    "wires": [
-      [
-        "pihub_build_strategy"
-      ]
-    ]
+    "wires": [["pihub_build_strategy"]]
   },
   {
     "id": "pihub_build_strategy",
@@ -401,11 +345,7 @@
     "libs": [],
     "x": 430,
     "y": 460,
-    "wires": [
-      [
-        "pihub_http_strategy"
-      ]
-    ]
+    "wires": [["pihub_http_strategy"]]
   },
   {
     "id": "pihub_http_strategy",
@@ -424,11 +364,7 @@
     "headers": [],
     "x": 660,
     "y": 460,
-    "wires": [
-      [
-        "pihub_store_strategy"
-      ]
-    ]
+    "wires": [["pihub_store_strategy"]]
   },
   {
     "id": "pihub_store_strategy",
@@ -460,11 +396,7 @@
     "payloadType": "date",
     "x": 200,
     "y": 620,
-    "wires": [
-      [
-        "pihub_build_command_poll"
-      ]
-    ]
+    "wires": [["pihub_build_command_poll"]]
   },
   {
     "id": "pihub_build_command_poll",
@@ -479,11 +411,7 @@
     "libs": [],
     "x": 480,
     "y": 620,
-    "wires": [
-      [
-        "pihub_http_command_poll"
-      ]
-    ]
+    "wires": [["pihub_http_command_poll"]]
   },
   {
     "id": "pihub_http_command_poll",
@@ -502,11 +430,7 @@
     "headers": [],
     "x": 730,
     "y": 620,
-    "wires": [
-      [
-        "pihub_command_switch"
-      ]
-    ]
+    "wires": [["pihub_command_switch"]]
   },
   {
     "id": "pihub_command_switch",
@@ -535,15 +459,7 @@
     "outputs": 3,
     "x": 950,
     "y": 620,
-    "wires": [
-      [
-        "pihub_execute_command"
-      ],
-      [],
-      [
-        "pihub_command_error"
-      ]
-    ]
+    "wires": [["pihub_execute_command"], [], ["pihub_command_error"]]
   },
   {
     "id": "pihub_command_error",
@@ -576,14 +492,7 @@
     "libs": [],
     "x": 1200,
     "y": 620,
-    "wires": [
-      [
-        "pihub_mqtt_out"
-      ],
-      [
-        "pihub_build_result"
-      ]
-    ]
+    "wires": [["pihub_mqtt_out"], ["pihub_build_result"]]
   },
   {
     "id": "pihub_mqtt_out",
@@ -616,11 +525,7 @@
     "libs": [],
     "x": 1490,
     "y": 660,
-    "wires": [
-      [
-        "pihub_http_result"
-      ]
-    ]
+    "wires": [["pihub_http_result"]]
   },
   {
     "id": "pihub_http_result",
@@ -639,11 +544,7 @@
     "headers": [],
     "x": 1750,
     "y": 660,
-    "wires": [
-      [
-        "pihub_result_debug"
-      ]
-    ]
+    "wires": [["pihub_result_debug"]]
   },
   {
     "id": "pihub_result_debug",

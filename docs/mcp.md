@@ -25,18 +25,18 @@ Transport: MCP Streamable HTTP (JSON-RPC 2.0 over HTTP POST).
 
 ## Tools exposed
 
-| Tool | Scope | What it does |
-| --- | --- | --- |
-| `get_device_info` | read | Cached snapshot (no round-trip) |
-| `get_status` | read | Fresh CPU/RAM/temp/disk from the Pi |
-| `list_containers` | read | Docker containers on the Pi |
-| `container_action` | control | start / stop / restart a container |
-| `list_plugins` | read | All Pi plugins |
-| `get_plugin` | read | One plugin + AI plan + decisions |
-| `run_planner_now` | control | Rebuild the watering plan (weather + AI) |
-| `pump_set` | control | Manual ON/OFF with minutes |
-| `mqtt_publish` | control | Raw MQTT publish |
-| `list_recent_events` | read | Recent Node-RED / sensor events |
+| Tool                 | Scope   | What it does                             |
+| -------------------- | ------- | ---------------------------------------- |
+| `get_device_info`    | read    | Cached snapshot (no round-trip)          |
+| `get_status`         | read    | Fresh CPU/RAM/temp/disk from the Pi      |
+| `list_containers`    | read    | Docker containers on the Pi              |
+| `container_action`   | control | start / stop / restart a container       |
+| `list_plugins`       | read    | All Pi plugins                           |
+| `get_plugin`         | read    | One plugin + AI plan + decisions         |
+| `run_planner_now`    | control | Rebuild the watering plan (weather + AI) |
+| `pump_set`           | control | Manual ON/OFF with minutes               |
+| `mqtt_publish`       | control | Raw MQTT publish                         |
+| `list_recent_events` | read    | Recent Node-RED / sensor events          |
 
 ## Client configs
 
@@ -103,6 +103,7 @@ https://pi-hub.benniwie.com/api/public/voice/alexa
 ```
 
 In the Alexa developer console:
+
 1. Create a Custom Skill, language **German (DE)**.
 2. Account Linking → **Auth Code Grant** isn't supported here; pick
    **Send Alexa user's bearer token** style and paste an MCP token
@@ -115,7 +116,7 @@ In the Alexa developer console:
    - `TurnOffPumpIntent` — "schalte die Pumpe aus"
    - `PumpStatusIntent` — "wie ist der Status"
    - `WaterPlanIntent` — "erkläre den Plan"
-   Add an `AMAZON.NUMBER` slot named `Minutes` on the on-intent.
+     Add an `AMAZON.NUMBER` slot named `Minutes` on the on-intent.
 
 The skill speaks German responses ("Okay, läuft für 5 Minuten").
 

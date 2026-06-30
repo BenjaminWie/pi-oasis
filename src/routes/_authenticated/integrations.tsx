@@ -44,7 +44,10 @@ function IntegrationsPage() {
       setTimeout(() => setCopied(null), 1500);
     };
     if (navigator.clipboard?.writeText && window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+      navigator.clipboard
+        .writeText(text)
+        .then(done)
+        .catch(() => fallbackCopy(text, done));
     } else {
       fallbackCopy(text, done);
     }
@@ -63,7 +66,15 @@ function IntegrationsPage() {
     done();
   }
 
-  function Row({ label, value, secret }: { label: string; value: string | null; secret?: boolean }) {
+  function Row({
+    label,
+    value,
+    secret,
+  }: {
+    label: string;
+    value: string | null;
+    secret?: boolean;
+  }) {
     return (
       <div className="rounded-xl border border-border bg-background p-3">
         <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">
@@ -154,7 +165,10 @@ function IntegrationsPage() {
         <Row label="CLOUD_COMMAND_RESULT_URL" value={info?.cloudBridge.commandResultUrl ?? null} />
         <Row
           label="CLOUD_DEVICE_TOKEN"
-          value={revealedToken ?? (info?.cloudBridge.deviceTokenPrefix ? `${info.cloudBridge.deviceTokenPrefix}…` : null)}
+          value={
+            revealedToken ??
+            (info?.cloudBridge.deviceTokenPrefix ? `${info.cloudBridge.deviceTokenPrefix}…` : null)
+          }
           secret={!revealedToken}
         />
         {info?.cloudBridge.deviceTokenPresent && (
@@ -201,13 +215,17 @@ function IntegrationsPage() {
         <Row label="LOCAL_API_URL" value={info?.local.ingestUrl ?? null} />
         <Row
           label="PI_INGEST_TOKEN"
-          value={revealedLocalToken ?? (info?.local.ingestTokenPrefix ? `${info.local.ingestTokenPrefix}…` : "LAN-only")}
+          value={
+            revealedLocalToken ??
+            (info?.local.ingestTokenPrefix ? `${info.local.ingestTokenPrefix}…` : "LAN-only")
+          }
           secret={!!info?.local.ingestTokenPrefix && !revealedLocalToken}
         />
         <p className="text-[10px] text-muted-foreground">
           IP automatisch aus dem ersten privaten Interface erkannt
           {info?.local.lanIp ? ` (${info.local.lanIp})` : ""}. Bei Cloud-Ausfall pushst du auf die
-          lokale Ingest-Route. Wenn kein PI_INGEST_TOKEN gesetzt ist, akzeptiert sie nur LAN-Clients.
+          lokale Ingest-Route. Wenn kein PI_INGEST_TOKEN gesetzt ist, akzeptiert sie nur
+          LAN-Clients.
         </p>
       </section>
 
@@ -272,7 +290,7 @@ function IntegrationsPage() {
           Beispiel-Payload
         </h2>
         <pre className="rounded-xl border border-border bg-background p-3 text-[10px] font-mono overflow-x-auto">
-{`POST {CLOUD_BRIDGE_URL}
+          {`POST {CLOUD_BRIDGE_URL}
 Authorization: Bearer {CLOUD_DEVICE_TOKEN}
 
 {
@@ -284,7 +302,7 @@ Authorization: Bearer {CLOUD_DEVICE_TOKEN}
 }`}
         </pre>
         <pre className="rounded-xl border border-border bg-background p-3 text-[10px] font-mono overflow-x-auto">
-{`GET {CLOUD_COMMAND_POLL_URL}
+          {`GET {CLOUD_COMMAND_POLL_URL}
 Authorization: Bearer {CLOUD_DEVICE_TOKEN}
 
 // command.kind=plugin_manual -> cmnd/zisterne/POWER ON/OFF
