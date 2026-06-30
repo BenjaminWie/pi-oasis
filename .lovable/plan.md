@@ -1,86 +1,34 @@
-## What I found
+## Plan: Enable enhanced pump analytics (DB + integration verification)
 
-- The production logs show repeated `POST /api/public/cloud-bridge/event → 401`, while `/api/public/agent/poll → 204` is healthy. That means the Pi cloud bridge itself is connected, but the Node-RED event push is using the wrong/missing token.
-- In your pasted flow, `CLOUD_DEVICE_TOKEN` is empty, one function has a hardcoded old token, and the HTTP request nodes have fixed URL/auth settings. Node-RED is warning that `msg.url`/`msg.headers` can no longer override those fixed node settings, so the function-generated request is being ignored.
-- The local fallback URL is mixed up: it points to cloud-bridge-style routes, but local fallback should be a separate lightweight local ingest route, not the cloud route.
-- Cloud pump commands currently enqueue `plugin_manual`, but the Node-RED flow has no command polling/input path for that. So cloud buttons/Alexa/MCP can enqueue commands, but Node-RED never receives them.
+### 1. Database migration
+Extend `device_events_hourly` and the `aggregate_device_events()` function to store the eco-intelligence metrics Node-RED already sends.
 
-## Plan
+- `ALTER TABLE public.device_events_hourly` — add columns:
+  - `temp_avg numeric` (from `metrics.outside_temp`)
+  - `rain_sum numeric` (from `metrics.precipitation_mm`)
+  - `pv_surplus_avg numeric` (from `metrics.pv_surplus_watt`)
+  - `pumping_allowed_ratio numeric` (from `metrics.pumping_allowed` 0/1)
+- Replace `public.aggregate_device_events()` with the version that:
+  - Coalesces `watts` / `watt` so both Pi-agent and Node-RED `pump_guard` work.
+  - Computes `avg(outside_temp)`, `sum(precipitation_mm)`, `avg(pv_surplus_watt)`, `avg(pumping_allowed)`.
+  - Keeps the 7-day prune of `healthy` events.
+  - Updates the `ON CONFLICT` block to overwrite the new columns.
 
-1. **Fix token access in the Pi UI**
-   - Add a safe “Node-RED Setup” panel in `/_authenticated/integrations` that shows:
-     - Cloud event URL
-     - Strategy URL
-     - Command poll URL
-     - Local fallback ingest URL
-     - Cloud device token with a reveal/copy control after local Pi auth
-   - Do not rely on the Node-RED copy button; provide ready-to-copy values and a ready-to-import flow from the Pi UI.
-   - Make the token display explicitly say: use the Cloud Device Token, not the factory/reset/revocation token.
+No new tables, so no GRANT/RLS changes required.
 
-2. **Make local auth clear and practical**
-   - Document and surface that:
-     - The Pi web UI uses local PIN auth and sends `X-Pi-Auth` only for dashboard server calls.
-     - Node-RED cloud calls use `Authorization: Bearer <CLOUD_DEVICE_TOKEN>`.
-     - Local Node-RED fallback uses a local-only ingest token if configured, or LAN-only mode if no token is set.
-   - Add a lightweight local ingest endpoint for Node-RED fallback so local dashboard data can be accepted into RAM without SD writes.
+### 2. Verify integration with existing code
+After the migration is approved, confirm the pieces already in the repo line up:
 
-3. **Replace the downloadable Node-RED flow with a working full flow**
-   - Update `public/nodered-template.json` so HTTP request nodes use dynamic `msg.url`, `msg.method`, and `msg.headers` only.
-   - Remove Node-RED UI “Bearer Authentication” from the HTTP nodes to avoid masked/un-copyable auth fields.
-   - Validate token presence in function nodes before sending; if empty, emit a clear debug error instead of spamming 401s.
-   - Fix the disabled `Cloud-Bridge` tab and remove hardcoded stale tokens.
-   - Include a “Test Cloud Push” inject node that posts a known event and makes 200/401 diagnosis obvious.
+- `src/lib/control.functions.ts` → `listEventBuckets` must already select `temp_avg, rain_sum, pv_surplus_avg, pumping_allowed_ratio` (the Pump UI in `src/routes/_cloud/pump.tsx` already reads these keys). If the select list is still the old shape, widen it.
+- `src/routes/api/public/cloud-bridge/event.ts` → confirm the `watts` normalization (`metrics.watt ?? metrics.house_power → metrics.watts`) is in place so the new `watts_avg/max/min` populate from both sources.
+- `src/routes/api/public/hooks/aggregate-events.ts` cron hook → no code change; it just calls the updated RPC.
+- `public/nodered-template.json` & `docs/nodered-integration.md` → no edits, the metric keys already match (`outside_temp`, `precipitation_mm`, `pv_surplus_watt`, `pumping_allowed`).
+- Sanity-check the Pump page chart toggles (`watts / pv / temp / rain / allowed`) render with the new bucket fields.
 
-4. **Connect cloud commands to Node-RED**
-   - Add a cloud command polling endpoint for Node-RED using the same device bearer token.
-   - Add a Node-RED command poll subflow:
-     - `GET /api/public/agent/poll`
-     - if command is `plugin_manual` or `mqtt_publish`, map it to your Tasmota topic `cmnd/zisterne/POWER`.
-     - POST result to `/api/public/agent/result`.
-   - Update the cloud pump UI to send a Node-RED-friendly command payload for the pump (`id: pump`, action `on/off`, minutes).
-   - Keep safety local: Node-RED still owns hard-failsafe, dry-run, overload, and runtime limits.
+### 3. Out of scope
+- No frontend redesign — chart, toggles, and strategy form stay as they are.
+- No Node-RED flow changes — the user confirmed payload keys are compatible.
+- No new MCP tools or auth changes.
 
-5. **Fix cloud analytics event naming**
-   - Align emitted event components with the UI/MCP expectations:
-     - `pump_control` and `pump_guard` for pump state/control
-     - `eco_intelligence` for strategy decisions
-     - `tibber_pulse` for live consumption
-     - `weather_dwd` for weather
-   - Adjust the Pump Control page to read those components instead of only `component=pump`, so events actually appear.
-
-6. **Add storage for weather, Tibber, and pump usage without Pi SD writes**
-   - Store time-series in Lovable Cloud via `device_events`; no local disk writes on the Pi.
-   - Update the flow to push low-rate analytics events:
-     - Tibber live wattage: throttled/downsampled
-     - Weather: every 10 minutes
-     - Pump telemetry: on change and periodic snapshot
-   - Use the existing hourly aggregation job to build charts and AI reasoning inputs.
-   - Extend docs with the exact payload examples and throttle recommendations for Pi 3.
-
-7. **Verify**
-   - Use server logs to confirm 401s stop after the flow uses a real token.
-   - Test public API behavior with missing token, wrong token, and structurally valid request.
-   - Verify the downloadable JSON has no hardcoded token, no fixed HTTP-node URL that blocks `msg.url`, and includes command poll/result nodes.
-   - Verify cloud pump command path: UI/Alexa/MCP → `agent_commands` → Node-RED poll → MQTT command → result back to cloud.
-
-## Technical notes
-
-```text
-Node-RED -> Cloud analytics
-POST https://pi-hub.benniwie.com/api/public/cloud-bridge/event
-Authorization: Bearer <CLOUD_DEVICE_TOKEN>
-
-Node-RED -> Cloud strategy
-GET https://pi-hub.benniwie.com/api/public/cloud-bridge/strategy
-Authorization: Bearer <CLOUD_DEVICE_TOKEN>
-
-Node-RED -> Cloud commands
-GET https://pi-hub.benniwie.com/api/public/agent/poll
-Authorization: Bearer <CLOUD_DEVICE_TOKEN>
-
-Node-RED -> Command result
-POST https://pi-hub.benniwie.com/api/public/agent/result
-Authorization: Bearer <CLOUD_DEVICE_TOKEN>
-```
-
-The key rework is: Node-RED should use one Cloud Device Token everywhere for cloud communication, and command polling must be part of the flow so cloud buttons/Alexa/MCP can actually reach your Tasmota pump.
+### Technical detail
+Single migration file containing the `ALTER TABLE … ADD COLUMN IF NOT EXISTS` block and a `CREATE OR REPLACE FUNCTION public.aggregate_device_events()` matching the SQL in the user's message. After approval, read `control.functions.ts` to confirm the bucket query already returns the new columns; patch only if needed.

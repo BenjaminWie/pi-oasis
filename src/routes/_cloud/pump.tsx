@@ -338,13 +338,14 @@ function PumpPage() {
                 <Tooltip
                   contentStyle={{ backgroundColor: "#171717", border: "1px solid #262626", fontSize: "10px", borderRadius: "8px" }}
                   itemStyle={{ padding: "0 2px" }}
-                  formatter={(value: any, name: string) => {
+                  formatter={(value: any, name: any) => {
                     const val = typeof value === 'number' ? value.toFixed(1) : value;
-                    if (name.includes("(W)")) return [`${Math.round(value)} W`, name];
-                    if (name.includes("(°C)")) return [`${val} °C`, name];
-                    if (name.includes("(mm)")) return [`${val} mm`, name];
-                    if (name.includes("%")) return [`${Math.round(value)}%`, name];
-                    return [val, name];
+                    const label = String(name ?? "");
+                    if (label.includes("(W)")) return [`${Math.round(value)} W`, label];
+                    if (label.includes("(°C)")) return [`${val} °C`, label];
+                    if (label.includes("(mm)")) return [`${val} mm`, label];
+                    if (label.includes("%")) return [`${Math.round(value)}%`, label];
+                    return [val, label];
                   }}
                 />
 
