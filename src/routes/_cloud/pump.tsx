@@ -159,9 +159,41 @@ function PumpPage() {
         expiresAt:
           vars.action === "on" ? Date.now() + (vars.minutes || 10) * 60 * 1000 : undefined,
       });
+      toast.success(
+        vars.action === "on"
+          ? `Pumpe an${vars.minutes ? ` (${vars.minutes} min)` : ""} — wartet auf Node-RED`
+          : "Stopp gesendet — wartet auf Node-RED",
+      );
       qc.invalidateQueries({ queryKey: ["device-details", activeId] });
     },
+    onError: (err: any) => {
+      toast.error(`Befehl abgelehnt: ${err?.message || "unbekannter Fehler"}`);
+    },
   });
+
+  const testNoderedMut = useMutation({
+    mutationFn: () =>
+      enqueue({
+        data: {
+          deviceId: activeId,
+          kind: "status",
+          payload: { runner: "nodered" },
+        },
+      }),
+    onSuccess: () => toast.success("Test an Node-RED gesendet — beobachte den Status unten"),
+    onError: (err: any) => toast.error(`Test fehlgeschlagen: ${err?.message}`),
+  });
+
+  // Diagnose: is the latest plugin_manual stuck in "pending" for >30s?
+  const pendingAgeMs = latestManual && latestManual.status === "pending"
+    ? Date.now() - new Date(latestManual.created_at).getTime()
+    : 0;
+  const isStuck = pendingAgeMs > 30_000;
+  const lastSeenMs = (details as any)?.device?.last_seen_at
+    ? Date.now() - new Date((details as any).device.last_seen_at).getTime()
+    : null;
+  const isOffline = lastSeenMs != null && lastSeenMs > 5 * 60_000;
+
 
   const [visibleMetrics, setVisibleMetrics] = useState<Record<string, boolean>>({
     watts: true,
