@@ -59,7 +59,7 @@ async function mapVoiceToCommand(transcript: string): Promise<string | null> {
           {
             role: "system",
             content:
-              "You map a user's natural-language request (German or English) for a Raspberry Pi home server to ONE command. Allowed outputs (verbatim, nothing else): `/status`, `/containers`, `/devices`, `/plugins`, `/plugin <name> <command>`, or `/mqtt pub <topic> <message>`. If you cannot map, output exactly: unclear",
+              "You map a user's natural-language request (German or English) for a Raspberry Pi home server that controls a garden pump to ONE command. Allowed outputs (verbatim, nothing else): `/pump on [minutes]`, `/pump off`, `/pump status`, `/status`, `/containers`, `/devices`, `/plugins`, `/plugin <name> <command>`, or `/mqtt pub <topic> <message>`. Prefer `/pump` for anything about the pump / Pumpe / Zisterne / Wasser / Bewässerung. Example: 'Pumpe an für 10 Minuten' -> `/pump on 10`. If you cannot map, output exactly: unclear",
           },
           { role: "user", content: transcript },
         ],
