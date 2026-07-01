@@ -155,6 +155,20 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
+      <Toaster
+        theme="dark"
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: "hsl(var(--card))",
+            border: "1px solid hsl(var(--border))",
+            color: "hsl(var(--foreground))",
+            fontFamily: "var(--font-mono, monospace)",
+            fontSize: "12px",
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }
+
