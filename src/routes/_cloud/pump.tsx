@@ -94,8 +94,9 @@ function PumpPage() {
 
   useEffect(() => {
     if (latestManual) {
+      const mp: any = latestManual.payload;
       if (
-        latestManual.payload?.action === "off" &&
+        mp?.action === "off" &&
         (latestManual.status === "done" || latestManual.status === "delivered")
       ) {
         setLocalAction(null);
@@ -110,12 +111,13 @@ function PumpPage() {
     if (localAction?.action === "on" && localAction.expiresAt && localAction.expiresAt > now) {
       return localAction.minutes;
     }
+    const mp: any = latestManual?.payload;
     if (
-      latestManual?.payload?.action === "on" &&
-      (latestManual.status === "done" || latestManual.status === "delivered")
+      mp?.action === "on" &&
+      (latestManual?.status === "done" || latestManual?.status === "delivered")
     ) {
-      const mins = latestManual.payload?.minutes || 10;
-      const completedAt = latestManual.completed_at || latestManual.delivered_at || latestManual.created_at;
+      const mins = mp?.minutes || 10;
+      const completedAt = latestManual?.completed_at || (latestManual as any)?.delivered_at || latestManual?.created_at;
       const startTime = new Date(completedAt).getTime();
       if (now < startTime + mins * 60 * 1000) {
         return mins;
@@ -123,6 +125,7 @@ function PumpPage() {
     }
     return null;
   }, [localAction, latestManual, now]);
+
 
   const params = (strategy?.params as any) ?? {};
   const [form, setForm] = useState<Record<string, any>>({});
