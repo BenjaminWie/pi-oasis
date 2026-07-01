@@ -7,9 +7,11 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { Toaster } from "sonner";
 import { isSlimMode } from "@/lib/utils";
 
 import appCss from "../styles.css?url";
+
 
 function NotFoundComponent() {
   return (
@@ -153,6 +155,20 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
+      <Toaster
+        theme="dark"
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: "hsl(var(--card))",
+            border: "1px solid hsl(var(--border))",
+            color: "hsl(var(--foreground))",
+            fontFamily: "var(--font-mono, monospace)",
+            fontSize: "12px",
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }
+

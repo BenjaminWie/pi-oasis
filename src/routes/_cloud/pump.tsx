@@ -2,8 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
-import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun, Loader2, Info } from "lucide-react";
+import { toast } from "sonner";
+import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun, Loader2, Info, AlertTriangle, RefreshCw } from "lucide-react";
 import { listDevices, enqueueCommand, getDevice } from "@/lib/cloud.functions";
+
 import {
   LineChart,
   Line,
@@ -94,8 +96,9 @@ function PumpPage() {
 
   useEffect(() => {
     if (latestManual) {
+      const mp: any = latestManual.payload;
       if (
-        latestManual.payload?.action === "off" &&
+        mp?.action === "off" &&
         (latestManual.status === "done" || latestManual.status === "delivered")
       ) {
         setLocalAction(null);
@@ -110,12 +113,13 @@ function PumpPage() {
     if (localAction?.action === "on" && localAction.expiresAt && localAction.expiresAt > now) {
       return localAction.minutes;
     }
+    const mp: any = latestManual?.payload;
     if (
-      latestManual?.payload?.action === "on" &&
-      (latestManual.status === "done" || latestManual.status === "delivered")
+      mp?.action === "on" &&
+      (latestManual?.status === "done" || latestManual?.status === "delivered")
     ) {
-      const mins = latestManual.payload?.minutes || 10;
-      const completedAt = latestManual.completed_at || latestManual.delivered_at || latestManual.created_at;
+      const mins = mp?.minutes || 10;
+      const completedAt = latestManual?.completed_at || (latestManual as any)?.delivered_at || latestManual?.created_at;
       const startTime = new Date(completedAt).getTime();
       if (now < startTime + mins * 60 * 1000) {
         return mins;
@@ -123,6 +127,7 @@ function PumpPage() {
     }
     return null;
   }, [localAction, latestManual, now]);
+
 
   const params = (strategy?.params as any) ?? {};
   const [form, setForm] = useState<Record<string, any>>({});
@@ -154,9 +159,41 @@ function PumpPage() {
         expiresAt:
           vars.action === "on" ? Date.now() + (vars.minutes || 10) * 60 * 1000 : undefined,
       });
+      toast.success(
+        vars.action === "on"
+          ? `Pumpe an${vars.minutes ? ` (${vars.minutes} min)` : ""} — wartet auf Node-RED`
+          : "Stopp gesendet — wartet auf Node-RED",
+      );
       qc.invalidateQueries({ queryKey: ["device-details", activeId] });
     },
+    onError: (err: any) => {
+      toast.error(`Befehl abgelehnt: ${err?.message || "unbekannter Fehler"}`);
+    },
   });
+
+  const testNoderedMut = useMutation({
+    mutationFn: () =>
+      enqueue({
+        data: {
+          deviceId: activeId,
+          kind: "status",
+          payload: { runner: "nodered" },
+        },
+      }),
+    onSuccess: () => toast.success("Test an Node-RED gesendet — beobachte den Status unten"),
+    onError: (err: any) => toast.error(`Test fehlgeschlagen: ${err?.message}`),
+  });
+
+  // Diagnose: is the latest plugin_manual stuck in "pending" for >30s?
+  const pendingAgeMs = latestManual && latestManual.status === "pending"
+    ? Date.now() - new Date(latestManual.created_at).getTime()
+    : 0;
+  const isStuck = pendingAgeMs > 30_000;
+  const lastSeenMs = (details as any)?.device?.last_seen_at
+    ? Date.now() - new Date((details as any).device.last_seen_at).getTime()
+    : null;
+  const isOffline = lastSeenMs != null && lastSeenMs > 5 * 60_000;
+
 
   const [visibleMetrics, setVisibleMetrics] = useState<Record<string, boolean>>({
     watts: true,
@@ -367,7 +404,7 @@ function PumpPage() {
             className={`rounded-xl border py-2.5 text-xs uppercase tracking-widest flex items-center justify-center gap-1 transition-all ${
               (manualMut.isPending && manualMut.variables?.action === "off") ||
               (latestManual?.status === "pending" &&
-                latestManual.payload?.action === "off" &&
+                (latestManual.payload as any)?.action === "off" &&
                 latestManual.id === localAction?.id)
                 ? "bg-destructive/20 border-destructive text-destructive shadow-[0_0_15px_rgba(239,68,68,0.2)]"
                 : "border-border"
@@ -388,7 +425,67 @@ function PumpPage() {
             Eco {strategy?.eco_paused ? "an" : "pausieren"}
           </button>
         </div>
+
+        {/* Diagnostics strip */}
+        {latestManual && (
+          <div
+            className={`rounded-xl border p-3 text-[11px] font-mono space-y-1 ${
+              isStuck
+                ? "border-amber-500/40 bg-amber-500/5 text-amber-500"
+                : latestManual.status === "failed"
+                  ? "border-destructive/40 bg-destructive/5 text-destructive"
+                  : "border-border bg-background text-muted-foreground"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span>
+                Letzter Befehl: {(latestManual.payload as any)?.action?.toUpperCase() ?? "?"}
+                {(latestManual.payload as any)?.minutes ? ` · ${(latestManual.payload as any).minutes}m` : ""}
+                {" · "}
+                <span className="uppercase">{latestManual.status}</span>
+              </span>
+              <span className="opacity-60">
+                {Math.max(0, Math.round(pendingAgeMs / 1000))}s
+              </span>
+            </div>
+            {isStuck && (
+              <div className="flex items-start gap-1.5">
+                <AlertTriangle size={11} className="mt-0.5 shrink-0" />
+                <span>
+                  Node-RED hat den Befehl nicht abgeholt. Prüfe Token & Poll-URL unter{" "}
+                  <Link to="/integrations" className="underline">/integrations</Link>{" "}
+                  auf dem Pi und ob der Flow deployt ist.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isOffline && (
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-500 p-3 text-[11px] font-mono flex items-start gap-1.5">
+            <AlertTriangle size={11} className="mt-0.5 shrink-0" />
+            <span>
+              Pi ist seit {Math.round((lastSeenMs || 0) / 60000)} min offline. Befehle
+              werden erst ausgeführt, wenn er wieder pollt.
+            </span>
+          </div>
+        )}
+
+        <button
+          onClick={() => testNoderedMut.mutate()}
+          disabled={testNoderedMut.isPending}
+          className="w-full rounded-xl border border-dashed border-border py-2 text-[10px] uppercase tracking-widest text-muted-foreground flex items-center justify-center gap-1.5 hover:text-foreground hover:border-primary/40"
+        >
+          {testNoderedMut.isPending ? (
+            <Loader2 size={11} className="animate-spin" />
+          ) : (
+            <RefreshCw size={11} />
+          )}
+          Test: Node-RED erreichbar?
+        </button>
       </div>
+
+
 
       {/* History chart */}
       {chartData.length > 0 && (

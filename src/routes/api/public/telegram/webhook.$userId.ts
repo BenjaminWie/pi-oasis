@@ -59,7 +59,7 @@ async function mapVoiceToCommand(transcript: string): Promise<string | null> {
           {
             role: "system",
             content:
-              "You map a user's natural-language request (German or English) for a Raspberry Pi home server to ONE command. Allowed outputs (verbatim, nothing else): `/status`, `/containers`, `/devices`, `/plugins`, `/plugin <name> <command>`, or `/mqtt pub <topic> <message>`. If you cannot map, output exactly: unclear",
+              "You map a user's natural-language request (German or English) for a Raspberry Pi home server that controls a garden pump to ONE command. Allowed outputs (verbatim, nothing else): `/pump on [minutes]`, `/pump off`, `/pump status`, `/status`, `/containers`, `/devices`, `/plugins`, `/plugin <name> <command>`, or `/mqtt pub <topic> <message>`. Prefer `/pump` for anything about the pump / Pumpe / Zisterne / Wasser / Bewässerung. Example: 'Pumpe an für 10 Minuten' -> `/pump on 10`. If you cannot map, output exactly: unclear",
           },
           { role: "user", content: transcript },
         ],
@@ -165,7 +165,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             })
             .eq("id", userId);
           await reply(
-            "✅ Verknüpft. Befehle: /devices /status /containers /plugins /plugin <name> <command> /mqtt pub <topic> <msg> · oder einfach Sprachnachricht",
+            "✅ Verknüpft. Pumpe: /pump on 10 · /pump off · /pump status  ·  Weitere: /devices /status /containers /plugins /mqtt · oder Sprachnachricht",
           );
           return jsonResponse({ ok: true });
         }
@@ -205,7 +205,55 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
           return jsonResponse({ ok: true });
         }
 
+        if (text.startsWith("/pump")) {
+          const parts = text.split(/\s+/);
+          const action = (parts[1] || "").toLowerCase();
+          const dev = paired[0];
+          if (!dev) {
+            await reply("Kein Gerät verknüpft.");
+            return jsonResponse({ ok: true });
+          }
+          if (action === "status") {
+            await supabaseAdmin.from("agent_commands").insert({
+              device_id: dev.id,
+              user_id: userId,
+              kind: "status",
+              source: "telegram",
+            });
+            await reply(`⏳ Pumpen-Status von *${dev.name}* angefordert…`);
+            return jsonResponse({ ok: true });
+          }
+          if (action !== "on" && action !== "off" && action !== "an" && action !== "aus") {
+            await reply("Usage: `/pump on [minuten]` · `/pump off` · `/pump status`");
+            return jsonResponse({ ok: true });
+          }
+          const isOn = action === "on" || action === "an";
+          const minutesRaw = Number(parts[2]);
+          const minutes = isOn
+            ? Math.max(1, Math.min(120, Number.isFinite(minutesRaw) ? minutesRaw : 10))
+            : undefined;
+          await supabaseAdmin.from("agent_commands").insert({
+            device_id: dev.id,
+            user_id: userId,
+            kind: "plugin_manual",
+            payload: {
+              id: "pump",
+              runner: "nodered",
+              action: isOn ? "on" : "off",
+              ...(minutes ? { minutes } : {}),
+            },
+            source: "telegram",
+          });
+          await reply(
+            isOn
+              ? `💧 Pumpe *AN* für ${minutes} min gesendet an *${dev.name}*`
+              : `⏹️ Pumpe *AUS* gesendet an *${dev.name}*`,
+          );
+          return jsonResponse({ ok: true });
+        }
+
         if (text.startsWith("/plugins")) {
+
           const allPlugins = paired.flatMap((d) =>
             ((d.last_snapshot as any)?.plugins || []).map((p: any) => ({ ...p, deviceName: d.name }))
           );
@@ -321,7 +369,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
           return jsonResponse({ ok: true });
         }
 
-        await reply("Unbekannter Befehl. /devices /status /containers /mqtt");
+        await reply("Unbekannter Befehl. /pump on|off|status · /devices /status /containers /plugins /mqtt");
         return jsonResponse({ ok: true });
       },
     },

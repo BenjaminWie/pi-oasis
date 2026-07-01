@@ -567,7 +567,7 @@
     "type": "function",
     "z": "pihub_cloud_bridge_tab",
     "name": "Execute Pump/MQTT Command",
-    "func": "var cmd = msg.payload && msg.payload.command;\nif (!cmd || !cmd.id) return null;\nvar kind = cmd.kind;\nvar p = cmd.payload || {};\nvar result = { id: cmd.id, ok: true, result: { handled_by: 'nodered', kind: kind } };\n\nif (kind === 'plugin_manual') {\n    var action = (p.action === 'off') ? 'OFF' : 'ON';\n    var minutes = Number(p.minutes || 10);\n    var mqtt = {\n        topic: env.get('MQTT_COMMAND_TOPIC') || 'cmnd/zisterne/POWER',\n        payload: action,\n        _pihubCommandId: cmd.id\n    };\n    result.result.action = action;\n    result.result.minutes = minutes;\n    result.result.topic = mqtt.topic;\n    return [mqtt, { payload: result }];\n}\n\nif (kind === 'mqtt_publish') {\n    var topic = String(p.topic || '');\n    if (!topic) return [null, { payload: { id: cmd.id, ok: false, result: { error: 'missing topic' } } }];\n    var mqtt2 = { topic: topic, payload: String(p.payload || ''), _pihubCommandId: cmd.id };\n    result.result.topic = topic;\n    return [mqtt2, { payload: result }];\n}\n\nreturn [null, { payload: { id: cmd.id, ok: false, result: { error: 'unsupported command for Node-RED runner: ' + kind } } }];",
+    "func": "var cmd = msg.payload && msg.payload.command;\nif (!cmd || !cmd.id) return null;\nvar kind = cmd.kind;\nvar p = cmd.payload || {};\nvar result = { id: cmd.id, ok: true, result: { handled_by: 'nodered', kind: kind } };\n\nif (kind === 'plugin_manual') {\n    var action = (p.action === 'off') ? 'OFF' : 'ON';\n    var minutes = Math.max(1, Math.min(120, Number(p.minutes || 10)));\n    var topic = env.get('MQTT_COMMAND_TOPIC') || 'cmnd/zisterne/POWER';\n    var mqtt = {\n        topic: topic,\n        payload: action,\n        _pihubCommandId: cmd.id\n    };\n    if (action === 'ON') {\n        // Trigger node reads msg.delay (ms) for auto-OFF\n        mqtt.delay = minutes * 60 * 1000;\n    } else {\n        // Cancels any pending auto-OFF in the trigger node\n        mqtt.reset = true;\n    }\n    result.result.action = action;\n    result.result.minutes = minutes;\n    result.result.topic = topic;\n    result.result.auto_off_in_ms = (action === 'ON') ? mqtt.delay : 0;\n    node.status({ fill: action === 'ON' ? 'green' : 'grey', shape: 'dot', text: action + (action === 'ON' ? (' ' + minutes + 'm') : '') });\n    return [mqtt, { payload: result }];\n}\n\nif (kind === 'mqtt_publish') {\n    var t = String(p.topic || '');\n    if (!t) return [null, { payload: { id: cmd.id, ok: false, result: { error: 'missing topic' } } }];\n    var mqtt2 = { topic: t, payload: String(p.payload || ''), _pihubCommandId: cmd.id };\n    result.result.topic = t;\n    return [mqtt2, { payload: result }];\n}\n\nif (kind === 'status') {\n    // Cloud/Alexa 'test node-red' ping. Just ack.\n    result.result.pong = new Date().toISOString();\n    return [null, { payload: result }];\n}\n\nreturn [null, { payload: { id: cmd.id, ok: false, result: { error: 'unsupported command for Node-RED runner: ' + kind } } }];",
     "outputs": 2,
     "timeout": "",
     "noerr": 0,
@@ -578,10 +578,35 @@
     "y": 620,
     "wires": [
       [
-        "pihub_mqtt_out"
+        "pihub_pump_autooff"
       ],
       [
         "pihub_build_result"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_pump_autooff",
+    "type": "trigger",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Pass ON, auto-OFF after msg.delay",
+    "op1": "",
+    "op1type": "pay",
+    "op2": "OFF",
+    "op2type": "str",
+    "duration": "-1",
+    "extend": true,
+    "overrideDelay": true,
+    "units": "ms",
+    "reset": "OFF",
+    "bytopic": "all",
+    "topic": "topic",
+    "outputs": 1,
+    "x": 1470,
+    "y": 540,
+    "wires": [
+      [
+        "pihub_mqtt_out"
       ]
     ]
   },
@@ -599,10 +624,11 @@
     "correl": "",
     "expiry": "",
     "broker": "pihub_mqtt_broker",
-    "x": 1490,
-    "y": 580,
+    "x": 1780,
+    "y": 540,
     "wires": []
   },
+
   {
     "id": "pihub_build_result",
     "type": "function",
