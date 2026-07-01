@@ -369,7 +369,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
           return jsonResponse({ ok: true });
         }
 
-        await reply("Unbekannter Befehl. /devices /status /containers /mqtt");
+        await reply("Unbekannter Befehl. /pump on|off|status · /devices /status /containers /plugins /mqtt");
         return jsonResponse({ ok: true });
       },
     },
