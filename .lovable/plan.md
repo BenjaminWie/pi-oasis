@@ -1,34 +1,73 @@
-## Plan: Enable enhanced pump analytics (DB + integration verification)
+## Problem
 
-### 1. Database migration
-Extend `device_events_hourly` and the `aggregate_device_events()` function to store the eco-intelligence metrics Node-RED already sends.
+Pump buttons in `/pump` enqueue `plugin_manual` with `runner: "nodered"`, and the cloud API correctly serves them to Node-RED via `?runner=nodered`. The chain that's missing/broken:
 
-- `ALTER TABLE public.device_events_hourly` — add columns:
-  - `temp_avg numeric` (from `metrics.outside_temp`)
-  - `rain_sum numeric` (from `metrics.precipitation_mm`)
-  - `pv_surplus_avg numeric` (from `metrics.pv_surplus_watt`)
-  - `pumping_allowed_ratio numeric` (from `metrics.pumping_allowed` 0/1)
-- Replace `public.aggregate_device_events()` with the version that:
-  - Coalesces `watts` / `watt` so both Pi-agent and Node-RED `pump_guard` work.
-  - Computes `avg(outside_temp)`, `sum(precipitation_mm)`, `avg(pv_surplus_watt)`, `avg(pumping_allowed)`.
-  - Keeps the 7-day prune of `healthy` events.
-  - Updates the `ON CONFLICT` block to overwrite the new columns.
+1. The downloadable `nodered-template.json` defines a `link out` (`7b01cb4bfe7639ba`) that expects a matching `link in` + hardware path the user must wire themselves. If they don't have it, pump never activates.
+2. The pump UI gives no feedback when the command is enqueued but not picked up — looks "dead".
+3. Telegram only supports `/plugin <name> <command>` (clumsy). No simple `/pump on 10`.
+4. Alexa intents exist but no copy-pasteable Skill JSON + sample utterances are surfaced anywhere.
+5. DB shows no `plugin_manual` rows in 2 days → the buttons may never have made it through; we should also show errors in UI.
 
-No new tables, so no GRANT/RLS changes required.
+## Goal
 
-### 2. Verify integration with existing code
-After the migration is approved, confirm the pieces already in the repo line up:
+Start/Stop the pump from the cloud Pump page, Telegram, and Alexa — end-to-end, with feedback and a Node-RED template that actually drives the Tasmota relay.
 
-- `src/lib/control.functions.ts` → `listEventBuckets` must already select `temp_avg, rain_sum, pv_surplus_avg, pumping_allowed_ratio` (the Pump UI in `src/routes/_cloud/pump.tsx` already reads these keys). If the select list is still the old shape, widen it.
-- `src/routes/api/public/cloud-bridge/event.ts` → confirm the `watts` normalization (`metrics.watt ?? metrics.house_power → metrics.watts`) is in place so the new `watts_avg/max/min` populate from both sources.
-- `src/routes/api/public/hooks/aggregate-events.ts` cron hook → no code change; it just calls the updated RPC.
-- `public/nodered-template.json` & `docs/nodered-integration.md` → no edits, the metric keys already match (`outside_temp`, `precipitation_mm`, `pv_surplus_watt`, `pumping_allowed`).
-- Sanity-check the Pump page chart toggles (`watts / pv / temp / rain / allowed`) render with the new bucket fields.
+## Plan
 
-### 3. Out of scope
-- No frontend redesign — chart, toggles, and strategy form stay as they are.
-- No Node-RED flow changes — the user confirmed payload keys are compatible.
-- No new MCP tools or auth changes.
+### 1. Self-contained Node-RED template (drives Tasmota directly)
 
-### Technical detail
-Single migration file containing the `ALTER TABLE … ADD COLUMN IF NOT EXISTS` block and a `CREATE OR REPLACE FUNCTION public.aggregate_device_events()` matching the SQL in the user's message. After approval, read `control.functions.ts` to confirm the bucket query already returns the new columns; patch only if needed.
+Rewrite `public/nodered-template.json` so the Cloud-Bridge tab no longer relies on a user-provided `link in`. Add inside that tab:
+
+- `link in` (id `7b01cb4bfe7639ba`) → receives `{ payload: "ON"|"OFF", minutes? }` from `Execute Pump/MQTT Command`.
+- `function "Map to Tasmota cmnd"` → reads env `PUMP_MQTT_TOPIC` (default `cmnd/zisterne/POWER`) and `PUMP_MQTT_BROKER_ID`, sets `msg.topic` + `msg.payload`.
+- `trigger` (auto-OFF after `msg.delay` ms, override + extend) → sends `OFF` after `minutes`.
+- `mqtt out` configured against the existing local broker.
+- A `status` debug + a `link out` (`zisterne_pump_state`) so users can fan-out.
+
+Document `PUMP_MQTT_TOPIC` and `PUMP_MQTT_BROKER_ID` in `/integrations` envBlock and `docs/nodered-integration.md`.
+
+### 2. Pump UI feedback + diagnostics
+
+In `src/routes/_cloud/pump.tsx`:
+
+- Add `useToast` notifications on `manualMut.onSuccess`/`onError` ("Befehl gesendet — wartet auf Node-RED" / error message).
+- Add a small status strip under "Manuelle Steuerung" that shows last `plugin_manual`: `id`, `status`, age. If `status === "pending"` for >30s → amber warning: "Node-RED hat den Befehl nicht abgeholt. Token/URL in `/integrations` prüfen."
+- "Test Node-RED" button → enqueues `status` with `runner: "nodered"` and reports back the result.
+
+### 3. Simple Telegram pump commands
+
+In `src/routes/api/public/telegram/webhook.$userId.ts`, before the existing `/plugin` block add `/pump`:
+
+- `/pump on [minutes]` → enqueue `plugin_manual` `{ id: "pump", runner: "nodered", action: "on", minutes }` (default 10, cap 120).
+- `/pump off` → `{ action: "off", runner: "nodered" }`.
+- `/pump status` → enqueue `status` (existing path).
+- Map common German voice intents already extracted by the OGG transcription path (`pumpe an`, `pumpe aus`, `pumpe für 10 minuten`) to the same enqueue path.
+- Update `/help` text.
+
+### 4. Alexa: surface Skill JSON & sample utterances
+
+`src/routes/_cloud/connections.alexa.tsx`:
+
+- Add a "Interaction Model" code-block (copy button) with the JSON intents/slots for `TurnOnPumpIntent` (with `Duration` AMAZON.NUMBER slot), `TurnOffPumpIntent`, `PumpStatusIntent`, including ~10 sample utterances each ("Alexa, sage Pi Hub Pumpe an für zehn Minuten" usw.).
+- Link to https://developer.amazon.com/alexa/console/ask and to existing `/api/public/voice/alexa` endpoint + the bearer token.
+
+Verify `alexa.ts` already passes `runner: "nodered"` (it calls `pump_set` → `enqueueAndWait("plugin_manual", { runner: "nodered", ... })` — confirmed).
+
+### 5. Tiny safety net
+
+- Pump UI: if no Node-RED has polled in last 5 min (use `devices.last_seen_at` from existing query — for now use `details?.last_seen_at`), show a one-line hint card linking to `/integrations`.
+
+## Out of scope
+
+- No DB migrations.
+- No change to the polling endpoint / runner filter (works as designed).
+- No change to MCP — already correct.
+
+## Files
+
+- `public/nodered-template.json` (rewrite Cloud-Bridge tab section for pump exec)
+- `src/routes/_cloud/pump.tsx` (toast + status strip + test button + stale hint)
+- `src/routes/api/public/telegram/webhook.$userId.ts` (add `/pump` + voice mapping + help)
+- `src/routes/_cloud/connections.alexa.tsx` (Skill JSON + utterances)
+- `docs/nodered-integration.md` (PUMP_MQTT_TOPIC, PUMP_MQTT_BROKER_ID, troubleshooting)
+- `src/routes/_authenticated/integrations.tsx` (extend envBlock with pump vars)
