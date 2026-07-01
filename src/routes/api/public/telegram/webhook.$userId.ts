@@ -205,7 +205,55 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
           return jsonResponse({ ok: true });
         }
 
+        if (text.startsWith("/pump")) {
+          const parts = text.split(/\s+/);
+          const action = (parts[1] || "").toLowerCase();
+          const dev = paired[0];
+          if (!dev) {
+            await reply("Kein Gerät verknüpft.");
+            return jsonResponse({ ok: true });
+          }
+          if (action === "status") {
+            await supabaseAdmin.from("agent_commands").insert({
+              device_id: dev.id,
+              user_id: userId,
+              kind: "status",
+              source: "telegram",
+            });
+            await reply(`⏳ Pumpen-Status von *${dev.name}* angefordert…`);
+            return jsonResponse({ ok: true });
+          }
+          if (action !== "on" && action !== "off" && action !== "an" && action !== "aus") {
+            await reply("Usage: `/pump on [minuten]` · `/pump off` · `/pump status`");
+            return jsonResponse({ ok: true });
+          }
+          const isOn = action === "on" || action === "an";
+          const minutesRaw = Number(parts[2]);
+          const minutes = isOn
+            ? Math.max(1, Math.min(120, Number.isFinite(minutesRaw) ? minutesRaw : 10))
+            : undefined;
+          await supabaseAdmin.from("agent_commands").insert({
+            device_id: dev.id,
+            user_id: userId,
+            kind: "plugin_manual",
+            payload: {
+              id: "pump",
+              runner: "nodered",
+              action: isOn ? "on" : "off",
+              ...(minutes ? { minutes } : {}),
+            },
+            source: "telegram",
+          });
+          await reply(
+            isOn
+              ? `💧 Pumpe *AN* für ${minutes} min gesendet an *${dev.name}*`
+              : `⏹️ Pumpe *AUS* gesendet an *${dev.name}*`,
+          );
+          return jsonResponse({ ok: true });
+        }
+
         if (text.startsWith("/plugins")) {
+
           const allPlugins = paired.flatMap((d) =>
             ((d.last_snapshot as any)?.plugins || []).map((p: any) => ({ ...p, deviceName: d.name }))
           );
