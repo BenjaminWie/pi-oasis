@@ -425,7 +425,67 @@ function PumpPage() {
             Eco {strategy?.eco_paused ? "an" : "pausieren"}
           </button>
         </div>
+
+        {/* Diagnostics strip */}
+        {latestManual && (
+          <div
+            className={`rounded-xl border p-3 text-[11px] font-mono space-y-1 ${
+              isStuck
+                ? "border-amber-500/40 bg-amber-500/5 text-amber-500"
+                : latestManual.status === "failed"
+                  ? "border-destructive/40 bg-destructive/5 text-destructive"
+                  : "border-border bg-background text-muted-foreground"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span>
+                Letzter Befehl: {(latestManual.payload as any)?.action?.toUpperCase() ?? "?"}
+                {(latestManual.payload as any)?.minutes ? ` · ${(latestManual.payload as any).minutes}m` : ""}
+                {" · "}
+                <span className="uppercase">{latestManual.status}</span>
+              </span>
+              <span className="opacity-60">
+                {Math.max(0, Math.round(pendingAgeMs / 1000))}s
+              </span>
+            </div>
+            {isStuck && (
+              <div className="flex items-start gap-1.5">
+                <AlertTriangle size={11} className="mt-0.5 shrink-0" />
+                <span>
+                  Node-RED hat den Befehl nicht abgeholt. Prüfe Token & Poll-URL unter{" "}
+                  <Link to="/integrations" className="underline">/integrations</Link>{" "}
+                  auf dem Pi und ob der Flow deployt ist.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isOffline && (
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-500 p-3 text-[11px] font-mono flex items-start gap-1.5">
+            <AlertTriangle size={11} className="mt-0.5 shrink-0" />
+            <span>
+              Pi ist seit {Math.round((lastSeenMs || 0) / 60000)} min offline. Befehle
+              werden erst ausgeführt, wenn er wieder pollt.
+            </span>
+          </div>
+        )}
+
+        <button
+          onClick={() => testNoderedMut.mutate()}
+          disabled={testNoderedMut.isPending}
+          className="w-full rounded-xl border border-dashed border-border py-2 text-[10px] uppercase tracking-widest text-muted-foreground flex items-center justify-center gap-1.5 hover:text-foreground hover:border-primary/40"
+        >
+          {testNoderedMut.isPending ? (
+            <Loader2 size={11} className="animate-spin" />
+          ) : (
+            <RefreshCw size={11} />
+          )}
+          Test: Node-RED erreichbar?
+        </button>
       </div>
+
+
 
       {/* History chart */}
       {chartData.length > 0 && (
