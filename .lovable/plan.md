@@ -1,73 +1,67 @@
-## Problem
+## Root cause
 
-Pump buttons in `/pump` enqueue `plugin_manual` with `runner: "nodered"`, and the cloud API correctly serves them to Node-RED via `?runner=nodered`. The chain that's missing/broken:
+`public.agent_commands.kind` has a CHECK constraint that only allows
+`status | container_action | mqtt_publish | mqtt_subscribe`.
 
-1. The downloadable `nodered-template.json` defines a `link out` (`7b01cb4bfe7639ba`) that expects a matching `link in` + hardware path the user must wire themselves. If they don't have it, pump never activates.
-2. The pump UI gives no feedback when the command is enqueued but not picked up — looks "dead".
-3. Telegram only supports `/plugin <name> <command>` (clumsy). No simple `/pump on 10`.
-4. Alexa intents exist but no copy-pasteable Skill JSON + sample utterances are surfaced anywhere.
-5. DB shows no `plugin_manual` rows in 2 days → the buttons may never have made it through; we should also show errors in UI.
+Every code path that drives pump/plugins/terminal/reboot enqueues other
+kinds (`plugin_manual`, `plugin_run_planner`, `plugin_create/update/delete`,
+`plugin_get/list`, `terminal`, `system_reboot`). Postgres rejects the insert
+with `agent_commands_kind_check`, the UI shows "Befehl abgelehnt", and
+Node-RED's `?runner=nodered` poll never sees a command → pump stays off.
 
-## Goal
+The Node-RED flow you pasted is fine — it handles `plugin_manual` correctly
+and even maps the auto-off / eco-pause / reset logic. Nothing to change
+there.
 
-Start/Stop the pump from the cloud Pump page, Telegram, and Alexa — end-to-end, with feedback and a Node-RED template that actually drives the Tasmota relay.
+## Fix
 
-## Plan
+### 1. Widen the CHECK constraint (single migration)
 
-### 1. Self-contained Node-RED template (drives Tasmota directly)
+Drop and recreate `agent_commands_kind_check` to include every kind the app
+actually enqueues:
 
-Rewrite `public/nodered-template.json` so the Cloud-Bridge tab no longer relies on a user-provided `link in`. Add inside that tab:
+```
+status, container_action, mqtt_publish, mqtt_subscribe,
+terminal, system_reboot,
+plugin_list, plugin_get, plugin_create, plugin_update, plugin_delete,
+plugin_run_planner, plugin_manual, plugin_eco_pause
+```
 
-- `link in` (id `7b01cb4bfe7639ba`) → receives `{ payload: "ON"|"OFF", minutes? }` from `Execute Pump/MQTT Command`.
-- `function "Map to Tasmota cmnd"` → reads env `PUMP_MQTT_TOPIC` (default `cmnd/zisterne/POWER`) and `PUMP_MQTT_BROKER_ID`, sets `msg.topic` + `msg.payload`.
-- `trigger` (auto-OFF after `msg.delay` ms, override + extend) → sends `OFF` after `minutes`.
-- `mqtt out` configured against the existing local broker.
-- A `status` debug + a `link out` (`zisterne_pump_state`) so users can fan-out.
+`plugin_eco_pause` is included so the "Eco pausieren" button the Node-RED
+flow already listens for can be wired next without another migration.
 
-Document `PUMP_MQTT_TOPIC` and `PUMP_MQTT_BROKER_ID` in `/integrations` envBlock and `docs/nodered-integration.md`.
+### 2. Verify write path after migration
 
-### 2. Pump UI feedback + diagnostics
+- Re-run the Pump ON/OFF button from `/pump`; expect a row in
+  `agent_commands` with `kind='plugin_manual'`, `payload.runner='nodered'`,
+  `status='pending'`.
+- The `/api/public/agent/poll?runner=nodered` handler already filters by
+  `payload.runner === 'nodered'` and marks the row `delivered` — no code
+  change needed.
+- Node-RED's existing `Execute Pump/MQTT Command` function will emit
+  `cmnd/zisterne/POWER ON` + auto-off after `minutes`, and POST the result
+  back → row flips to `completed` → UI toast "Pumpe an".
 
-In `src/routes/_cloud/pump.tsx`:
+### 3. Small UX follow-up in `src/routes/_cloud/pump.tsx`
 
-- Add `useToast` notifications on `manualMut.onSuccess`/`onError` ("Befehl gesendet — wartet auf Node-RED" / error message).
-- Add a small status strip under "Manuelle Steuerung" that shows last `plugin_manual`: `id`, `status`, age. If `status === "pending"` for >30s → amber warning: "Node-RED hat den Befehl nicht abgeholt. Token/URL in `/integrations` prüfen."
-- "Test Node-RED" button → enqueues `status` with `runner: "nodered"` and reports back the result.
-
-### 3. Simple Telegram pump commands
-
-In `src/routes/api/public/telegram/webhook.$userId.ts`, before the existing `/plugin` block add `/pump`:
-
-- `/pump on [minutes]` → enqueue `plugin_manual` `{ id: "pump", runner: "nodered", action: "on", minutes }` (default 10, cap 120).
-- `/pump off` → `{ action: "off", runner: "nodered" }`.
-- `/pump status` → enqueue `status` (existing path).
-- Map common German voice intents already extracted by the OGG transcription path (`pumpe an`, `pumpe aus`, `pumpe für 10 minuten`) to the same enqueue path.
-- Update `/help` text.
-
-### 4. Alexa: surface Skill JSON & sample utterances
-
-`src/routes/_cloud/connections.alexa.tsx`:
-
-- Add a "Interaction Model" code-block (copy button) with the JSON intents/slots for `TurnOnPumpIntent` (with `Duration` AMAZON.NUMBER slot), `TurnOffPumpIntent`, `PumpStatusIntent`, including ~10 sample utterances each ("Alexa, sage Pi Hub Pumpe an für zehn Minuten" usw.).
-- Link to https://developer.amazon.com/alexa/console/ask and to existing `/api/public/voice/alexa` endpoint + the bearer token.
-
-Verify `alexa.ts` already passes `runner: "nodered"` (it calls `pump_set` → `enqueueAndWait("plugin_manual", { runner: "nodered", ... })` — confirmed).
-
-### 5. Tiny safety net
-
-- Pump UI: if no Node-RED has polled in last 5 min (use `devices.last_seen_at` from existing query — for now use `details?.last_seen_at`), show a one-line hint card linking to `/integrations`.
+The `manualMut.onError` toast currently prints the raw Postgres message.
+Surface a clearer hint when the error text contains
+`agent_commands_kind_check` (defensive, in case constraint drifts again):
+"Server lehnt diesen Befehlstyp ab — bitte Support / Migration prüfen."
+Purely cosmetic; safe to skip if you want the minimum change.
 
 ## Out of scope
 
-- No DB migrations.
-- No change to the polling endpoint / runner filter (works as designed).
-- No change to MCP — already correct.
+- No changes to Node-RED template (`public/nodered-template.json`) — the
+  user's deployed flow already matches what the cloud emits.
+- No changes to Telegram / Alexa / MCP — they all funnel through the same
+  `plugin_manual` enqueue, so they start working the moment the constraint
+  is fixed.
+- No changes to RLS / grants.
 
 ## Files
 
-- `public/nodered-template.json` (rewrite Cloud-Bridge tab section for pump exec)
-- `src/routes/_cloud/pump.tsx` (toast + status strip + test button + stale hint)
-- `src/routes/api/public/telegram/webhook.$userId.ts` (add `/pump` + voice mapping + help)
-- `src/routes/_cloud/connections.alexa.tsx` (Skill JSON + utterances)
-- `docs/nodered-integration.md` (PUMP_MQTT_TOPIC, PUMP_MQTT_BROKER_ID, troubleshooting)
-- `src/routes/_authenticated/integrations.tsx` (extend envBlock with pump vars)
+- **Migration** (`supabase--migration`): drop + recreate
+  `agent_commands_kind_check` with the widened list.
+- `src/routes/_cloud/pump.tsx`: friendlier error toast for constraint
+  violations (optional, ~5 lines).
