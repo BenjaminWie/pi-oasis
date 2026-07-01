@@ -2,8 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
-import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun, Loader2, Info } from "lucide-react";
+import { toast } from "sonner";
+import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun, Loader2, Info, AlertTriangle, RefreshCw } from "lucide-react";
 import { listDevices, enqueueCommand, getDevice } from "@/lib/cloud.functions";
+
 import {
   LineChart,
   Line,
