@@ -165,7 +165,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             })
             .eq("id", userId);
           await reply(
-            "✅ Verknüpft. Befehle: /devices /status /containers /plugins /plugin <name> <command> /mqtt pub <topic> <msg> · oder einfach Sprachnachricht",
+            "✅ Verknüpft. Pumpe: /pump on 10 · /pump off · /pump status  ·  Weitere: /devices /status /containers /plugins /mqtt · oder Sprachnachricht",
           );
           return jsonResponse({ ok: true });
         }
