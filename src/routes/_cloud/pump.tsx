@@ -370,7 +370,7 @@ function PumpPage() {
             className={`rounded-xl border py-2.5 text-xs uppercase tracking-widest flex items-center justify-center gap-1 transition-all ${
               (manualMut.isPending && manualMut.variables?.action === "off") ||
               (latestManual?.status === "pending" &&
-                latestManual.payload?.action === "off" &&
+                (latestManual.payload as any)?.action === "off" &&
                 latestManual.id === localAction?.id)
                 ? "bg-destructive/20 border-destructive text-destructive shadow-[0_0_15px_rgba(239,68,68,0.2)]"
                 : "border-border"
