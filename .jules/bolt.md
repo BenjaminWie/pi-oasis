@@ -1,0 +1,3 @@
+## 2026-07-02 - [Optimizing Recharts re-renders on Raspberry Pi]
+**Learning:** Complex pages with Recharts components and O(n) array operations (filtering/finding) are highly sensitive to high-frequency state updates. In this app, a 1-second timer used for countdowns was triggering full re-renders of the entire `/pump` dashboard, including the chart and all derived data calculations.
+**Action:** Isolate high-frequency timers into small, localized sub-components and memoize all derived data that depends on large arrays (like event logs) to ensure the heavy parts of the UI only re-render when data actually changes.
