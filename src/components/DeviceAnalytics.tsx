@@ -13,19 +13,20 @@ import { Activity, BarChart3, Sliders, AlertTriangle, Pause, Play } from "lucide
 
 type Tab = "events" | "chart" | "strategy" | "anomalies";
 
+const ANALYTICS_TABS: Array<{ id: Tab; label: string; icon: any }> = [
+  { id: "events", label: "Timeline", icon: Activity },
+  { id: "chart", label: "Verlauf", icon: BarChart3 },
+  { id: "strategy", label: "Strategie", icon: Sliders },
+  { id: "anomalies", label: "Anomalien", icon: AlertTriangle },
+];
+
 export function DeviceAnalytics({ deviceId }: { deviceId: string }) {
   const [tab, setTab] = useState<Tab>("events");
-  const tabs: Array<{ id: Tab; label: string; icon: any }> = [
-    { id: "events", label: "Timeline", icon: Activity },
-    { id: "chart", label: "Verlauf", icon: BarChart3 },
-    { id: "strategy", label: "Strategie", icon: Sliders },
-    { id: "anomalies", label: "Anomalien", icon: AlertTriangle },
-  ];
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
       <div className="flex items-center gap-1 overflow-x-auto">
-        {tabs.map((t) => (
+        {ANALYTICS_TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
@@ -77,9 +78,7 @@ function EventsTab({ deviceId }: { deviceId: string }) {
             <span className={color}>[{e.status}]</span>{" "}
             <span className="text-foreground">{e.component}</span>
             {e.device_label && <span className="text-muted-foreground">/{e.device_label}</span>}
-            {e.strategy_applied && (
-              <span className="text-primary"> ⇒ {e.strategy_applied}</span>
-            )}
+            {e.strategy_applied && <span className="text-primary"> ⇒ {e.strategy_applied}</span>}
             {e.message && <span className="text-muted-foreground"> — {e.message}</span>}
           </li>
         );
@@ -130,6 +129,16 @@ function ChartTab({ deviceId }: { deviceId: string }) {
   );
 }
 
+const STRATEGY_FIELDS: Array<{ key: string; label: string; suffix?: string }> = [
+  { key: "pv_min_w", label: "PV-Überschuss min", suffix: "W" },
+  { key: "tibber_max_ct", label: "Tibber max", suffix: "ct/kWh" },
+  { key: "heat_start_hour", label: "Hitze-Sperre ab", suffix: "h" },
+  { key: "heat_end_hour", label: "Hitze-Sperre bis", suffix: "h" },
+  { key: "run_minutes", label: "Laufzeit pro Slot", suffix: "min" },
+  { key: "max_minutes_per_day", label: "Tageslimit", suffix: "min" },
+  { key: "rain_veto_mm", label: "Regen-Veto", suffix: "mm" },
+];
+
 function StrategyTab({ deviceId }: { deviceId: string }) {
   const getFn = useServerFn(getStrategy);
   const setFn = useServerFn(upsertStrategy);
@@ -146,23 +155,17 @@ function StrategyTab({ deviceId }: { deviceId: string }) {
   const overrideMut = useMutation({
     mutationFn: (minutes: number) =>
       sendCmd({
-        data: { deviceId, kind: "terminal", payload: { command: `echo pump-override ${minutes}m` } },
+        data: {
+          deviceId,
+          kind: "terminal",
+          payload: { command: `echo pump-override ${minutes}m` },
+        },
       }),
   });
 
   const params = (data?.params as any) ?? {};
   const [form, setForm] = useState<Record<string, any>>({});
   const merged = { ...params, ...form };
-
-  const fields: Array<{ key: string; label: string; suffix?: string }> = [
-    { key: "pv_min_w", label: "PV-Überschuss min", suffix: "W" },
-    { key: "tibber_max_ct", label: "Tibber max", suffix: "ct/kWh" },
-    { key: "heat_start_hour", label: "Hitze-Sperre ab", suffix: "h" },
-    { key: "heat_end_hour", label: "Hitze-Sperre bis", suffix: "h" },
-    { key: "run_minutes", label: "Laufzeit pro Slot", suffix: "min" },
-    { key: "max_minutes_per_day", label: "Tageslimit", suffix: "min" },
-    { key: "rain_veto_mm", label: "Regen-Veto", suffix: "mm" },
-  ];
 
   return (
     <div className="space-y-3">
@@ -183,14 +186,20 @@ function StrategyTab({ deviceId }: { deviceId: string }) {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        {fields.map((f) => (
-          <label key={f.key} className="text-[10px] uppercase tracking-widest text-muted-foreground">
+        {STRATEGY_FIELDS.map((f) => (
+          <label
+            key={f.key}
+            className="text-[10px] uppercase tracking-widest text-muted-foreground"
+          >
             {f.label} {f.suffix && `(${f.suffix})`}
             <input
               type="number"
               value={merged[f.key] ?? ""}
               onChange={(e) =>
-                setForm((s) => ({ ...s, [f.key]: e.target.value === "" ? undefined : Number(e.target.value) }))
+                setForm((s) => ({
+                  ...s,
+                  [f.key]: e.target.value === "" ? undefined : Number(e.target.value),
+                }))
               }
               className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono text-foreground normal-case"
             />

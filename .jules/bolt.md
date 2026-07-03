@@ -1,0 +1,3 @@
+## 2026-07-03 - Isolate High-Frequency Updates in Complex Dashboards
+**Learning:** In complex React dashboards containing expensive components like Recharts, a high-frequency timer (e.g., 1-second interval) at the root level triggers unnecessary re-renders of the entire page. Moving this timer and its dependent logic into a small sub-component (the "Moving State Down" pattern) isolates these updates and prevents the expensive parent from re-rendering.
+**Action:** Always identify high-frequency state updates and move them into the smallest possible sub-component to protect expensive sibling components (like charts or long lists) from redundant render cycles.
