@@ -54,12 +54,15 @@ function PumpPage() {
   );
   const activeId = selected?.id;
 
+  const [eventLimit, setEventLimit] = useState(100);
   const { data: events = [] } = useQuery({
-    queryKey: ["pump-events", activeId],
-    queryFn: () => fetchEvents({ data: { deviceId: activeId, limit: 100 } }),
+    queryKey: ["pump-events", activeId, eventLimit],
+    queryFn: () => fetchEvents({ data: { deviceId: activeId, limit: eventLimit } }),
     refetchInterval: 10000,
     enabled: !!activeId,
   });
+  const reachedEnd = events.length > 0 && events.length < eventLimit;
+  const [strategyOpen, setStrategyOpen] = useState(false);
 
   const { data: buckets = [] } = useQuery({
     queryKey: ["pump-buckets", activeId],
