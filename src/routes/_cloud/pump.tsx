@@ -691,29 +691,45 @@ function PumpPage() {
         <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground px-1">
           Letzte Entscheidungen
         </h3>
-        <div className="rounded-2xl border border-border bg-card p-3 max-h-72 overflow-y-auto">
+        <div className="rounded-2xl border border-border bg-card p-3 max-h-[70vh] overflow-y-auto">
           {pumpEvents.length === 0 ? (
             <p className="text-[10px] text-muted-foreground text-center py-3">
               Noch keine Pumpen-Events. Node-RED meldet sie als pump_control, pump_guard,
               eco_intelligence, tibber_pulse oder weather_dwd.
             </p>
           ) : (
-            <ul className="space-y-1">
-              {pumpEvents.map((e: any) => (
-                <li key={e.id} className="font-mono text-[10px] leading-tight">
-                  <span className="text-muted-foreground">
-                    {new Date(e.occurred_at).toLocaleTimeString()}{" "}
-                  </span>
-                  <span className={
-                    e.status === "critical" ? "text-destructive" :
-                    e.status === "warning" ? "text-amber-500" :
-                    e.status === "info" ? "text-sky-500" : "text-primary"
-                  }>[{e.status}]</span>
-                  {e.strategy_applied && <span className="text-primary"> {e.strategy_applied}</span>}
-                  {e.message && <span className="text-muted-foreground"> — {e.message}</span>}
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="space-y-1">
+                {pumpEvents.map((e: any) => (
+                  <li key={e.id} className="font-mono text-[10px] leading-tight">
+                    <span className="text-muted-foreground">
+                      {new Date(e.occurred_at).toLocaleTimeString()}{" "}
+                    </span>
+                    <span className={
+                      e.status === "critical" ? "text-destructive" :
+                      e.status === "warning" ? "text-amber-500" :
+                      e.status === "info" ? "text-sky-500" : "text-primary"
+                    }>[{e.status}]</span>
+                    {e.strategy_applied && <span className="text-primary"> {e.strategy_applied}</span>}
+                    {e.message && <span className="text-muted-foreground"> — {e.message}</span>}
+                  </li>
+                ))}
+              </ul>
+              <div className="pt-3 mt-2 border-t border-border text-center">
+                {reachedEnd ? (
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground/60">
+                    Ende erreicht · {events.length} Events
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => setEventLimit((n) => Math.min(2000, n + 200))}
+                    className="text-[10px] uppercase tracking-widest text-primary hover:underline"
+                  >
+                    Mehr laden (+200)
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
