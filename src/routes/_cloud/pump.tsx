@@ -491,6 +491,61 @@ function PumpPage() {
 
 
 
+      {/* Strategy form (collapsible) */}
+      <Collapsible open={strategyOpen} onOpenChange={setStrategyOpen}>
+        <div className="rounded-2xl border border-border bg-card">
+          <CollapsibleTrigger className="w-full flex items-center justify-between p-4 group">
+            <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+              <Cloud size={10} /> Strategie (Cloud → Pi & Node-RED)
+            </h3>
+            <ChevronDown
+              size={14}
+              className={`text-muted-foreground transition-transform ${strategyOpen ? "rotate-180" : ""}`}
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="px-4 pb-4 space-y-3">
+            {strategy?.eco_paused ? (
+              <div className="py-8 text-center border border-dashed border-border rounded-xl bg-muted/20">
+                <p className="text-[10px] text-muted-foreground italic px-6">
+                  Strategie ist pausiert. Die Werte sind ausgeblendet. Aktiviere "Eco", um Einstellungen zu sehen und anzupassen.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  {fields.map((f) => (
+                    <label
+                      key={f.key}
+                      className="text-[9px] uppercase tracking-widest text-muted-foreground"
+                    >
+                      {f.label} {f.suffix && `(${f.suffix})`}
+                      <input
+                        type="number"
+                        value={merged[f.key] ?? ""}
+                        onChange={(e) =>
+                          setForm((s) => ({
+                            ...s,
+                            [f.key]: e.target.value === "" ? undefined : Number(e.target.value),
+                          }))
+                        }
+                        className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono normal-case"
+                      />
+                    </label>
+                  ))}
+                </div>
+                <button
+                  disabled={!dirty || saveMut.isPending}
+                  onClick={() => saveMut.mutate({ params: { ...params, ...form } })}
+                  className="w-full rounded-lg bg-primary text-primary-foreground py-2 text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-1"
+                >
+                  <Save size={12} /> Speichern
+                </button>
+              </>
+            )}
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
+
       {/* History chart */}
       {chartData.length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
@@ -614,51 +669,6 @@ function PumpPage() {
           </div>
         </div>
       )}
-
-      {/* Strategy form */}
-      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-        <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-          <Cloud size={10} /> Strategie (Cloud → Pi & Node-RED)
-        </h3>
-        {strategy?.eco_paused ? (
-          <div className="py-8 text-center border border-dashed border-border rounded-xl bg-muted/20">
-            <p className="text-[10px] text-muted-foreground italic px-6">
-              Strategie ist pausiert. Die Werte sind ausgeblendet. Aktiviere "Eco", um Einstellungen zu sehen und anzupassen.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-2">
-              {fields.map((f) => (
-                <label
-                  key={f.key}
-                  className="text-[9px] uppercase tracking-widest text-muted-foreground"
-                >
-                  {f.label} {f.suffix && `(${f.suffix})`}
-                  <input
-                    type="number"
-                    value={merged[f.key] ?? ""}
-                    onChange={(e) =>
-                      setForm((s) => ({
-                        ...s,
-                        [f.key]: e.target.value === "" ? undefined : Number(e.target.value),
-                      }))
-                    }
-                    className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono normal-case"
-                  />
-                </label>
-              ))}
-            </div>
-            <button
-              disabled={!dirty || saveMut.isPending}
-              onClick={() => saveMut.mutate({ params: { ...params, ...form } })}
-              className="w-full rounded-lg bg-primary text-primary-foreground py-2 text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-1"
-            >
-              <Save size={12} /> Speichern
-            </button>
-          </>
-        )}
-      </div>
 
       {/* Debug & Status */}
       <div className="px-1 flex items-center justify-between opacity-50 grayscale hover:grayscale-0 transition-all">
