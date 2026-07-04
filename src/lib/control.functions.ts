@@ -8,7 +8,7 @@ export const listDeviceEvents = createServerFn({ method: "GET" })
   .inputValidator(
     z.object({
       deviceId: z.string().uuid(),
-      limit: z.number().int().min(1).max(500).default(100),
+      limit: z.number().int().min(1).max(2000).default(100),
       component: z.string().optional(),
       status: z.string().optional(),
       sinceIso: z.string().datetime().optional(),

@@ -1,67 +1,46 @@
-## Root cause
 
-`public.agent_commands.kind` has a CHECK constraint that only allows
-`status | container_action | mqtt_publish | mqtt_subscribe`.
+## Analyse (aus den Daten in der Cloud)
 
-Every code path that drives pump/plugins/terminal/reboot enqueues other
-kinds (`plugin_manual`, `plugin_run_planner`, `plugin_create/update/delete`,
-`plugin_get/list`, `terminal`, `system_reboot`). Postgres rejects the insert
-with `agent_commands_kind_check`, the UI shows "Befehl abgelehnt", and
-Node-RED's `?runner=nodered` poll never sees a command → pump stays off.
+**Pumpen-Leistung real gemessen (pump_guard-Events):**
+- 04.07.: Ø 513 W, max 527 W (4 Samples, 3 Zyklen à 10 min)
+- 03.07.: Ø 516 W, max 520 W (3 Zyklen)
+- 02.07.: Ø 511 W, max 521 W (3 Zyklen)
+- 01.07.: Ø 509 W, max 517 W (manuelle Kurzläufe)
 
-The Node-RED flow you pasted is fine — it handles `plugin_manual` correctly
-and even maps the auto-off / eco-pause / reset logic. Nothing to change
-there.
+Die "600 W" in den `pump_control`-Events sind der geplante Sollwert (nicht Messung). Der Pulse misst real ~510 W.
 
-## Fix
+**Warum du das im Tibber-Chart (6h) kaum siehst:**
+- Deine 3 Zyklen heute liefen **08:52–09:02, 09:17–09:27, 09:32–09:42** — der 6-Std.-Chart beginnt aber erst ~09:20. Nur die letzten 1½ Zyklen fallen ins Fenster.
+- Ohne Pumpe exportierst du gerade ~-500 W. Wenn die Pumpe 510 W zieht, wird der Export auf ~0 W gedrückt (Peaks nach oben, aber selten positiv). Die drei Spitzen zwischen 11:00–11:30 im Tibber-Chart passen dazu — kein sichtbarer +600-W-Peak, weil die PV den Verbrauch fast komplett deckt.
+- Der Pulse aggregiert im 6-Std.-Fenster; kurze 10-min-Läufe werden geglättet. In der **5-min-Ansicht** sind sie deutlicher zu sehen.
 
-### 1. Widen the CHECK constraint (single migration)
+**Fazit:** Die Pumpe läuft korrekt (~30 min/Tag, ~510 W), du "siehst" sie stromseitig kaum, weil PV alles auffängt — genau das Ziel der Eco-Automatik.
 
-Drop and recreate `agent_commands_kind_check` to include every kind the app
-actually enqueues:
+---
 
-```
-status, container_action, mqtt_publish, mqtt_subscribe,
-terminal, system_reboot,
-plugin_list, plugin_get, plugin_create, plugin_update, plugin_delete,
-plugin_run_planner, plugin_manual, plugin_eco_pause
-```
+## UI-Änderungen (nur Frontend, `src/routes/_cloud/pump.tsx`)
 
-`plugin_eco_pause` is included so the "Eco pausieren" button the Node-RED
-flow already listens for can be wired next without another migration.
+1. **Strategie einklappbar**
+   - Karte "Strategie (Cloud → Pi & Node-RED)" in einen `Collapsible` verpacken (Trigger als Karten-Header mit Chevron).
+   - Standard: **eingeklappt**. State merken pro Session.
+   - Bei `eco_paused` weiterhin Hinweistext beim Aufklappen.
 
-### 2. Verify write path after migration
+2. **Reihenfolge auf der Seite** (damit oben Steuerung, unten Verlauf sichtbar bleibt)
+   - Live-Karte (unverändert)
+   - Manuelle Steuerung (Start / Stopp / Eco-Pause)
+   - Diagnose-Strip + Test-Button (unverändert)
+   - **Strategie (collapsible, default zu)** ← verschoben nach oben
+   - History-Chart (48h)
+   - Debug-Zeile
+   - **Letzte Entscheidungen (endlos scrollbar)**
 
-- Re-run the Pump ON/OFF button from `/pump`; expect a row in
-  `agent_commands` with `kind='plugin_manual'`, `payload.runner='nodered'`,
-  `status='pending'`.
-- The `/api/public/agent/poll?runner=nodered` handler already filters by
-  `payload.runner === 'nodered'` and marks the row `delivered` — no code
-  change needed.
-- Node-RED's existing `Execute Pump/MQTT Command` function will emit
-  `cmnd/zisterne/POWER ON` + auto-off after `minutes`, and POST the result
-  back → row flips to `completed` → UI toast "Pumpe an".
+3. **Endlos-Scroll für "Letzte Entscheidungen"**
+   - Query-Limit von 100 → dynamisch (Start 100, Button "Mehr laden" +200, bis 1000).
+   - Cap `max-h-72` entfernen, stattdessen natürliche Höhe + eigener Scroll-Container mit `max-h-[70vh]` und "Ende erreicht"-Hinweis wenn keine weiteren Events mehr kommen.
+   - Query-Key um `limit` erweitern, `listDeviceEvents` unterstützt bereits `limit` bis 500 — Backend erhöhen wir auf 2000 (nur Zod max ändern in `src/lib/control.functions.ts`, kein Logikwechsel).
 
-### 3. Small UX follow-up in `src/routes/_cloud/pump.tsx`
+### Betroffene Dateien
+- `src/routes/_cloud/pump.tsx` (Layout, Collapsible, Pagination-Button)
+- `src/lib/control.functions.ts` (Zod max 500 → 2000)
 
-The `manualMut.onError` toast currently prints the raw Postgres message.
-Surface a clearer hint when the error text contains
-`agent_commands_kind_check` (defensive, in case constraint drifts again):
-"Server lehnt diesen Befehlstyp ab — bitte Support / Migration prüfen."
-Purely cosmetic; safe to skip if you want the minimum change.
-
-## Out of scope
-
-- No changes to Node-RED template (`public/nodered-template.json`) — the
-  user's deployed flow already matches what the cloud emits.
-- No changes to Telegram / Alexa / MCP — they all funnel through the same
-  `plugin_manual` enqueue, so they start working the moment the constraint
-  is fixed.
-- No changes to RLS / grants.
-
-## Files
-
-- **Migration** (`supabase--migration`): drop + recreate
-  `agent_commands_kind_check` with the widened list.
-- `src/routes/_cloud/pump.tsx`: friendlier error toast for constraint
-  violations (optional, ~5 lines).
+Keine Datenbank- oder Node-RED-Änderungen nötig.

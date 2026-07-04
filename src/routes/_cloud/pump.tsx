@@ -3,7 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun, Loader2, Info, AlertTriangle, RefreshCw } from "lucide-react";
+import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun, Loader2, Info, AlertTriangle, RefreshCw, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { listDevices, enqueueCommand, getDevice } from "@/lib/cloud.functions";
 
 import {
@@ -53,12 +54,15 @@ function PumpPage() {
   );
   const activeId = selected?.id;
 
+  const [eventLimit, setEventLimit] = useState(100);
   const { data: events = [] } = useQuery({
-    queryKey: ["pump-events", activeId],
-    queryFn: () => fetchEvents({ data: { deviceId: activeId, limit: 100 } }),
+    queryKey: ["pump-events", activeId, eventLimit],
+    queryFn: () => fetchEvents({ data: { deviceId: activeId, limit: eventLimit } }),
     refetchInterval: 10000,
     enabled: !!activeId,
   });
+  const reachedEnd = events.length > 0 && events.length < eventLimit;
+  const [strategyOpen, setStrategyOpen] = useState(false);
 
   const { data: buckets = [] } = useQuery({
     queryKey: ["pump-buckets", activeId],
@@ -487,6 +491,61 @@ function PumpPage() {
 
 
 
+      {/* Strategy form (collapsible) */}
+      <Collapsible open={strategyOpen} onOpenChange={setStrategyOpen}>
+        <div className="rounded-2xl border border-border bg-card">
+          <CollapsibleTrigger className="w-full flex items-center justify-between p-4 group">
+            <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+              <Cloud size={10} /> Strategie (Cloud → Pi & Node-RED)
+            </h3>
+            <ChevronDown
+              size={14}
+              className={`text-muted-foreground transition-transform ${strategyOpen ? "rotate-180" : ""}`}
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="px-4 pb-4 space-y-3">
+            {strategy?.eco_paused ? (
+              <div className="py-8 text-center border border-dashed border-border rounded-xl bg-muted/20">
+                <p className="text-[10px] text-muted-foreground italic px-6">
+                  Strategie ist pausiert. Die Werte sind ausgeblendet. Aktiviere "Eco", um Einstellungen zu sehen und anzupassen.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  {fields.map((f) => (
+                    <label
+                      key={f.key}
+                      className="text-[9px] uppercase tracking-widest text-muted-foreground"
+                    >
+                      {f.label} {f.suffix && `(${f.suffix})`}
+                      <input
+                        type="number"
+                        value={merged[f.key] ?? ""}
+                        onChange={(e) =>
+                          setForm((s) => ({
+                            ...s,
+                            [f.key]: e.target.value === "" ? undefined : Number(e.target.value),
+                          }))
+                        }
+                        className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono normal-case"
+                      />
+                    </label>
+                  ))}
+                </div>
+                <button
+                  disabled={!dirty || saveMut.isPending}
+                  onClick={() => saveMut.mutate({ params: { ...params, ...form } })}
+                  className="w-full rounded-lg bg-primary text-primary-foreground py-2 text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-1"
+                >
+                  <Save size={12} /> Speichern
+                </button>
+              </>
+            )}
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
+
       {/* History chart */}
       {chartData.length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
@@ -611,51 +670,6 @@ function PumpPage() {
         </div>
       )}
 
-      {/* Strategy form */}
-      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-        <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-          <Cloud size={10} /> Strategie (Cloud → Pi & Node-RED)
-        </h3>
-        {strategy?.eco_paused ? (
-          <div className="py-8 text-center border border-dashed border-border rounded-xl bg-muted/20">
-            <p className="text-[10px] text-muted-foreground italic px-6">
-              Strategie ist pausiert. Die Werte sind ausgeblendet. Aktiviere "Eco", um Einstellungen zu sehen und anzupassen.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-2">
-              {fields.map((f) => (
-                <label
-                  key={f.key}
-                  className="text-[9px] uppercase tracking-widest text-muted-foreground"
-                >
-                  {f.label} {f.suffix && `(${f.suffix})`}
-                  <input
-                    type="number"
-                    value={merged[f.key] ?? ""}
-                    onChange={(e) =>
-                      setForm((s) => ({
-                        ...s,
-                        [f.key]: e.target.value === "" ? undefined : Number(e.target.value),
-                      }))
-                    }
-                    className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono normal-case"
-                  />
-                </label>
-              ))}
-            </div>
-            <button
-              disabled={!dirty || saveMut.isPending}
-              onClick={() => saveMut.mutate({ params: { ...params, ...form } })}
-              className="w-full rounded-lg bg-primary text-primary-foreground py-2 text-xs uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-1"
-            >
-              <Save size={12} /> Speichern
-            </button>
-          </>
-        )}
-      </div>
-
       {/* Debug & Status */}
       <div className="px-1 flex items-center justify-between opacity-50 grayscale hover:grayscale-0 transition-all">
         <div className="flex items-center gap-1.5 text-[9px] font-mono text-muted-foreground">
@@ -677,29 +691,45 @@ function PumpPage() {
         <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground px-1">
           Letzte Entscheidungen
         </h3>
-        <div className="rounded-2xl border border-border bg-card p-3 max-h-72 overflow-y-auto">
+        <div className="rounded-2xl border border-border bg-card p-3 max-h-[70vh] overflow-y-auto">
           {pumpEvents.length === 0 ? (
             <p className="text-[10px] text-muted-foreground text-center py-3">
               Noch keine Pumpen-Events. Node-RED meldet sie als pump_control, pump_guard,
               eco_intelligence, tibber_pulse oder weather_dwd.
             </p>
           ) : (
-            <ul className="space-y-1">
-              {pumpEvents.map((e: any) => (
-                <li key={e.id} className="font-mono text-[10px] leading-tight">
-                  <span className="text-muted-foreground">
-                    {new Date(e.occurred_at).toLocaleTimeString()}{" "}
-                  </span>
-                  <span className={
-                    e.status === "critical" ? "text-destructive" :
-                    e.status === "warning" ? "text-amber-500" :
-                    e.status === "info" ? "text-sky-500" : "text-primary"
-                  }>[{e.status}]</span>
-                  {e.strategy_applied && <span className="text-primary"> {e.strategy_applied}</span>}
-                  {e.message && <span className="text-muted-foreground"> — {e.message}</span>}
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="space-y-1">
+                {pumpEvents.map((e: any) => (
+                  <li key={e.id} className="font-mono text-[10px] leading-tight">
+                    <span className="text-muted-foreground">
+                      {new Date(e.occurred_at).toLocaleTimeString()}{" "}
+                    </span>
+                    <span className={
+                      e.status === "critical" ? "text-destructive" :
+                      e.status === "warning" ? "text-amber-500" :
+                      e.status === "info" ? "text-sky-500" : "text-primary"
+                    }>[{e.status}]</span>
+                    {e.strategy_applied && <span className="text-primary"> {e.strategy_applied}</span>}
+                    {e.message && <span className="text-muted-foreground"> — {e.message}</span>}
+                  </li>
+                ))}
+              </ul>
+              <div className="pt-3 mt-2 border-t border-border text-center">
+                {reachedEnd ? (
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground/60">
+                    Ende erreicht · {events.length} Events
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => setEventLimit((n) => Math.min(2000, n + 200))}
+                    className="text-[10px] uppercase tracking-widest text-primary hover:underline"
+                  >
+                    Mehr laden (+200)
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
