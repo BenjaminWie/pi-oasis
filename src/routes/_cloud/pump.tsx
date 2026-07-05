@@ -30,6 +30,202 @@ export const Route = createFileRoute("/_cloud/pump")({
   component: PumpPage,
 });
 
+const PUMP_STRATEGY_FIELDS: Array<{ key: string; label: string; suffix?: string }> = [
+  { key: "pv_min_w", label: "PV-Überschuss min", suffix: "W" },
+  { key: "tibber_max_ct", label: "Tibber max", suffix: "ct/kWh" },
+  { key: "heat_start_hour", label: "Hitze-Sperre ab", suffix: "h" },
+  { key: "heat_end_hour", label: "Hitze-Sperre bis", suffix: "h" },
+  { key: "run_minutes", label: "Laufzeit/Slot", suffix: "min" },
+  { key: "max_minutes_per_day", label: "Tageslimit", suffix: "min" },
+  { key: "rain_veto_mm", label: "Regen-Veto", suffix: "mm" },
+];
+
+function ManualControl({
+  activeId,
+  manualMut,
+  latestManual,
+  localAction,
+  setLocalAction,
+  strategy,
+  saveMut,
+  testNoderedMut,
+  details,
+}: {
+  activeId: string;
+  manualMut: any;
+  latestManual: any;
+  localAction: any;
+  setLocalAction: (v: any) => void;
+  strategy: any;
+  saveMut: any;
+  testNoderedMut: any;
+  details: any;
+}) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const activeMinutes = useMemo(() => {
+    if (localAction?.action === "on" && localAction.expiresAt && localAction.expiresAt > now) {
+      return localAction.minutes;
+    }
+    const mp: any = latestManual?.payload;
+    if (
+      mp?.action === "on" &&
+      (latestManual?.status === "done" || latestManual?.status === "delivered")
+    ) {
+      const mins = mp?.minutes || 10;
+      const completedAt =
+        latestManual?.completed_at || (latestManual as any)?.delivered_at || latestManual?.created_at;
+      const startTime = new Date(completedAt).getTime();
+      if (now < startTime + mins * 60 * 1000) {
+        return mins;
+      }
+    }
+    return null;
+  }, [localAction, latestManual, now]);
+
+  const pendingAgeMs =
+    latestManual && latestManual.status === "pending"
+      ? now - new Date(latestManual.created_at).getTime()
+      : 0;
+  const isStuck = pendingAgeMs > 30_000;
+  const lastSeenMs = (details as any)?.device?.last_seen_at
+    ? now - new Date((details as any).device.last_seen_at).getTime()
+    : null;
+  const isOffline = lastSeenMs != null && lastSeenMs > 5 * 60_000;
+
+  return (
+    <div className="space-y-2">
+      <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground px-1">
+        Manuelle Steuerung
+      </h3>
+      <div className="grid grid-cols-3 gap-2">
+        {[5, 10, 30].map((m) => {
+          const isActive = activeMinutes === m;
+          const isPending =
+            (manualMut.isPending && manualMut.variables?.minutes === m) ||
+            (latestManual?.status === "pending" &&
+              latestManual.id === localAction?.id &&
+              localAction?.minutes === m);
+
+          return (
+            <button
+              key={m}
+              onClick={() => manualMut.mutate({ action: "on", minutes: m })}
+              disabled={manualMut.isPending}
+              className={`rounded-xl border py-3 text-xs uppercase tracking-widest flex flex-col items-center gap-1 active:scale-95 transition-all ${
+                isActive
+                  ? "bg-green-500/20 border-green-500 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
+                  : isPending
+                    ? "bg-amber-500/10 border-amber-500/50 text-amber-500"
+                    : "border-primary/30 bg-primary/5 text-primary"
+              }`}
+            >
+              {isPending ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Play size={14} className={isActive ? "fill-green-500/30" : ""} />
+              )}
+              {m}m
+            </button>
+          );
+        })}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => manualMut.mutate({ action: "off" })}
+          disabled={manualMut.isPending}
+          className={`rounded-xl border py-2.5 text-xs uppercase tracking-widest flex items-center justify-center gap-1 transition-all ${
+            (manualMut.isPending && manualMut.variables?.action === "off") ||
+            (latestManual?.status === "pending" &&
+              (latestManual.payload as any)?.action === "off" &&
+              latestManual.id === localAction?.id)
+              ? "bg-destructive/20 border-destructive text-destructive shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+              : "border-border"
+          }`}
+        >
+          {manualMut.isPending && manualMut.variables?.action === "off" ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <Power size={12} />
+          )}
+          Stopp
+        </button>
+        <button
+          onClick={() => saveMut.mutate({ ecoPaused: !strategy?.eco_paused })}
+          className="rounded-xl border border-border py-2.5 text-xs uppercase tracking-widest flex items-center justify-center gap-1"
+        >
+          {strategy?.eco_paused ? <Play size={12} /> : <Pause size={12} />}
+          Eco {strategy?.eco_paused ? "an" : "pausieren"}
+        </button>
+      </div>
+
+      {/* Diagnostics strip */}
+      {latestManual && (
+        <div
+          className={`rounded-xl border p-3 text-[11px] font-mono space-y-1 ${
+            isStuck
+              ? "border-amber-500/40 bg-amber-500/5 text-amber-500"
+              : latestManual.status === "failed"
+                ? "border-destructive/40 bg-destructive/5 text-destructive"
+                : "border-border bg-background text-muted-foreground"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span>
+              Letzter Befehl: {(latestManual.payload as any)?.action?.toUpperCase() ?? "?"}
+              {(latestManual.payload as any)?.minutes
+                ? ` · ${(latestManual.payload as any).minutes}m`
+                : ""}
+              {" · "}
+              <span className="uppercase">{latestManual.status}</span>
+            </span>
+            <span className="opacity-60">{Math.max(0, Math.round(pendingAgeMs / 1000))}s</span>
+          </div>
+          {isStuck && (
+            <div className="flex items-start gap-1.5">
+              <AlertTriangle size={11} className="mt-0.5 shrink-0" />
+              <span>
+                Node-RED hat den Befehl nicht abgeholt. Prüfe Token & Poll-URL unter{" "}
+                <Link to="/integrations" className="underline">
+                  /integrations
+                </Link>{" "}
+                auf dem Pi und ob der Flow deployt ist.
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isOffline && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-500 p-3 text-[11px] font-mono flex items-start gap-1.5">
+          <AlertTriangle size={11} className="mt-0.5 shrink-0" />
+          <span>
+            Pi ist seit {Math.round((lastSeenMs || 0) / 60000)} min offline. Befehle werden erst
+            ausgeführt, wenn er wieder pollt.
+          </span>
+        </div>
+      )}
+
+      <button
+        onClick={() => testNoderedMut.mutate()}
+        disabled={testNoderedMut.isPending}
+        className="w-full rounded-xl border border-dashed border-border py-2 text-[10px] uppercase tracking-widest text-muted-foreground flex items-center justify-center gap-1.5 hover:text-foreground hover:border-primary/40"
+      >
+        {testNoderedMut.isPending ? (
+          <Loader2 size={11} className="animate-spin" />
+        ) : (
+          <RefreshCw size={11} />
+        )}
+        Test: Node-RED erreichbar?
+      </button>
+    </div>
+  );
+}
+
 function PumpPage() {
   const fetchDevices = useServerFn(listDevices);
   const fetchDeviceDetails = useServerFn(getDevice);
@@ -83,12 +279,6 @@ function PumpPage() {
     refetchInterval: 5000,
   });
 
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   const [localAction, setLocalAction] = useState<{
     id?: string;
     action: "on" | "off";
@@ -112,26 +302,6 @@ function PumpPage() {
       }
     }
   }, [latestManual, localAction?.id]);
-
-  const activeMinutes = useMemo(() => {
-    if (localAction?.action === "on" && localAction.expiresAt && localAction.expiresAt > now) {
-      return localAction.minutes;
-    }
-    const mp: any = latestManual?.payload;
-    if (
-      mp?.action === "on" &&
-      (latestManual?.status === "done" || latestManual?.status === "delivered")
-    ) {
-      const mins = mp?.minutes || 10;
-      const completedAt = latestManual?.completed_at || (latestManual as any)?.delivered_at || latestManual?.created_at;
-      const startTime = new Date(completedAt).getTime();
-      if (now < startTime + mins * 60 * 1000) {
-        return mins;
-      }
-    }
-    return null;
-  }, [localAction, latestManual, now]);
-
 
   const params = (strategy?.params as any) ?? {};
   const [form, setForm] = useState<Record<string, any>>({});
@@ -188,17 +358,6 @@ function PumpPage() {
     onError: (err: any) => toast.error(`Test fehlgeschlagen: ${err?.message}`),
   });
 
-  // Diagnose: is the latest plugin_manual stuck in "pending" for >30s?
-  const pendingAgeMs = latestManual && latestManual.status === "pending"
-    ? Date.now() - new Date(latestManual.created_at).getTime()
-    : 0;
-  const isStuck = pendingAgeMs > 30_000;
-  const lastSeenMs = (details as any)?.device?.last_seen_at
-    ? Date.now() - new Date((details as any).device.last_seen_at).getTime()
-    : null;
-  const isOffline = lastSeenMs != null && lastSeenMs > 5 * 60_000;
-
-
   const [visibleMetrics, setVisibleMetrics] = useState<Record<string, boolean>>({
     watts: true,
     temp: true,
@@ -230,39 +389,40 @@ function PumpPage() {
       .slice(-48);
   }, [buckets]);
 
-  const pumpEvents = (events as any[]).filter((e) =>
-    ["pump_control", "pump_guard", "eco_intelligence", "tibber_pulse", "weather_dwd"].includes(
-      e.component,
-    ),
+  const pumpEvents = useMemo(
+    () =>
+      (events as any[]).filter((e) =>
+        ["pump_control", "pump_guard", "eco_intelligence", "tibber_pulse", "weather_dwd"].includes(
+          e.component,
+        ),
+      ),
+    [events],
   );
-  const lastWattEvent = pumpEvents.find((e) => {
-    const metrics = (e.metrics as any) ?? {};
-    return metrics.watts != null || metrics.watt != null || metrics.house_power != null;
-  });
-  const lastWatts = (() => {
+
+  const lastWattEvent = useMemo(
+    () =>
+      pumpEvents.find((e) => {
+        const metrics = (e.metrics as any) ?? {};
+        return metrics.watts != null || metrics.watt != null || metrics.house_power != null;
+      }),
+    [pumpEvents],
+  );
+
+  const lastWatts = useMemo(() => {
     const metrics = (lastWattEvent?.metrics as any) ?? {};
     return metrics.watts ?? metrics.watt ?? metrics.house_power;
-  })();
-  const lastDecision = pumpEvents[0] ?? events[0];
+  }, [lastWattEvent]);
+
+  const lastDecision = useMemo(() => pumpEvents[0] ?? events[0], [pumpEvents, events]);
 
   const latestMetric = (key: string) => {
     const ev = pumpEvents.find((e) => (e.metrics as any)?.[key] !== undefined);
     return (ev?.metrics as any)?.[key];
   };
 
-  const curTemp = latestMetric("outside_temp");
-  const curRain = latestMetric("precipitation_mm");
-  const curPv = latestMetric("pv_surplus_watt");
-
-  const fields: Array<{ key: string; label: string; suffix?: string }> = [
-    { key: "pv_min_w", label: "PV-Überschuss min", suffix: "W" },
-    { key: "tibber_max_ct", label: "Tibber max", suffix: "ct/kWh" },
-    { key: "heat_start_hour", label: "Hitze-Sperre ab", suffix: "h" },
-    { key: "heat_end_hour", label: "Hitze-Sperre bis", suffix: "h" },
-    { key: "run_minutes", label: "Laufzeit/Slot", suffix: "min" },
-    { key: "max_minutes_per_day", label: "Tageslimit", suffix: "min" },
-    { key: "rain_veto_mm", label: "Regen-Veto", suffix: "mm" },
-  ];
+  const curTemp = useMemo(() => latestMetric("outside_temp"), [pumpEvents]);
+  const curRain = useMemo(() => latestMetric("precipitation_mm"), [pumpEvents]);
+  const curPv = useMemo(() => latestMetric("pv_surplus_watt"), [pumpEvents]);
 
   if (paired.length === 0) {
     return (
@@ -297,7 +457,9 @@ function PumpPage() {
           className="w-full rounded-lg bg-background border border-border px-3 py-2 font-mono text-sm"
         >
           {paired.map((d: any) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
           ))}
         </select>
       )}
@@ -364,132 +526,17 @@ function PumpPage() {
         )}
       </div>
 
-      {/* Manual control */}
-      <div className="space-y-2">
-        <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground px-1">
-          Manuelle Steuerung
-        </h3>
-        <div className="grid grid-cols-3 gap-2">
-          {[5, 10, 30].map((m) => {
-            const isActive = activeMinutes === m;
-            const isPending =
-              (manualMut.isPending && manualMut.variables?.minutes === m) ||
-              (latestManual?.status === "pending" &&
-                latestManual.id === localAction?.id &&
-                localAction?.minutes === m);
-
-            return (
-              <button
-                key={m}
-                onClick={() => manualMut.mutate({ action: "on", minutes: m })}
-                disabled={manualMut.isPending}
-                className={`rounded-xl border py-3 text-xs uppercase tracking-widest flex flex-col items-center gap-1 active:scale-95 transition-all ${
-                  isActive
-                    ? "bg-green-500/20 border-green-500 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
-                    : isPending
-                      ? "bg-amber-500/10 border-amber-500/50 text-amber-500"
-                      : "border-primary/30 bg-primary/5 text-primary"
-                }`}
-              >
-                {isPending ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Play size={14} className={isActive ? "fill-green-500/30" : ""} />
-                )}
-                {m}m
-              </button>
-            );
-          })}
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => manualMut.mutate({ action: "off" })}
-            disabled={manualMut.isPending}
-            className={`rounded-xl border py-2.5 text-xs uppercase tracking-widest flex items-center justify-center gap-1 transition-all ${
-              (manualMut.isPending && manualMut.variables?.action === "off") ||
-              (latestManual?.status === "pending" &&
-                (latestManual.payload as any)?.action === "off" &&
-                latestManual.id === localAction?.id)
-                ? "bg-destructive/20 border-destructive text-destructive shadow-[0_0_15px_rgba(239,68,68,0.2)]"
-                : "border-border"
-            }`}
-          >
-            {manualMut.isPending && manualMut.variables?.action === "off" ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <Power size={12} />
-            )}
-            Stopp
-          </button>
-          <button
-            onClick={() => saveMut.mutate({ ecoPaused: !strategy?.eco_paused })}
-            className="rounded-xl border border-border py-2.5 text-xs uppercase tracking-widest flex items-center justify-center gap-1"
-          >
-            {strategy?.eco_paused ? <Play size={12} /> : <Pause size={12} />}
-            Eco {strategy?.eco_paused ? "an" : "pausieren"}
-          </button>
-        </div>
-
-        {/* Diagnostics strip */}
-        {latestManual && (
-          <div
-            className={`rounded-xl border p-3 text-[11px] font-mono space-y-1 ${
-              isStuck
-                ? "border-amber-500/40 bg-amber-500/5 text-amber-500"
-                : latestManual.status === "failed"
-                  ? "border-destructive/40 bg-destructive/5 text-destructive"
-                  : "border-border bg-background text-muted-foreground"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span>
-                Letzter Befehl: {(latestManual.payload as any)?.action?.toUpperCase() ?? "?"}
-                {(latestManual.payload as any)?.minutes ? ` · ${(latestManual.payload as any).minutes}m` : ""}
-                {" · "}
-                <span className="uppercase">{latestManual.status}</span>
-              </span>
-              <span className="opacity-60">
-                {Math.max(0, Math.round(pendingAgeMs / 1000))}s
-              </span>
-            </div>
-            {isStuck && (
-              <div className="flex items-start gap-1.5">
-                <AlertTriangle size={11} className="mt-0.5 shrink-0" />
-                <span>
-                  Node-RED hat den Befehl nicht abgeholt. Prüfe Token & Poll-URL unter{" "}
-                  <Link to="/integrations" className="underline">/integrations</Link>{" "}
-                  auf dem Pi und ob der Flow deployt ist.
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {isOffline && (
-          <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-500 p-3 text-[11px] font-mono flex items-start gap-1.5">
-            <AlertTriangle size={11} className="mt-0.5 shrink-0" />
-            <span>
-              Pi ist seit {Math.round((lastSeenMs || 0) / 60000)} min offline. Befehle
-              werden erst ausgeführt, wenn er wieder pollt.
-            </span>
-          </div>
-        )}
-
-        <button
-          onClick={() => testNoderedMut.mutate()}
-          disabled={testNoderedMut.isPending}
-          className="w-full rounded-xl border border-dashed border-border py-2 text-[10px] uppercase tracking-widest text-muted-foreground flex items-center justify-center gap-1.5 hover:text-foreground hover:border-primary/40"
-        >
-          {testNoderedMut.isPending ? (
-            <Loader2 size={11} className="animate-spin" />
-          ) : (
-            <RefreshCw size={11} />
-          )}
-          Test: Node-RED erreichbar?
-        </button>
-      </div>
-
-
+      <ManualControl
+        activeId={activeId}
+        manualMut={manualMut}
+        latestManual={latestManual}
+        localAction={localAction}
+        setLocalAction={setLocalAction}
+        strategy={strategy}
+        saveMut={saveMut}
+        testNoderedMut={testNoderedMut}
+        details={details}
+      />
 
       {/* Strategy form (collapsible) */}
       <Collapsible open={strategyOpen} onOpenChange={setStrategyOpen}>
@@ -507,13 +554,14 @@ function PumpPage() {
             {strategy?.eco_paused ? (
               <div className="py-8 text-center border border-dashed border-border rounded-xl bg-muted/20">
                 <p className="text-[10px] text-muted-foreground italic px-6">
-                  Strategie ist pausiert. Die Werte sind ausgeblendet. Aktiviere "Eco", um Einstellungen zu sehen und anzupassen.
+                  Strategie ist pausiert. Die Werte sind ausgeblendet. Aktiviere "Eco", um
+                  Einstellungen zu sehen und anzupassen.
                 </p>
               </div>
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-2">
-                  {fields.map((f) => (
+                  {PUMP_STRATEGY_FIELDS.map((f) => (
                     <label
                       key={f.key}
                       className="text-[9px] uppercase tracking-widest text-muted-foreground"
@@ -580,7 +628,11 @@ function PumpPage() {
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="rgba(255,255,255,0.05)"
+                />
                 <XAxis
                   dataKey="t"
                   fontSize={9}
@@ -589,12 +641,23 @@ function PumpPage() {
                   interval="preserveStartEnd"
                 />
                 <YAxis yAxisId="left" fontSize={9} tickLine={false} axisLine={false} />
-                <YAxis yAxisId="right" orientation="right" fontSize={9} tickLine={false} axisLine={false} />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  fontSize={9}
+                  tickLine={false}
+                  axisLine={false}
+                />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#171717", border: "1px solid #262626", fontSize: "10px", borderRadius: "8px" }}
+                  contentStyle={{
+                    backgroundColor: "#171717",
+                    border: "1px solid #262626",
+                    fontSize: "10px",
+                    borderRadius: "8px",
+                  }}
                   itemStyle={{ padding: "0 2px" }}
                   formatter={(value: any, name: any) => {
-                    const val = typeof value === 'number' ? value.toFixed(1) : value;
+                    const val = typeof value === "number" ? value.toFixed(1) : value;
                     const label = String(name ?? "");
                     if (label.includes("(W)")) return [`${Math.round(value)} W`, label];
                     if (label.includes("(°C)")) return [`${val} °C`, label];
@@ -705,12 +768,22 @@ function PumpPage() {
                     <span className="text-muted-foreground">
                       {new Date(e.occurred_at).toLocaleTimeString()}{" "}
                     </span>
-                    <span className={
-                      e.status === "critical" ? "text-destructive" :
-                      e.status === "warning" ? "text-amber-500" :
-                      e.status === "info" ? "text-sky-500" : "text-primary"
-                    }>[{e.status}]</span>
-                    {e.strategy_applied && <span className="text-primary"> {e.strategy_applied}</span>}
+                    <span
+                      className={
+                        e.status === "critical"
+                          ? "text-destructive"
+                          : e.status === "warning"
+                            ? "text-amber-500"
+                            : e.status === "info"
+                              ? "text-sky-500"
+                              : "text-primary"
+                      }
+                    >
+                      [{e.status}]
+                    </span>
+                    {e.strategy_applied && (
+                      <span className="text-primary"> {e.strategy_applied}</span>
+                    )}
                     {e.message && <span className="text-muted-foreground"> — {e.message}</span>}
                   </li>
                 ))}
