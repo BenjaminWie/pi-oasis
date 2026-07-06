@@ -43,7 +43,8 @@ function PumpPage() {
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
     queryFn: () => fetchDevices(),
-    refetchInterval: 30000,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   const paired = devices.filter((d: any) => d.paired);
@@ -58,29 +59,35 @@ function PumpPage() {
   const { data: events = [] } = useQuery({
     queryKey: ["pump-events", activeId, eventLimit],
     queryFn: () => fetchEvents({ data: { deviceId: activeId, limit: eventLimit } }),
-    refetchInterval: 10000,
+    refetchInterval: 30000,
+    staleTime: 15000,
     enabled: !!activeId,
   });
   const reachedEnd = events.length > 0 && events.length < eventLimit;
   const [strategyOpen, setStrategyOpen] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(true);
 
   const { data: buckets = [] } = useQuery({
     queryKey: ["pump-buckets", activeId],
     queryFn: () => fetchBuckets({ data: { deviceId: activeId } }),
     enabled: !!activeId,
+    refetchInterval: 300000,
+    staleTime: 120000,
   });
 
   const { data: strategy } = useQuery({
     queryKey: ["pump-strategy", activeId],
     queryFn: () => fetchStrategy({ data: { deviceId: activeId } }),
     enabled: !!activeId,
+    staleTime: 60000,
   });
 
   const { data: details } = useQuery({
     queryKey: ["device-details", activeId],
     queryFn: () => fetchDeviceDetails({ data: { id: activeId } }),
     enabled: !!activeId,
-    refetchInterval: 5000,
+    refetchInterval: 15000,
+    staleTime: 5000,
   });
 
   const [now, setNow] = useState(Date.now());
