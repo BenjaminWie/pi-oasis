@@ -111,3 +111,27 @@ export const listAnomalies = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+// Daily rollup: pump minutes, cycles, kWh, PV coverage, rain, temp per day.
+// Reads from public.device_events_daily (populated hourly by pg_cron).
+export const listDailyRollup = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      deviceId: z.string().uuid(),
+      days: z.number().int().min(1).max(365).default(30),
+    }).parse,
+  )
+  .handler(async ({ data, context }) => {
+    const since = new Date(Date.now() - data.days * 86400_000).toISOString().slice(0, 10);
+    const { data: rows, error } = await (context.supabase as any)
+      .from("device_events_daily")
+      .select(
+        "day, pump_minutes, pump_cycles, pump_kwh, pv_covered_pct, rain_mm, avg_outside_temp, warnings, criticals",
+      )
+      .eq("device_id", data.deviceId)
+      .gte("day", since)
+      .order("day", { ascending: true });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });

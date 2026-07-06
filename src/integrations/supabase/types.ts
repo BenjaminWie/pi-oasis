@@ -206,6 +206,7 @@ export type Database = {
           message: string | null
           metrics: Json
           occurred_at: string
+          sample_count: number
           status: string
           strategy_applied: string | null
         }
@@ -218,6 +219,7 @@ export type Database = {
           message?: string | null
           metrics?: Json
           occurred_at: string
+          sample_count?: number
           status: string
           strategy_applied?: string | null
         }
@@ -230,12 +232,63 @@ export type Database = {
           message?: string | null
           metrics?: Json
           occurred_at?: string
+          sample_count?: number
           status?: string
           strategy_applied?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_events_daily: {
+        Row: {
+          avg_outside_temp: number | null
+          criticals: number
+          day: string
+          device_id: string
+          pump_cycles: number
+          pump_kwh: number
+          pump_minutes: number
+          pv_covered_pct: number | null
+          rain_mm: number | null
+          updated_at: string
+          warnings: number
+        }
+        Insert: {
+          avg_outside_temp?: number | null
+          criticals?: number
+          day: string
+          device_id: string
+          pump_cycles?: number
+          pump_kwh?: number
+          pump_minutes?: number
+          pv_covered_pct?: number | null
+          rain_mm?: number | null
+          updated_at?: string
+          warnings?: number
+        }
+        Update: {
+          avg_outside_temp?: number | null
+          criticals?: number
+          day?: string
+          device_id?: string
+          pump_cycles?: number
+          pump_kwh?: number
+          pump_minutes?: number
+          pv_covered_pct?: number | null
+          rain_mm?: number | null
+          updated_at?: string
+          warnings?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_events_daily_device_id_fkey"
             columns: ["device_id"]
             isOneToOne: false
             referencedRelation: "devices"
@@ -250,6 +303,9 @@ export type Database = {
           created_at: string
           device_id: string
           event_count: number
+          pump_cycles: number | null
+          pump_kwh: number | null
+          pump_minutes: number | null
           pumping_allowed_ratio: number | null
           pv_surplus_avg: number | null
           rain_sum: number | null
@@ -265,6 +321,9 @@ export type Database = {
           created_at?: string
           device_id: string
           event_count?: number
+          pump_cycles?: number | null
+          pump_kwh?: number | null
+          pump_minutes?: number | null
           pumping_allowed_ratio?: number | null
           pv_surplus_avg?: number | null
           rain_sum?: number | null
@@ -280,6 +339,9 @@ export type Database = {
           created_at?: string
           device_id?: string
           event_count?: number
+          pump_cycles?: number | null
+          pump_kwh?: number | null
+          pump_minutes?: number | null
           pumping_allowed_ratio?: number | null
           pv_surplus_avg?: number | null
           rain_sum?: number | null
@@ -536,6 +598,7 @@ export type Database = {
     }
     Functions: {
       aggregate_device_events: { Args: never; Returns: undefined }
+      aggregate_device_events_daily: { Args: never; Returns: undefined }
       recompute_anomaly_baselines: { Args: never; Returns: undefined }
     }
     Enums: {

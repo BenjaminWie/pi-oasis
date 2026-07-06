@@ -61,10 +61,56 @@ export const Route = createFileRoute("/api/public/cloud-bridge/event")({
           };
         });
 
-        const { error } = await supabaseAdmin.from("device_events").insert(rows);
-        if (error) return jsonResponse({ error: error.message }, 500);
+        // Server-side dedup: collapse consecutive heartbeats with the same
+        // (component, device_label, status) and ~equal watts (±5W) inside a
+        // 5-minute window into a single row (update occurred_at, bump sample_count).
+        // Rows on state change, warning/critical, or gap > 5 min still insert.
+        let inserted = 0;
+        let deduped = 0;
+        for (const row of rows) {
+          const { data: last } = await (supabaseAdmin as any)
+            .from("device_events")
+            .select("id, occurred_at, status, metrics, sample_count")
+            .eq("device_id", row.device_id)
+            .eq("component", row.component)
+            .eq("device_label", row.device_label)
+            .order("occurred_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-        return jsonResponse({ ok: true, inserted: rows.length });
+          const wattsNew = Number((row.metrics as any)?.watts ?? NaN);
+          const wattsOld = Number(last?.metrics?.watts ?? NaN);
+          const wattsMatch =
+            (Number.isNaN(wattsNew) && Number.isNaN(wattsOld)) ||
+            (Number.isFinite(wattsNew) &&
+              Number.isFinite(wattsOld) &&
+              Math.abs(wattsNew - wattsOld) <= 5);
+          const gapMs = last ? Date.now() - new Date(last.occurred_at).getTime() : Infinity;
+          const canDedup =
+            last &&
+            last.status === row.status &&
+            row.status !== "warning" &&
+            row.status !== "critical" &&
+            wattsMatch &&
+            gapMs < 5 * 60_000;
+
+          if (canDedup) {
+            await (supabaseAdmin as any)
+              .from("device_events")
+              .update({
+                occurred_at: row.occurred_at,
+                sample_count: (last.sample_count ?? 1) + 1,
+              })
+              .eq("id", last.id);
+            deduped++;
+          } else {
+            const { error } = await supabaseAdmin.from("device_events").insert(row);
+            if (error) return jsonResponse({ error: error.message }, 500);
+            inserted++;
+          }
+        }
+
+        return jsonResponse({ ok: true, inserted, deduped });
       },
     },
   },

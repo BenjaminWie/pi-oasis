@@ -3,9 +3,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun, Loader2, Info, AlertTriangle, RefreshCw, ChevronDown } from "lucide-react";
+import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun, Loader2, Info, AlertTriangle, RefreshCw, ChevronDown, BarChart3 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { listDevices, enqueueCommand, getDevice } from "@/lib/cloud.functions";
+import { PumpInsights } from "@/components/PumpInsights";
 
 import {
   LineChart,
@@ -43,7 +44,8 @@ function PumpPage() {
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
     queryFn: () => fetchDevices(),
-    refetchInterval: 30000,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   const paired = devices.filter((d: any) => d.paired);
@@ -58,29 +60,35 @@ function PumpPage() {
   const { data: events = [] } = useQuery({
     queryKey: ["pump-events", activeId, eventLimit],
     queryFn: () => fetchEvents({ data: { deviceId: activeId, limit: eventLimit } }),
-    refetchInterval: 10000,
+    refetchInterval: 30000,
+    staleTime: 15000,
     enabled: !!activeId,
   });
   const reachedEnd = events.length > 0 && events.length < eventLimit;
   const [strategyOpen, setStrategyOpen] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(true);
 
   const { data: buckets = [] } = useQuery({
     queryKey: ["pump-buckets", activeId],
     queryFn: () => fetchBuckets({ data: { deviceId: activeId } }),
     enabled: !!activeId,
+    refetchInterval: 300000,
+    staleTime: 120000,
   });
 
   const { data: strategy } = useQuery({
     queryKey: ["pump-strategy", activeId],
     queryFn: () => fetchStrategy({ data: { deviceId: activeId } }),
     enabled: !!activeId,
+    staleTime: 60000,
   });
 
   const { data: details } = useQuery({
     queryKey: ["device-details", activeId],
     queryFn: () => fetchDeviceDetails({ data: { id: activeId } }),
     enabled: !!activeId,
-    refetchInterval: 5000,
+    refetchInterval: 15000,
+    staleTime: 5000,
   });
 
   const [now, setNow] = useState(Date.now());
@@ -545,6 +553,26 @@ function PumpPage() {
           </CollapsibleContent>
         </div>
       </Collapsible>
+
+      {/* Insights — daily/hourly rollups (cheap, cron-populated) */}
+      {activeId && (
+        <Collapsible open={insightsOpen} onOpenChange={setInsightsOpen}>
+          <div className="rounded-2xl border border-border bg-card">
+            <CollapsibleTrigger className="w-full flex items-center justify-between p-4 group">
+              <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                <BarChart3 size={10} /> Insights (30 Tage)
+              </h3>
+              <ChevronDown
+                size={14}
+                className={`text-muted-foreground transition-transform ${insightsOpen ? "rotate-180" : ""}`}
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4">
+              <PumpInsights deviceId={activeId} />
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
+      )}
 
       {/* History chart */}
       {chartData.length > 0 && (

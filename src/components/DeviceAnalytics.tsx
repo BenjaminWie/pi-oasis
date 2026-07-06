@@ -53,7 +53,8 @@ function EventsTab({ deviceId }: { deviceId: string }) {
   const { data = [] } = useQuery({
     queryKey: ["events", deviceId],
     queryFn: () => fn({ data: { deviceId, limit: 100 } }),
-    refetchInterval: 10000,
+    refetchInterval: 30000,
+    staleTime: 15000,
   });
   if (!data.length) {
     return <p className="text-xs text-muted-foreground">Noch keine Ereignisse.</p>;
@@ -93,7 +94,8 @@ function ChartTab({ deviceId }: { deviceId: string }) {
   const { data = [] } = useQuery({
     queryKey: ["buckets", deviceId],
     queryFn: () => fn({ data: { deviceId } }),
-    refetchInterval: 60000,
+    refetchInterval: 300000,
+    staleTime: 120000,
   });
   const wattPoints = data
     .filter((r: any) => r.watts_avg != null)
