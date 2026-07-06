@@ -3,9 +3,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun, Loader2, Info, AlertTriangle, RefreshCw, ChevronDown } from "lucide-react";
+import { Droplets, Play, Pause, Power, Save, Cloud, Zap, Thermometer, CloudRain, Sun, Loader2, Info, AlertTriangle, RefreshCw, ChevronDown, BarChart3 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { listDevices, enqueueCommand, getDevice } from "@/lib/cloud.functions";
+import { PumpInsights } from "@/components/PumpInsights";
 
 import {
   LineChart,
