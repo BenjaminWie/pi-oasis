@@ -554,6 +554,26 @@ function PumpPage() {
         </div>
       </Collapsible>
 
+      {/* Insights — daily/hourly rollups (cheap, cron-populated) */}
+      {activeId && (
+        <Collapsible open={insightsOpen} onOpenChange={setInsightsOpen}>
+          <div className="rounded-2xl border border-border bg-card">
+            <CollapsibleTrigger className="w-full flex items-center justify-between p-4 group">
+              <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                <BarChart3 size={10} /> Insights (30 Tage)
+              </h3>
+              <ChevronDown
+                size={14}
+                className={`text-muted-foreground transition-transform ${insightsOpen ? "rotate-180" : ""}`}
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4">
+              <PumpInsights deviceId={activeId} />
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
+      )}
+
       {/* History chart */}
       {chartData.length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
