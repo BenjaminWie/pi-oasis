@@ -94,7 +94,8 @@ function ChartTab({ deviceId }: { deviceId: string }) {
   const { data = [] } = useQuery({
     queryKey: ["buckets", deviceId],
     queryFn: () => fn({ data: { deviceId } }),
-    refetchInterval: 60000,
+    refetchInterval: 300000,
+    staleTime: 120000,
   });
   const wattPoints = data
     .filter((r: any) => r.watts_avg != null)
