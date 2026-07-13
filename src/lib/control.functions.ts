@@ -43,7 +43,7 @@ export const listEventBuckets = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase
       .from("device_events_hourly")
       .select(
-        "bucket, component, status, event_count, watts_avg, watts_max, watts_min, temp_avg, rain_sum, pv_surplus_avg, pumping_allowed_ratio",
+        "bucket, component, status, event_count, watts_avg, watts_max, watts_min, temp_avg, rain_sum, rain_past_night_max, pv_surplus_avg, pumping_allowed_ratio, pump_minutes, pump_cycles, pump_kwh",
       )
       .eq("device_id", data.deviceId)
       .gte("bucket", since)

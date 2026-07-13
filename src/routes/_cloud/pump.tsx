@@ -227,7 +227,10 @@ function PumpPage() {
       const item = acc[bucketIso];
       if (r.watts_avg != null) item.watts = Number(r.watts_avg);
       if (r.temp_avg != null) item.temp = Number(r.temp_avg);
-      if (r.rain_sum != null) item.rain = Number(r.rain_sum);
+      const rainForecast = r.rain_sum != null ? Number(r.rain_sum) : null;
+      const rainPast = r.rain_past_night_max != null ? Number(r.rain_past_night_max) : null;
+      const rainVal = Math.max(rainForecast ?? 0, rainPast ?? 0);
+      if (rainForecast != null || rainPast != null) item.rain = rainVal;
       if (r.pv_surplus_avg != null) item.pv = Number(r.pv_surplus_avg);
       if (r.pumping_allowed_ratio != null) item.allowed = Number(r.pumping_allowed_ratio) * 100;
       return acc;
@@ -618,6 +621,7 @@ function PumpPage() {
                 />
                 <YAxis yAxisId="left" fontSize={9} tickLine={false} axisLine={false} />
                 <YAxis yAxisId="right" orientation="right" fontSize={9} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="rain" orientation="right" hide domain={[0, (max: number) => Math.max(5, (max || 0) * 1.4)]} />
                 <Tooltip
                   contentStyle={{ backgroundColor: "#171717", border: "1px solid #262626", fontSize: "10px", borderRadius: "8px" }}
                   itemStyle={{ padding: "0 2px" }}
@@ -683,12 +687,14 @@ function PumpPage() {
 
                 {visibleMetrics.rain && (
                   <Area
-                    yAxisId="right"
-                    type="monotone"
+                    yAxisId="rain"
+                    type="stepAfter"
                     dataKey="rain"
                     stroke="#6366f1"
+                    strokeWidth={1.5}
+                    strokeDasharray="2 2"
                     fill="#6366f1"
-                    fillOpacity={0.2}
+                    fillOpacity={0.35}
                     name="Regen (mm)"
                   />
                 )}

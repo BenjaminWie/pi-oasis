@@ -308,6 +308,7 @@ export type Database = {
           pump_minutes: number | null
           pumping_allowed_ratio: number | null
           pv_surplus_avg: number | null
+          rain_past_night_max: number | null
           rain_sum: number | null
           status: string
           temp_avg: number | null
@@ -326,6 +327,7 @@ export type Database = {
           pump_minutes?: number | null
           pumping_allowed_ratio?: number | null
           pv_surplus_avg?: number | null
+          rain_past_night_max?: number | null
           rain_sum?: number | null
           status: string
           temp_avg?: number | null
@@ -344,6 +346,7 @@ export type Database = {
           pump_minutes?: number | null
           pumping_allowed_ratio?: number | null
           pv_surplus_avg?: number | null
+          rain_past_night_max?: number | null
           rain_sum?: number | null
           status?: string
           temp_avg?: number | null
@@ -597,8 +600,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      aggregate_device_events: { Args: never; Returns: undefined }
-      aggregate_device_events_daily: { Args: never; Returns: undefined }
+      aggregate_device_events:
+        | { Args: never; Returns: undefined }
+        | { Args: { _since?: string }; Returns: undefined }
+      aggregate_device_events_daily:
+        | { Args: never; Returns: undefined }
+        | { Args: { _since?: string }; Returns: undefined }
       recompute_anomaly_baselines: { Args: never; Returns: undefined }
     }
     Enums: {
