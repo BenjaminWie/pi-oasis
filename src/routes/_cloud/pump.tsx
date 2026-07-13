@@ -687,12 +687,14 @@ function PumpPage() {
 
                 {visibleMetrics.rain && (
                   <Area
-                    yAxisId="right"
-                    type="monotone"
+                    yAxisId="rain"
+                    type="stepAfter"
                     dataKey="rain"
                     stroke="#6366f1"
+                    strokeWidth={1.5}
+                    strokeDasharray="2 2"
                     fill="#6366f1"
-                    fillOpacity={0.2}
+                    fillOpacity={0.35}
                     name="Regen (mm)"
                   />
                 )}
