@@ -227,7 +227,10 @@ function PumpPage() {
       const item = acc[bucketIso];
       if (r.watts_avg != null) item.watts = Number(r.watts_avg);
       if (r.temp_avg != null) item.temp = Number(r.temp_avg);
-      if (r.rain_sum != null) item.rain = Number(r.rain_sum);
+      const rainForecast = r.rain_sum != null ? Number(r.rain_sum) : null;
+      const rainPast = r.rain_past_night_max != null ? Number(r.rain_past_night_max) : null;
+      const rainVal = Math.max(rainForecast ?? 0, rainPast ?? 0);
+      if (rainForecast != null || rainPast != null) item.rain = rainVal;
       if (r.pv_surplus_avg != null) item.pv = Number(r.pv_surplus_avg);
       if (r.pumping_allowed_ratio != null) item.allowed = Number(r.pumping_allowed_ratio) * 100;
       return acc;
