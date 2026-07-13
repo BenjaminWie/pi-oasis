@@ -621,6 +621,7 @@ function PumpPage() {
                 />
                 <YAxis yAxisId="left" fontSize={9} tickLine={false} axisLine={false} />
                 <YAxis yAxisId="right" orientation="right" fontSize={9} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="rain" orientation="right" hide domain={[0, (max: number) => Math.max(5, (max || 0) * 1.4)]} />
                 <Tooltip
                   contentStyle={{ backgroundColor: "#171717", border: "1px solid #262626", fontSize: "10px", borderRadius: "8px" }}
                   itemStyle={{ padding: "0 2px" }}
