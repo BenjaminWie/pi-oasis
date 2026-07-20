@@ -162,6 +162,9 @@ function PumpPage() {
       if (latestManual.id === localAction?.id && latestManual.status === "failed") {
         setLocalAction(null);
       }
+      if (["done", "delivered", "failed"].includes(latestManual.status)) {
+        setAwaitingCmd(false);
+      }
     }
   }, [latestManual, localAction?.id]);
 
