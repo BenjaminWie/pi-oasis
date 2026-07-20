@@ -212,3 +212,48 @@ Cloud-MCP-Server exponiert die folgenden Tools, die direkt auf den von Node-RED 
 | `infer_appliance_state`  | "Ist meine Wäsche fertig?"                         |
 
 Schwellwerte pro Gerät in `appliance_profiles` (z.B. Waschmaschine: ≥150 W läuft, &lt;5 W = Leerlauf).
+
+## 6. Zero-Wake Architektur (ab v2)
+
+Die Datenbank ist teuer, **weil sie 24/7 wach ist**. Deswegen laufen Live-Ticks
+jetzt komplett an Postgres vorbei über Supabase Realtime Broadcast.
+
+**Route A — Live-Ticks (jede Sekunde, KEIN DB-Insert):**
+
+`POST https://pi-hub.benniwie.com/api/public/live/publish`
+
+Header: `Authorization: Bearer <DEVICE_TOKEN>`
+
+Body:
+```json
+{ "watts": 512, "pv_surplus_w": 340, "outside_temp_c": 22.1,
+  "pump_on": true, "strategy_applied": "SOLAR_PEAK", "ts": "…" }
+```
+
+Der Server broadcastet die Nachricht auf Kanal `live:<device_id>`. Der
+Browser abonniert direkt via WebSocket — die DB bleibt schlafen.
+
+**Route B — Sessions/Alarme (selten, DB-Insert):**
+
+Bleibt `POST /api/public/cloud-bridge/event`. Neu: hänge in `metrics`
+folgende Felder für abgeschlossene Pumpläufe an:
+
+```json
+"metrics": {
+  "pump_session": true,
+  "started_at": "…", "stopped_at": "…",
+  "avg_watts": 510, "kwh": 0.085,
+  "pv_covered_pct": 82.5,
+  "trigger": "eco", "reason": "Solar-Peak 10min"
+}
+```
+
+Damit landet der Lauf in `pump_sessions` (Analytics-Basis, ersetzt das
+Aggregieren aus Rohdaten). Zusätzlich pflegt jeder Event `device_state_latest`
+automatisch — dashboard-Cold-Start liest von dort in einer einzigen Query.
+
+**Empfehlung für Node-RED:**
+- Live-Push: 1× pro Sekunde → `CLOUD_LIVE_URL`
+- Alarm/Status-Wechsel: sofort → `CLOUD_BRIDGE_URL`
+- Session-Ende (Pumpe geht aus): 1× → `CLOUD_BRIDGE_URL` mit `pump_session=true`
+- Heartbeat: nicht mehr nötig, Pi-Bridge macht das alle 15 min selbst

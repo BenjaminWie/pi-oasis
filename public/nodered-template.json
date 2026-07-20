@@ -27,6 +27,11 @@
         "value": "https://pi-hub.benniwie.com/api/public/agent/result"
       },
       {
+        "name": "CLOUD_LIVE_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/live/publish"
+      },
+      {
         "name": "CLOUD_DEVICE_TOKEN",
         "type": "str",
         "value": ""

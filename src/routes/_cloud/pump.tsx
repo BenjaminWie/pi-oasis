@@ -44,8 +44,8 @@ function PumpPage() {
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
     queryFn: () => fetchDevices(),
-    refetchInterval: 60000,
-    staleTime: 30000,
+    refetchInterval: 300000,
+    staleTime: 240000,
   });
 
   const paired = devices.filter((d: any) => d.paired);
@@ -60,8 +60,8 @@ function PumpPage() {
   const { data: events = [] } = useQuery({
     queryKey: ["pump-events", activeId, eventLimit],
     queryFn: () => fetchEvents({ data: { deviceId: activeId, limit: eventLimit } }),
-    refetchInterval: 30000,
-    staleTime: 15000,
+    refetchInterval: false,
+    staleTime: 5 * 60_000,
     enabled: !!activeId,
   });
   const reachedEnd = events.length > 0 && events.length < eventLimit;
@@ -72,24 +72,68 @@ function PumpPage() {
     queryKey: ["pump-buckets", activeId],
     queryFn: () => fetchBuckets({ data: { deviceId: activeId } }),
     enabled: !!activeId,
-    refetchInterval: 300000,
-    staleTime: 120000,
+    refetchInterval: false,
+    staleTime: 10 * 60_000,
   });
 
   const { data: strategy } = useQuery({
     queryKey: ["pump-strategy", activeId],
     queryFn: () => fetchStrategy({ data: { deviceId: activeId } }),
     enabled: !!activeId,
-    staleTime: 60000,
+    staleTime: 5 * 60_000,
   });
 
   const { data: details } = useQuery({
     queryKey: ["device-details", activeId],
     queryFn: () => fetchDeviceDetails({ data: { id: activeId } }),
     enabled: !!activeId,
-    refetchInterval: 15000,
-    staleTime: 5000,
+    refetchInterval: false,
+    staleTime: 60_000,
   });
+
+  // Live broadcast: subscribe to `live:{deviceId}` for realtime ticks from
+  // Node-RED. This is stateless (does NOT wake the DB).
+  const [liveTick, setLiveTick] = useState<any>(null);
+  useEffect(() => {
+    if (!activeId) return;
+    let cancelled = false;
+    let channel: any = null;
+    (async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      if (cancelled) return;
+      channel = supabase
+        .channel(`live:${activeId}`)
+        .on("broadcast", { event: "tick" }, ({ payload }) => setLiveTick(payload))
+        .subscribe();
+    })();
+    return () => {
+      cancelled = true;
+      if (channel) {
+        import("@/integrations/supabase/client").then(({ supabase }) => {
+          supabase.removeChannel(channel);
+        });
+      }
+    };
+  }, [activeId]);
+
+  // Poll for command-status changes only after issuing a manual action.
+  // No standing refetch loop — the DB is allowed to sleep otherwise.
+  const [awaitingCmd, setAwaitingCmd] = useState(false);
+
+  // While awaitingCmd, briefly poll details/events for command status.
+  // Stops after 60s or when latest command reaches a terminal state.
+  useEffect(() => {
+    if (!awaitingCmd || !activeId) return;
+    const start = Date.now();
+    const t = setInterval(() => {
+      qc.invalidateQueries({ queryKey: ["device-details", activeId] });
+      qc.invalidateQueries({ queryKey: ["pump-events", activeId] });
+      if (Date.now() - start > 60_000) {
+        setAwaitingCmd(false);
+      }
+    }, 3000);
+    return () => clearInterval(t);
+  }, [awaitingCmd, activeId, qc]);
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -117,6 +161,9 @@ function PumpPage() {
       }
       if (latestManual.id === localAction?.id && latestManual.status === "failed") {
         setLocalAction(null);
+      }
+      if (["done", "delivered", "failed"].includes(latestManual.status)) {
+        setAwaitingCmd(false);
       }
     }
   }, [latestManual, localAction?.id]);
@@ -176,7 +223,9 @@ function PumpPage() {
           ? `Pumpe an${vars.minutes ? ` (${vars.minutes} min)` : ""} — wartet auf Node-RED`
           : "Stopp gesendet — wartet auf Node-RED",
       );
+      setAwaitingCmd(true);
       qc.invalidateQueries({ queryKey: ["device-details", activeId] });
+      qc.invalidateQueries({ queryKey: ["pump-events", activeId] });
     },
     onError: (err: any) => {
       toast.error(`Befehl abgelehnt: ${err?.message || "unbekannter Fehler"}`);
@@ -251,6 +300,7 @@ function PumpPage() {
     return metrics.watts != null || metrics.watt != null || metrics.house_power != null;
   });
   const lastWatts = (() => {
+    if (liveTick?.watts != null) return liveTick.watts;
     const metrics = (lastWattEvent?.metrics as any) ?? {};
     return metrics.watts ?? metrics.watt ?? metrics.house_power;
   })();
@@ -261,9 +311,9 @@ function PumpPage() {
     return (ev?.metrics as any)?.[key];
   };
 
-  const curTemp = latestMetric("outside_temp");
-  const curRain = latestMetric("precipitation_mm");
-  const curPv = latestMetric("pv_surplus_watt");
+  const curTemp = liveTick?.outside_temp_c ?? latestMetric("outside_temp");
+  const curRain = liveTick?.rain_next_24h_mm ?? latestMetric("precipitation_mm");
+  const curPv = liveTick?.pv_surplus_w ?? latestMetric("pv_surplus_watt");
 
   const fields: Array<{ key: string; label: string; suffix?: string }> = [
     { key: "pv_min_w", label: "PV-Überschuss min", suffix: "W" },

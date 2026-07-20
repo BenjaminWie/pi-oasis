@@ -185,7 +185,9 @@ async function loop() {
     }
     try {
       const now = Date.now();
-      if (now - lastHeartbeat > 30_000) {
+      // Zero-Wake: nur alle 15 min ein Heartbeat (nur "Pi lebt"-Anzeige).
+      // Live-Metriken laufen jetzt über /api/public/live/publish (Broadcast, kein DB-Wakeup).
+      if (now - lastHeartbeat > 15 * 60_000) {
         lastHeartbeat = now;
         const snap = await snapshot();
         if (snap) {
