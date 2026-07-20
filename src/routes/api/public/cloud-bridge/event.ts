@@ -110,6 +110,65 @@ export const Route = createFileRoute("/api/public/cloud-bridge/event")({
           }
         }
 
+        // Zero-Wake: mirror the latest state into device_state_latest so the
+        // dashboard can render immediately without scanning device_events.
+        // Also record completed pump runs as pump_sessions rows.
+        try {
+          const latest = rows[rows.length - 1];
+          const m = (latest.metrics ?? {}) as Record<string, any>;
+          const wattsNum = Number(m.watts ?? m.watt ?? m.house_power ?? NaN);
+          const patch: any = {
+            device_id: device.id,
+            updated_at: latest.occurred_at,
+          };
+          if (Number.isFinite(wattsNum)) patch.watts_current = wattsNum;
+          if (m.pv_surplus_watt != null) patch.pv_surplus_w = Number(m.pv_surplus_watt);
+          if (m.outside_temp != null) patch.outside_temp_c = Number(m.outside_temp);
+          if (m.forecast_rain_mm != null) patch.rain_next_24h_mm = Number(m.forecast_rain_mm);
+          if (latest.strategy_applied) patch.strategy_applied = latest.strategy_applied;
+          if (m.reason != null) patch.last_reason = String(m.reason).slice(0, 500);
+          if (m.pump_on != null) {
+            patch.pump_on = Boolean(m.pump_on);
+            if (patch.pump_on) patch.pump_started_at = latest.occurred_at;
+          } else if (typeof m.state === "number") {
+            patch.pump_on = m.state === 1;
+          }
+          if (latest.status === "warning" || latest.status === "critical") {
+            patch.last_alarm_status = latest.status;
+            patch.last_alarm_message = latest.message ?? null;
+            patch.last_alarm_at = latest.occurred_at;
+          }
+          await (supabaseAdmin as any)
+            .from("device_state_latest")
+            .upsert(patch, { onConflict: "device_id" });
+
+          // Session write-back: any event carrying pump_session summary metrics.
+          for (const e of events) {
+            const em = (e.metrics ?? {}) as any;
+            if (em.pump_session && em.started_at && em.stopped_at) {
+              const dur = Math.max(
+                0,
+                Math.round(
+                  (new Date(em.stopped_at).getTime() - new Date(em.started_at).getTime()) / 1000,
+                ),
+              );
+              await (supabaseAdmin as any).from("pump_sessions").insert({
+                device_id: device.id,
+                started_at: em.started_at,
+                stopped_at: em.stopped_at,
+                duration_s: dur,
+                avg_watts: em.avg_watts != null ? Number(em.avg_watts) : null,
+                kwh: em.kwh != null ? Number(em.kwh) : null,
+                pv_covered_pct: em.pv_covered_pct != null ? Number(em.pv_covered_pct) : null,
+                trigger: String(em.trigger ?? "manual").slice(0, 32),
+                reason: em.reason ? String(em.reason).slice(0, 500) : null,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("[event] state_latest/session upsert failed", e);
+        }
+
         return jsonResponse({ ok: true, inserted, deduped });
       },
     },
