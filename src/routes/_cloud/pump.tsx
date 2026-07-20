@@ -280,6 +280,7 @@ function PumpPage() {
     return metrics.watts != null || metrics.watt != null || metrics.house_power != null;
   });
   const lastWatts = (() => {
+    if (liveTick?.watts != null) return liveTick.watts;
     const metrics = (lastWattEvent?.metrics as any) ?? {};
     return metrics.watts ?? metrics.watt ?? metrics.house_power;
   })();
