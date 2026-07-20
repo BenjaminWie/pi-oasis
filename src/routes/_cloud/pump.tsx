@@ -44,8 +44,8 @@ function PumpPage() {
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
     queryFn: () => fetchDevices(),
-    refetchInterval: 60000,
-    staleTime: 30000,
+    refetchInterval: 300000,
+    staleTime: 240000,
   });
 
   const paired = devices.filter((d: any) => d.paired);
@@ -60,8 +60,8 @@ function PumpPage() {
   const { data: events = [] } = useQuery({
     queryKey: ["pump-events", activeId, eventLimit],
     queryFn: () => fetchEvents({ data: { deviceId: activeId, limit: eventLimit } }),
-    refetchInterval: 30000,
-    staleTime: 15000,
+    refetchInterval: false,
+    staleTime: 5 * 60_000,
     enabled: !!activeId,
   });
   const reachedEnd = events.length > 0 && events.length < eventLimit;
@@ -72,24 +72,53 @@ function PumpPage() {
     queryKey: ["pump-buckets", activeId],
     queryFn: () => fetchBuckets({ data: { deviceId: activeId } }),
     enabled: !!activeId,
-    refetchInterval: 300000,
-    staleTime: 120000,
+    refetchInterval: false,
+    staleTime: 10 * 60_000,
   });
 
   const { data: strategy } = useQuery({
     queryKey: ["pump-strategy", activeId],
     queryFn: () => fetchStrategy({ data: { deviceId: activeId } }),
     enabled: !!activeId,
-    staleTime: 60000,
+    staleTime: 5 * 60_000,
   });
 
   const { data: details } = useQuery({
     queryKey: ["device-details", activeId],
     queryFn: () => fetchDeviceDetails({ data: { id: activeId } }),
     enabled: !!activeId,
-    refetchInterval: 15000,
-    staleTime: 5000,
+    refetchInterval: false,
+    staleTime: 60_000,
   });
+
+  // Live broadcast: subscribe to `live:{deviceId}` for realtime ticks from
+  // Node-RED. This is stateless (does NOT wake the DB).
+  const [liveTick, setLiveTick] = useState<any>(null);
+  useEffect(() => {
+    if (!activeId) return;
+    let cancelled = false;
+    let channel: any = null;
+    (async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      if (cancelled) return;
+      channel = supabase
+        .channel(`live:${activeId}`)
+        .on("broadcast", { event: "tick" }, ({ payload }) => setLiveTick(payload))
+        .subscribe();
+    })();
+    return () => {
+      cancelled = true;
+      if (channel) {
+        import("@/integrations/supabase/client").then(({ supabase }) => {
+          supabase.removeChannel(channel);
+        });
+      }
+    };
+  }, [activeId]);
+
+  // Poll for command-status changes only after issuing a manual action.
+  // No standing refetch loop — the DB is allowed to sleep otherwise.
+  const [awaitingCmd, setAwaitingCmd] = useState(false);
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
