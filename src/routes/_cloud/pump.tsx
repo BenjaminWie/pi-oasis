@@ -120,6 +120,21 @@ function PumpPage() {
   // No standing refetch loop — the DB is allowed to sleep otherwise.
   const [awaitingCmd, setAwaitingCmd] = useState(false);
 
+  // While awaitingCmd, briefly poll details/events for command status.
+  // Stops after 60s or when latest command reaches a terminal state.
+  useEffect(() => {
+    if (!awaitingCmd || !activeId) return;
+    const start = Date.now();
+    const t = setInterval(() => {
+      qc.invalidateQueries({ queryKey: ["device-details", activeId] });
+      qc.invalidateQueries({ queryKey: ["pump-events", activeId] });
+      if (Date.now() - start > 60_000) {
+        setAwaitingCmd(false);
+      }
+    }, 3000);
+    return () => clearInterval(t);
+  }, [awaitingCmd, activeId, qc]);
+
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
