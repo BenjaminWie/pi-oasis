@@ -291,9 +291,9 @@ function PumpPage() {
     return (ev?.metrics as any)?.[key];
   };
 
-  const curTemp = latestMetric("outside_temp");
-  const curRain = latestMetric("precipitation_mm");
-  const curPv = latestMetric("pv_surplus_watt");
+  const curTemp = liveTick?.outside_temp_c ?? latestMetric("outside_temp");
+  const curRain = liveTick?.rain_next_24h_mm ?? latestMetric("precipitation_mm");
+  const curPv = liveTick?.pv_surplus_w ?? latestMetric("pv_surplus_watt");
 
   const fields: Array<{ key: string; label: string; suffix?: string }> = [
     { key: "pv_min_w", label: "PV-Überschuss min", suffix: "W" },
