@@ -364,6 +364,62 @@ export type Database = {
           },
         ]
       }
+      device_state_latest: {
+        Row: {
+          device_id: string
+          last_alarm_at: string | null
+          last_alarm_message: string | null
+          last_alarm_status: string | null
+          last_reason: string | null
+          outside_temp_c: number | null
+          pump_on: boolean
+          pump_started_at: string | null
+          pv_surplus_w: number | null
+          rain_next_24h_mm: number | null
+          strategy_applied: string | null
+          updated_at: string
+          watts_current: number | null
+        }
+        Insert: {
+          device_id: string
+          last_alarm_at?: string | null
+          last_alarm_message?: string | null
+          last_alarm_status?: string | null
+          last_reason?: string | null
+          outside_temp_c?: number | null
+          pump_on?: boolean
+          pump_started_at?: string | null
+          pv_surplus_w?: number | null
+          rain_next_24h_mm?: number | null
+          strategy_applied?: string | null
+          updated_at?: string
+          watts_current?: number | null
+        }
+        Update: {
+          device_id?: string
+          last_alarm_at?: string | null
+          last_alarm_message?: string | null
+          last_alarm_status?: string | null
+          last_reason?: string | null
+          outside_temp_c?: number | null
+          pump_on?: boolean
+          pump_started_at?: string | null
+          pv_surplus_w?: number | null
+          rain_next_24h_mm?: number | null
+          strategy_applied?: string | null
+          updated_at?: string
+          watts_current?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_state_latest_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devices: {
         Row: {
           created_at: string
@@ -521,6 +577,56 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pump_sessions: {
+        Row: {
+          avg_watts: number | null
+          created_at: string
+          device_id: string
+          duration_s: number
+          id: string
+          kwh: number | null
+          pv_covered_pct: number | null
+          reason: string | null
+          started_at: string
+          stopped_at: string
+          trigger: string
+        }
+        Insert: {
+          avg_watts?: number | null
+          created_at?: string
+          device_id: string
+          duration_s: number
+          id?: string
+          kwh?: number | null
+          pv_covered_pct?: number | null
+          reason?: string | null
+          started_at: string
+          stopped_at: string
+          trigger?: string
+        }
+        Update: {
+          avg_watts?: number | null
+          created_at?: string
+          device_id?: string
+          duration_s?: number
+          id?: string
+          kwh?: number | null
+          pv_covered_pct?: number | null
+          reason?: string | null
+          started_at?: string
+          stopped_at?: string
+          trigger?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pump_sessions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       strategy_profiles: {
         Row: {
