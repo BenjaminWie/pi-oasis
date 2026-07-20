@@ -205,7 +205,9 @@ function PumpPage() {
           ? `Pumpe an${vars.minutes ? ` (${vars.minutes} min)` : ""} — wartet auf Node-RED`
           : "Stopp gesendet — wartet auf Node-RED",
       );
+      setAwaitingCmd(true);
       qc.invalidateQueries({ queryKey: ["device-details", activeId] });
+      qc.invalidateQueries({ queryKey: ["pump-events", activeId] });
     },
     onError: (err: any) => {
       toast.error(`Befehl abgelehnt: ${err?.message || "unbekannter Fehler"}`);
