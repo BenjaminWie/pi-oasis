@@ -1,115 +1,99 @@
-# Zero-Wake Architektur: Pi als Session-Aggregator, Cloud als Stateless-Relay
+## Ziel
 
-Ziel: Cloud-Postgres bleibt die meiste Zeit schlafend (`Cloud compute pico` von ~2.4 → ~0.3–0.5 credits/Tag), UI bleibt live, keine SD-Karten-Belastung.
+Alexa Skill + Telegram teilen dieselbe Intent-Route, Account Linking läuft über echten OAuth2-Server, Node-RED bekommt System-Stats-Streaming — **ohne** die Zero-Wake-Architektur zu brechen (Ziel bleibt < 0.5 Credits/Tag).
 
-## Kernentscheidung
+## Zero-Wake-Leitplanken (nicht verhandelbar)
 
-Die DB ist teuer, **weil sie 24/7 wach ist**, nicht weil sie viel schreibt. Also splitten wir den Datenfluss in zwei Bahnen:
+- **Kein neuer periodischer DB-INSERT.** System-Stats gehen **nur** über Realtime-Broadcast, nie in `device_events`.
+- **Kein 30-s Long-Poll auf Postgres.** `agent_commands`-Delivery läuft über Realtime-Wake-Ups; Postgres wird nur bei tatsächlichem Kommando geweckt (Alexa/Telegram-Klick → ~10-30/Tag statt 2880/Tag).
+- **Read-Only Intents (Status) schreiben keine Audit-Row.** Nur mutierende Intents (`pump.on`, `mqtt.publish`, `container.action`) landen in `mcp_audit` / `agent_commands`.
 
-```text
-                            ┌──────────────────────────────────────────┐
-                            │ Route A: Live-Ticks (jede Sekunde)       │
-Node-RED (RAM)  ────────►   │  → Supabase Realtime Broadcast Channel   │
-                            │  → KEIN DB-Insert. DB schläft weiter.    │
-                            └────────────┬─────────────────────────────┘
-                                         │
-                            Browser abonniert WebSocket direkt
-                                         │
-                            ┌────────────▼─────────────────────────────┐
-Node-RED bei Pump-STOP ───► │ Route B: Sessions/Alarms (selten)        │
-Node-RED bei Alarm ───────► │  → /api/public/cloud-bridge/event(-batch)│
-                            │  → INSERT in device_events (~20/Tag)     │
-                            │  → UPSERT in device_state_latest         │
-                            └──────────────────────────────────────────┘
-```
+## 1) OAuth2-Server für Alexa Account Linking
 
-## Umsetzung (in dieser Reihenfolge)
+Neue TSS-Routes unter `src/routes/api/public/oauth/`:
 
-### Migration 1 — DB-Umbau
+- `GET /api/public/oauth/authorize` — prüft Supabase-Session (`supabase.auth.getUser()`); ohne Session → 302 nach `/auth?next=<encoded /authorize URL>`. Mit Session: rendert Consent-Seite ("Alexa mit Pi-Hub verbinden — Gerät X, Scope `control`"). Auf **Zustimmen** → 302 auf Alexa `redirect_uri` mit einmaligem `code` (10 min, HMAC-signed, enthält `user_id`, `device_id`, `scope`, `client_id`, `redirect_uri`).
+- `POST /api/public/oauth/token` — Alexa tauscht `code` (oder `refresh_token`) gegen Bearer. Wir minten ein MCP-Token (bestehende `mcp_tokens`-Tabelle, `scope=control`, 1y TTL, an Gerät gebunden), geben es als `access_token` zurück (`token_type=bearer`, `expires_in`, `refresh_token`).
 
-- **Neue Tabelle `device_state_latest`** (1 Zeile pro Gerät): `device_id PK`, `pump_on bool`, `pump_started_at`, `watts_current`, `pv_surplus_w`, `outside_temp_c`, `strategy_applied`, `updated_at`. Getter für Cold-Start des Dashboards.
-- **Neue Tabelle `pump_sessions`**: `id`, `device_id`, `started_at`, `stopped_at`, `duration_s`, `avg_watts`, `kwh`, `pv_covered_pct`, `trigger` (`manual|schedule|eco`), `reason`. Ersetzt raw device_events als Analysebasis für Pump-Nutzung.
-- **RLS + GRANTs** auf beide Tabellen (owner-scoped).
-- **pg_cron kill**: `unschedule` für `aggregate_device_events` (15 min). Behalten: nur ein Job **1×/Nacht** für Daily-Rollup + Retention. Anomaly-Scan auf 1×/Tag.
-- **Realtime aktivieren** für `device_state_latest` (Fallback wenn Broadcast-Channel nicht erreichbar).
+**DB Migration** (kleine, einmalige Änderung — keine periodischen Writes):
+- `alexa_oauth_clients(id, user_id, device_id, client_id text unique, client_secret_hash text, redirect_uris text[], created_at)` — RLS: `auth.uid() = user_id`, GRANTs für authenticated + service_role.
+- `alexa_oauth_codes(code_hash text pk, client_id text, user_id uuid, device_id uuid, redirect_uri text, scope text, expires_at timestamptz)` — service_role only, 10-min TTL, single-use (row löschen bei Redemption).
 
-### Route A — Stateless Live-Relay
+## 2) `/connect/alexa` UI komplett neu
 
-- **Neuer Server-Route** `src/routes/api/public/live/publish.ts`: POST-Endpoint für Node-RED. Nimmt `{device_id, watts, pv_surplus_w, outside_temp_c, pump_on, ts}` an, auth über `device_token_hash`.
-- Handler verifiziert Token, dann **sendet direkt an Supabase Realtime Broadcast Channel** `live:{device_id}` via publishable-key client. **Kein DB-Insert.** (Broadcast-Nachrichten laufen nicht durch Postgres → kein DB-Wakeup, keine Compute-Zeit.)
-- Rate-Limit: max 2 msg/s pro Device (in-memory Map im Worker).
+Step-by-Step mit exakten Copy-Rows und "muss identisch sein"-Hinweisen:
 
-### Route B — Session/Alarm-Ingest (existing endpoint, gehärtet)
+1. **Custom Skill anlegen** — Sprache DE, Modell Custom.
+2. **Endpoint** (HTTPS): `https://pi-hub.benniwie.com/api/public/voice/alexa` — Zertifikat "trusted CA".
+3. **Invocation Name**: `pi hub` — muss exakt so im Skill Builder stehen (JSON und Console).
+4. **Intent Schema** einfügen (Copy-Button, aktualisiertes JSON) → Build Model.
+5. **Account Linking → Auth Code Grant**:
+   - Authorization URI: `https://pi-hub.benniwie.com/api/public/oauth/authorize`
+   - Access Token URI: `https://pi-hub.benniwie.com/api/public/oauth/token`
+   - Client ID / Client Secret (aus DB, "Neu generieren" Button)
+   - Client Authentication Scheme: **HTTP Basic**
+   - Scope: `control`
+6. **In Alexa App verknüpfen** — nur nach Account Linking erscheint `accessToken` im Request.
+7. **Testen** — Beispiel-Utterances.
 
-- `src/routes/api/public/cloud-bridge/event.ts` bekommt neuen Body-Typ `session_summary`:
-  - `{kind: "pump_session", started_at, stopped_at, duration_s, avg_watts, kwh, pv_covered_pct, trigger}`
-  - → INSERT in `pump_sessions` + UPSERT in `device_state_latest` (pump_on=false)
-- Neuer Body-Typ `state_change`: pump_on=true beim Start → UPSERT `device_state_latest`.
-- Alarme (`warning`/`critical`) bleiben wie bisher, aber landen zusätzlich in `device_state_latest` (`last_alarm`).
-- Bestehende Heartbeat/Dedup-Logik im Endpoint **entfernen** (Node-RED puffert jetzt selbst).
+Doku-Link korrigiert auf Amazons Auth-Code-Grant-Seite.
 
-### Pi-Bridge (`src/lib/cloud-bridge.server.ts`)
+## 3) Gemeinsame Intent-Route für Alexa + Telegram
 
-- Heartbeat: **30 s → 15 min** (bleibt nur für "Pi lebt"-Anzeige).
-- Live-Metrik-Emission: entfällt komplett (macht Node-RED direkt).
-- Command-Poll bleibt Long-Poll (kostet nix).
+Neuer Helper `src/lib/voice-intents.server.ts` mit `runIntent({ userId, deviceId, intent, slots, source })`:
 
-### Node-RED-Template neu (`public/nodered-template.json`)
+| Intent | mutierend? | Backend |
+| --- | --- | --- |
+| `pump.on(minutes?)` | ja | `agent_commands` `plugin_manual` (runner=nodered) + `mcp_audit` |
+| `pump.off()` | ja | `agent_commands` + `mcp_audit` |
+| `pump.status()` | **nein** | Read `device_state_latest`; **kein** Audit-Row |
+| `system.status()` | **nein** | Read `device_state_latest`; **kein** Audit-Row |
+| `mqtt.publish(topic,payload)` | ja | `cmnd/*`-Whitelist; `agent_commands` + `mcp_audit` |
+| `energy.price_now()` | nein | Read `strategy_profiles` (aktuelles Tibber-Feld); kein Audit |
+| `laundry.state(app)` | nein | Read `appliance_profiles` + `device_state_latest`; kein Audit |
 
-Neuer Tab **"Session Aggregator"** ersetzt die aktuellen Live-Push-Nodes:
+Alexa (`/voice/alexa`) und Telegram (`/telegram/webhook`) rufen nur noch `runIntent(...)`. Antworten identisch, Audit einheitlich, keine Divergenz mehr.
 
-```text
-[MQTT tele/pump/SENSOR]──┐
-[MQTT stat/pump/POWER]───┼──►[fn: session-tracker (RAM)]──┬──►[fn: emit live tick every 1s]──►[HTTP POST /live/publish]
-[Tibber Pulse WS]────────┤    keeps flow.session = {          │
-[DWD API 15min]──────────┘    started_at, samples[], pv,     │
-                              rain_win24h[], commit_until}    │
-                                                              └──►[on pump OFF: emit session_summary]──►[HTTP POST /event]
-                                                              └──►[on alarm: emit alarm]──────────────►[HTTP POST /event]
-```
+## 4) Node-RED Command-Delivery: Realtime statt Long-Poll
 
-Die `session-tracker` function node hält alles in `flow.` context (RAM), inkl.:
-- **Virtual PV**: `pv_display = pv_raw + (pump_on ? pump_watts : 0)`.
-- **Run-Commitment**: wenn `now < commit_until`, ignoriere Eco-Abschaltbedingungen.
-- **Sliding-Window Weather**: `rain_win24h` als Ring-Buffer der letzten 24 h.
+**Aktuell:** `/api/public/agent/poll` läuft 25 s in einer `while`-Schleife und macht alle 2 s ein SELECT auf `agent_commands` → hält Postgres wach.
 
-Dokumentation in `docs/nodered-integration.md` mit vollem Fluss + Copy-Paste-Function-Code.
+**Neu:**
+1. Nach jedem `INSERT INTO agent_commands` (aus `runIntent`, MCP-Server, UI-Buttons) sofort HTTP-POST an Supabase Realtime Broadcast: `topic=commands:<device_id>`, `event=wake`. **Keine DB-Query** in Node-RED nötig.
+2. Node-RED-Template bekommt einen `websocket in`-Node, der zu Supabase Realtime verbindet und `commands:<device_id>` abonniert. Bei `wake` triggert er **einen** GET auf `/api/public/agent/poll?runner=nodered` — der neu geschriebene Handler ist jetzt **nicht mehr long-polling**, sondern führt eine einzige SELECT-Query aus und antwortet 200 (mit Kommando) oder 204 (leer).
+3. **Safety-Net-Fallback**: alle 15 min ein Standard-HTTP-Poll (falls WebSocket abriss). Das sind 96 Wakeups/Tag statt 2880.
 
-### Frontend-Umbau
+**Aufwand:** ~15 Zeilen Änderung in `poll.ts` (Loop raus), ~1 Zeile in `/agent/heartbeat.ts` (nach INSERT broadcasten), ein neuer Realtime-Node im Template.
 
-- **`src/routes/_cloud/pump.tsx`**: Live-Daten-Query auf `device_state_latest` (1× beim Mount, `staleTime: Infinity`) + Supabase Realtime Broadcast Subscription auf `live:{device_id}`.
-- Alle bisherigen Polling-Intervalle (`refetchInterval: 30000` etc.) auf **`false`** — reine WebSocket-basierte Live-Updates.
-- Historie (letzte 6 h Chart): liest aus `pump_sessions` + `device_events_hourly`, refetch nur manuell / bei Sitzungs-Wechsel (`staleTime: Infinity`).
-- `PumpInsights` 30-Tage: liest `device_events_daily`, 1× pro Sitzung.
-- **`src/hooks/use-dynamic-favicon.ts`**: liest `device_state_latest.pump_on`, subscribed auf Broadcast — kein 15s-Poll auf `device_events` mehr.
+## 5) Node-RED System-Stats Streaming — **nur** über Live-Broadcast
 
-### Migration 2 — Cleanup / Retention
+`/api/public/live/publish` Schema wird erweitert um optionale Felder: `cpu_pct`, `mem_pct`, `temp_c`, `swap_pct`, `disk_pct`, `mqtt_broker_status`. Rate-Limit bleibt bei 500 ms/Gerät.
 
-- `device_events`: Retention Rohdaten von 48 h → **12 h** (nur noch Alarme + Session-Summaries landen dort).
-- `device_events_hourly`: 90 → 60 Tage.
-- Aggregations-Funktion umschreiben: liest jetzt aus `pump_sessions` (nicht mehr raw events).
+Node-RED-Template:
+- Tab **Pi System Stats** (5-Min-Timer): schickt Payload **nur** an `/api/public/live/publish` — **nicht** an `/cloud-bridge/event`.
+- Tab **Hardware-Control**: Pump-State-Änderungen bleiben auf `/cloud-bridge/event` (das sind ~5-10 Events/Tag, kein Problem).
+- Tab **MQTT Broker Watch**: `mqtt_broker_status` Änderungen → Live-Broadcast; nur bei `critical` zusätzlich DB (damit historische Alarme sichtbar bleiben).
 
-## Erwarteter Effekt
+**Cloud-UI** (`/pump` und `/devices/:id`): subscribed bereits `live:<device_id>` — erweitert um Anzeige der System-Stats-Felder (kleine Metrik-Zeile: CPU/Temp/Swap). Keine neue Query, keine neue Subscription.
 
-| Aktion | Vorher | Nachher |
-|---|---|---|
-| DB-Writes/Tag | ~2000 events + 2880 heartbeats + pg_cron | ~20 session rows + 96 state upserts |
-| pg_cron Wakeups | 96 + 24 + Anomaly-Scan | 1 (nachts) |
-| UI-DB-Reads pro Sitzung | ~10 aktive Queries | 2 (cold-start) |
-| Live-Latenz | 30 s (Poll) | <1 s (WebSocket) |
+## 6) Doku-Updates
 
-`Cloud compute pico` sollte auf **0.3–0.5 credits/Tag** fallen. Live-Latenz wird sogar **besser**, weil WebSocket statt 30s-Poll.
+- `docs/mcp.md` — Alexa-Abschnitt komplett neu (Auth-Code-Grant statt Bearer-Workaround).
+- Neue `docs/alexa-setup.md` — 1:1 Skill-Console-Screenshots-Ablauf.
+- `docs/nodered-integration.md` — Abschnitte "Realtime Command Wake-Up" und "System-Stats via Live-Broadcast" mit expliziter "was NIE in die DB darf" Liste.
 
-## Warum das die Realtime-Kosten nicht in die Höhe treibt
+## Verifikation
 
-Supabase Realtime **Broadcast** (nicht Postgres-Changes!) läuft komplett am DB-Server vorbei — Nachrichten werden im Worker-Netz verteilt. Kosten sind Bandbreite (bei ~50 Bytes/s pro User vernachlässigbar) statt Compute-Stunden.
+- `curl /oauth/authorize` ohne Session → 302 nach `/auth?next=...`
+- `curl -X POST /oauth/token -d grant_type=authorization_code&code=...` → gültiges MCP-Bearer
+- Alexa Simulator nach Account Linking: `session.user.accessToken` gesetzt
+- "Alexa, sage pi hub Pumpe an für 2 Minuten" → 1 INSERT `agent_commands`, Broadcast auf `commands:<id>`, Node-RED empfängt Wake, holt Kommando, MQTT `cmnd/zisterne/POWER ON`, Auto-OFF nach 2 min
+- Telegram `/pump on 2` → identisches Verhalten via `runIntent`
+- 24-h-Messung nach Deploy: `SELECT count(*) FROM agent_commands WHERE created_at > now() - '1d'` sollte < 50 bleiben; `pg_stat_activity` zeigt Idle-Phasen > 20 h/Tag
+- System-Stats sichtbar in UI innerhalb ≤ 1 s nach Node-RED-Tick; **keine** neuen Zeilen in `device_events` mit `component='system_hardware'`
 
-## Nicht im Scope
+## Nicht enthalten (bewusst)
 
-- SD-Karten-Persistenz auf dem Pi (weiterhin RAM-only wie gewünscht).
-- Node-RED-Node-Struktur bleibt kompatibel, User kann Template runterladen und importieren.
-- MCP / Telegram / Alexa / Command-Poll: unverändert, laufen über bestehende Endpoints.
-
-## Rollback
-
-Route A ist additiv. Falls Broadcast-Channel Probleme macht, fällt UI automatisch auf `device_state_latest`-Poll (30 s) zurück, weil Realtime auf dieser Tabelle aktiviert bleibt.
+- Alexa-Skill-Zertifizierung (Cert-Chain, Multi-Tenant Consent) — Personal Skill Setup bleibt.
+- Kein Refactor der Eco-Logik oder Safety-Caps.
+- Keine Persistierung von System-Stats-Historie — bewusster Trade-off gegen Cost.
