@@ -246,6 +246,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             },
             source: "telegram",
           });
+          void broadcastCommandWake(dev.id);
           await reply(
             isOn
               ? `💧 Pumpe *AN* für ${minutes} min gesendet an *${dev.name}*`
