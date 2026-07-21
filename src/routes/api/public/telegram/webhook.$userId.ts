@@ -367,6 +367,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
               payload: { topic, payload },
               source: "telegram",
             });
+            void broadcastCommandWake(dev.id);
             await reply(`⏳ MQTT publish \`${topic}\` an *${dev.name}*...`);
             return jsonResponse({ ok: true });
           }
