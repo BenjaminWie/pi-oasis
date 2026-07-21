@@ -13,6 +13,7 @@ import { z } from "zod";
 import { bearer, jsonResponse, sha256 } from "@/lib/agent-api.server";
 
 const Tick = z.object({
+  // Pump / energy
   watts: z.number().finite().optional(),
   pv_surplus_w: z.number().finite().optional(),
   outside_temp_c: z.number().finite().optional(),
@@ -20,6 +21,14 @@ const Tick = z.object({
   pump_on: z.boolean().optional(),
   strategy_applied: z.string().max(64).optional(),
   reason: z.string().max(256).optional(),
+  // System / Pi telemetry (streamed via live-relay, NOT persisted)
+  cpu_pct: z.number().finite().min(0).max(100).optional(),
+  mem_pct: z.number().finite().min(0).max(100).optional(),
+  disk_pct: z.number().finite().min(0).max(100).optional(),
+  swap_pct: z.number().finite().min(0).max(100).optional(),
+  temp_c: z.number().finite().optional(),
+  uptime_s: z.number().finite().min(0).optional(),
+  mqtt_broker_up: z.boolean().optional(),
   ts: z.string().datetime().optional(),
 });
 const Body = z.union([Tick, z.array(Tick).min(1).max(20)]);
