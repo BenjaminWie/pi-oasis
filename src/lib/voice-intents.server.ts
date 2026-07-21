@@ -31,16 +31,18 @@ async function admin() {
 }
 
 async function audit(ctx: IntentCtx, intent: string, status: "ok" | "error", latencyMs: number, error?: string) {
-  const sb = await admin();
-  await sb.from("mcp_audit").insert({
-    user_id: ctx.userId,
-    device_id: ctx.deviceId,
-    tool_name: `intent:${intent}`,
-    status,
-    latency_ms: latencyMs,
-    error: error ?? null,
-    source: ctx.source,
-  } as any).catch(() => {});
+  try {
+    const sb = await admin();
+    await sb.from("mcp_audit").insert({
+      user_id: ctx.userId,
+      device_id: ctx.deviceId,
+      tool_name: `intent:${intent}`,
+      status,
+      latency_ms: latencyMs,
+      error: error ?? null,
+      source: ctx.source,
+    } as any);
+  } catch { /* audit is best-effort */ }
 }
 
 async function enqueue(ctx: IntentCtx, kind: string, payload: Record<string, unknown>) {
