@@ -583,7 +583,9 @@ export type Database = {
           id: string
           last_used_at: string | null
           name: string
+          refresh_token_hash: string | null
           scopes: string[]
+          source: string
           token_hash: string
           token_prefix: string
           user_id: string
@@ -595,7 +597,9 @@ export type Database = {
           id?: string
           last_used_at?: string | null
           name: string
+          refresh_token_hash?: string | null
           scopes?: string[]
+          source?: string
           token_hash: string
           token_prefix: string
           user_id: string
@@ -607,7 +611,9 @@ export type Database = {
           id?: string
           last_used_at?: string | null
           name?: string
+          refresh_token_hash?: string | null
           scopes?: string[]
+          source?: string
           token_hash?: string
           token_prefix?: string
           user_id?: string

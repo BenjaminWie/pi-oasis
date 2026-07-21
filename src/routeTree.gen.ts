@@ -36,6 +36,7 @@ import { Route as CloudConnectionsAlexaRouteImport } from './routes/_cloud/conne
 import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
 import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
+import { Route as ApiPublicOauthTokenRouteImport } from './routes/api/public/oauth/token'
 import { Route as ApiPublicOauthAuthorizePostRouteImport } from './routes/api/public/oauth/authorize-post'
 import { Route as ApiPublicOauthAuthorizeRouteImport } from './routes/api/public/oauth/authorize'
 import { Route as ApiPublicLivePublishRouteImport } from './routes/api/public/live/publish'
@@ -188,6 +189,11 @@ const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
   path: '/api/public/voice/alexa',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicOauthTokenRoute = ApiPublicOauthTokenRouteImport.update({
+  id: '/api/public/oauth/token',
+  path: '/api/public/oauth/token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicOauthAuthorizePostRoute =
   ApiPublicOauthAuthorizePostRouteImport.update({
     id: '/api/public/oauth/authorize-post',
@@ -303,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
+  '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -340,6 +347,7 @@ export interface FileRoutesByTo {
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
+  '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -384,6 +392,7 @@ export interface FileRoutesById {
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
+  '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -426,6 +435,7 @@ export interface FileRouteTypes {
     | '/api/public/live/publish'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
+    | '/api/public/oauth/token'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesByTo: FileRoutesByTo
@@ -463,6 +473,7 @@ export interface FileRouteTypes {
     | '/api/public/live/publish'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
+    | '/api/public/oauth/token'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   id:
@@ -506,6 +517,7 @@ export interface FileRouteTypes {
     | '/api/public/live/publish'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
+    | '/api/public/oauth/token'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesById: FileRoutesById
@@ -530,6 +542,7 @@ export interface RootRouteChildren {
   ApiPublicLivePublishRoute: typeof ApiPublicLivePublishRoute
   ApiPublicOauthAuthorizeRoute: typeof ApiPublicOauthAuthorizeRoute
   ApiPublicOauthAuthorizePostRoute: typeof ApiPublicOauthAuthorizePostRoute
+  ApiPublicOauthTokenRoute: typeof ApiPublicOauthTokenRoute
   ApiPublicVoiceAlexaRoute: typeof ApiPublicVoiceAlexaRoute
   ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -723,6 +736,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/voice/alexa'
       fullPath: '/api/public/voice/alexa'
       preLoaderRoute: typeof ApiPublicVoiceAlexaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/oauth/token': {
+      id: '/api/public/oauth/token'
+      path: '/api/public/oauth/token'
+      fullPath: '/api/public/oauth/token'
+      preLoaderRoute: typeof ApiPublicOauthTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/oauth/authorize-post': {
@@ -932,6 +952,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicLivePublishRoute: ApiPublicLivePublishRoute,
   ApiPublicOauthAuthorizeRoute: ApiPublicOauthAuthorizeRoute,
   ApiPublicOauthAuthorizePostRoute: ApiPublicOauthAuthorizePostRoute,
+  ApiPublicOauthTokenRoute: ApiPublicOauthTokenRoute,
   ApiPublicVoiceAlexaRoute: ApiPublicVoiceAlexaRoute,
   ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
 }
