@@ -308,6 +308,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             },
             source: "telegram",
           });
+          void broadcastCommandWake(plugin.deviceId);
 
           await reply(`⏳ Befehl \`${cmd.label}\` an *${plugin.name}* gesendet...`);
           return jsonResponse({ ok: true });
