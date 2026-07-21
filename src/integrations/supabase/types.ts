@@ -64,6 +64,89 @@ export type Database = {
           },
         ]
       }
+      alexa_oauth_clients: {
+        Row: {
+          client_id: string
+          client_secret_hash: string
+          created_at: string
+          device_id: string | null
+          id: string
+          last_used_at: string | null
+          name: string
+          redirect_uris: string[]
+          scopes: string[]
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          client_secret_hash: string
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          redirect_uris?: string[]
+          scopes?: string[]
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          client_secret_hash?: string
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          redirect_uris?: string[]
+          scopes?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alexa_oauth_clients_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alexa_oauth_codes: {
+        Row: {
+          client_id: string
+          code_hash: string
+          created_at: string
+          device_id: string | null
+          expires_at: string
+          redirect_uri: string
+          scope: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          code_hash: string
+          created_at?: string
+          device_id?: string | null
+          expires_at: string
+          redirect_uri: string
+          scope?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          code_hash?: string
+          created_at?: string
+          device_id?: string | null
+          expires_at?: string
+          redirect_uri?: string
+          scope?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       anomaly_baselines: {
         Row: {
           device_id: string
