@@ -332,6 +332,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             kind: "status",
             source: "telegram",
           });
+          void broadcastCommandWake(dev.id);
           await reply(`⏳ Status von *${dev.name}* angefordert...`);
           return jsonResponse({ ok: true });
         }
