@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { jsonResponse } from "@/lib/agent-api.server";
+import { broadcastCommandWake } from "@/lib/broadcast.server";
 
 type Profile = {
   id: string;
