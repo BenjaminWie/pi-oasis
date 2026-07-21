@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { jsonResponse } from "@/lib/agent-api.server";
+import { broadcastCommandWake } from "@/lib/broadcast.server";
 
 type Profile = {
   id: string;
@@ -220,6 +221,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
               kind: "status",
               source: "telegram",
             });
+            void broadcastCommandWake(dev.id);
             await reply(`⏳ Pumpen-Status von *${dev.name}* angefordert…`);
             return jsonResponse({ ok: true });
           }
@@ -244,6 +246,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             },
             source: "telegram",
           });
+          void broadcastCommandWake(dev.id);
           await reply(
             isOn
               ? `💧 Pumpe *AN* für ${minutes} min gesendet an *${dev.name}*`
@@ -305,6 +308,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             },
             source: "telegram",
           });
+          void broadcastCommandWake(plugin.deviceId);
 
           await reply(`⏳ Befehl \`${cmd.label}\` an *${plugin.name}* gesendet...`);
           return jsonResponse({ ok: true });
@@ -328,6 +332,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             kind: "status",
             source: "telegram",
           });
+          void broadcastCommandWake(dev.id);
           await reply(`⏳ Status von *${dev.name}* angefordert...`);
           return jsonResponse({ ok: true });
         }
@@ -362,6 +367,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
               payload: { topic, payload },
               source: "telegram",
             });
+            void broadcastCommandWake(dev.id);
             await reply(`⏳ MQTT publish \`${topic}\` an *${dev.name}*...`);
             return jsonResponse({ ok: true });
           }

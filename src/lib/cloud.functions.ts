@@ -213,6 +213,11 @@ export const enqueueCommand = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    // Zero-Wake: ping the Realtime channel so Node-RED / the Pi bridge polls now
+    try {
+      const { broadcastCommandWake } = await import("@/lib/broadcast.server");
+      void broadcastCommandWake(data.deviceId);
+    } catch { /* best-effort */ }
     return { id: row.id };
   });
 

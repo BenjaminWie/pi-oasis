@@ -36,6 +36,9 @@ import { Route as CloudConnectionsAlexaRouteImport } from './routes/_cloud/conne
 import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
 import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
+import { Route as ApiPublicOauthTokenRouteImport } from './routes/api/public/oauth/token'
+import { Route as ApiPublicOauthAuthorizePostRouteImport } from './routes/api/public/oauth/authorize-post'
+import { Route as ApiPublicOauthAuthorizeRouteImport } from './routes/api/public/oauth/authorize'
 import { Route as ApiPublicLivePublishRouteImport } from './routes/api/public/live/publish'
 import { Route as ApiPublicIngestEventRouteImport } from './routes/api/public/ingest/event'
 import { Route as ApiPublicHooksAnomalyScanRouteImport } from './routes/api/public/hooks/anomaly-scan'
@@ -186,6 +189,22 @@ const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
   path: '/api/public/voice/alexa',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicOauthTokenRoute = ApiPublicOauthTokenRouteImport.update({
+  id: '/api/public/oauth/token',
+  path: '/api/public/oauth/token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicOauthAuthorizePostRoute =
+  ApiPublicOauthAuthorizePostRouteImport.update({
+    id: '/api/public/oauth/authorize-post',
+    path: '/api/public/oauth/authorize-post',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicOauthAuthorizeRoute = ApiPublicOauthAuthorizeRouteImport.update({
+  id: '/api/public/oauth/authorize',
+  path: '/api/public/oauth/authorize',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicLivePublishRoute = ApiPublicLivePublishRouteImport.update({
   id: '/api/public/live/publish',
   path: '/api/public/live/publish',
@@ -288,6 +307,9 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
+  '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
+  '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
+  '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -323,6 +345,9 @@ export interface FileRoutesByTo {
   '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
+  '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
+  '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
+  '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -365,6 +390,9 @@ export interface FileRoutesById {
   '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
+  '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
+  '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
+  '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -405,6 +433,9 @@ export interface FileRouteTypes {
     | '/api/public/hooks/anomaly-scan'
     | '/api/public/ingest/event'
     | '/api/public/live/publish'
+    | '/api/public/oauth/authorize'
+    | '/api/public/oauth/authorize-post'
+    | '/api/public/oauth/token'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesByTo: FileRoutesByTo
@@ -440,6 +471,9 @@ export interface FileRouteTypes {
     | '/api/public/hooks/anomaly-scan'
     | '/api/public/ingest/event'
     | '/api/public/live/publish'
+    | '/api/public/oauth/authorize'
+    | '/api/public/oauth/authorize-post'
+    | '/api/public/oauth/token'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   id:
@@ -481,6 +515,9 @@ export interface FileRouteTypes {
     | '/api/public/hooks/anomaly-scan'
     | '/api/public/ingest/event'
     | '/api/public/live/publish'
+    | '/api/public/oauth/authorize'
+    | '/api/public/oauth/authorize-post'
+    | '/api/public/oauth/token'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesById: FileRoutesById
@@ -503,6 +540,9 @@ export interface RootRouteChildren {
   ApiPublicHooksAnomalyScanRoute: typeof ApiPublicHooksAnomalyScanRoute
   ApiPublicIngestEventRoute: typeof ApiPublicIngestEventRoute
   ApiPublicLivePublishRoute: typeof ApiPublicLivePublishRoute
+  ApiPublicOauthAuthorizeRoute: typeof ApiPublicOauthAuthorizeRoute
+  ApiPublicOauthAuthorizePostRoute: typeof ApiPublicOauthAuthorizePostRoute
+  ApiPublicOauthTokenRoute: typeof ApiPublicOauthTokenRoute
   ApiPublicVoiceAlexaRoute: typeof ApiPublicVoiceAlexaRoute
   ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -698,6 +738,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicVoiceAlexaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/oauth/token': {
+      id: '/api/public/oauth/token'
+      path: '/api/public/oauth/token'
+      fullPath: '/api/public/oauth/token'
+      preLoaderRoute: typeof ApiPublicOauthTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/oauth/authorize-post': {
+      id: '/api/public/oauth/authorize-post'
+      path: '/api/public/oauth/authorize-post'
+      fullPath: '/api/public/oauth/authorize-post'
+      preLoaderRoute: typeof ApiPublicOauthAuthorizePostRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/oauth/authorize': {
+      id: '/api/public/oauth/authorize'
+      path: '/api/public/oauth/authorize'
+      fullPath: '/api/public/oauth/authorize'
+      preLoaderRoute: typeof ApiPublicOauthAuthorizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/live/publish': {
       id: '/api/public/live/publish'
       path: '/api/public/live/publish'
@@ -889,19 +950,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksAnomalyScanRoute: ApiPublicHooksAnomalyScanRoute,
   ApiPublicIngestEventRoute: ApiPublicIngestEventRoute,
   ApiPublicLivePublishRoute: ApiPublicLivePublishRoute,
+  ApiPublicOauthAuthorizeRoute: ApiPublicOauthAuthorizeRoute,
+  ApiPublicOauthAuthorizePostRoute: ApiPublicOauthAuthorizePostRoute,
+  ApiPublicOauthTokenRoute: ApiPublicOauthTokenRoute,
   ApiPublicVoiceAlexaRoute: ApiPublicVoiceAlexaRoute,
   ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -28,30 +28,29 @@ export const Route = createFileRoute("/api/public/agent/poll")({
           .update({ last_seen_at: new Date().toISOString() })
           .eq("id", device.id);
 
-        // Poll up to ~25s for a pending command
-        const deadline = Date.now() + 25_000;
-        while (Date.now() < deadline) {
-          const { data: pending } = await supabaseAdmin
+        // Zero-Wake: single query only. Node-RED / the Pi bridge subscribes to
+        // the Supabase Realtime channel `commands:<device_id>` and only calls
+        // this endpoint when a "wake" broadcast fires (see broadcast.server.ts).
+        // A 15-minute safety-net poll still runs on the client side.
+        const { data: pending } = await supabaseAdmin
+          .from("agent_commands")
+          .select("id, kind, payload")
+          .eq("device_id", device.id)
+          .eq("status", "pending")
+          .order("created_at", { ascending: true })
+          .limit(100);
+
+        const cmd = (pending ?? []).find((candidate: any) => {
+          const target = candidate.payload?.runner;
+          return runner === "nodered" ? target === "nodered" : target !== "nodered";
+        });
+
+        if (cmd) {
+          await supabaseAdmin
             .from("agent_commands")
-            .select("id, kind, payload")
-            .eq("device_id", device.id)
-            .eq("status", "pending")
-            .order("created_at", { ascending: true })
-            .limit(100);
-
-          const cmd = (pending ?? []).find((candidate: any) => {
-            const target = candidate.payload?.runner;
-            return runner === "nodered" ? target === "nodered" : target !== "nodered";
-          });
-
-          if (cmd) {
-            await supabaseAdmin
-              .from("agent_commands")
-              .update({ status: "delivered", delivered_at: new Date().toISOString() })
-              .eq("id", cmd.id);
-            return jsonResponse({ command: cmd });
-          }
-          await new Promise((r) => setTimeout(r, 2000));
+            .update({ status: "delivered", delivered_at: new Date().toISOString() })
+            .eq("id", cmd.id);
+          return jsonResponse({ command: cmd });
         }
         return new Response(null, { status: 204 });
       },
