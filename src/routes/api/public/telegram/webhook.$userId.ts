@@ -353,22 +353,19 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             const payload = parts.slice(3).join(" ");
             const dev = pickDevice();
             if (!dev) return jsonResponse({ ok: true });
-            await supabaseAdmin.from("agent_commands").insert({
-              device_id: dev.id,
-              user_id: userId,
-              kind: "mqtt_publish",
-              payload: { topic, payload },
-              source: "telegram",
-            });
-            void broadcastCommandWake(dev.id);
-            await reply(`⏳ MQTT publish \`${topic}\` an *${dev.name}*...`);
+            const r = await mqttPublish(
+              { userId, deviceId: dev.id, source: "telegram" },
+              topic,
+              payload,
+            );
+            await reply(`${r.ok ? "📡" : "⛔"} *${dev.name}*: ${r.speech}`);
             return jsonResponse({ ok: true });
           }
           await reply("Usage: `/mqtt pub <topic> <nachricht>`");
           return jsonResponse({ ok: true });
         }
 
-        await reply("Unbekannter Befehl. /pump on|off|status · /devices /status /containers /plugins /mqtt");
+        await reply("Unbekannter Befehl. /pump on|off|status · /devices /status /price /containers /plugins /mqtt");
         return jsonResponse({ ok: true });
       },
     },
