@@ -313,14 +313,20 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             await reply("Kein Gerät verknüpft.");
             return jsonResponse({ ok: true });
           }
-          await supabaseAdmin.from("agent_commands").insert({
-            device_id: dev.id,
-            user_id: userId,
-            kind: "status",
-            source: "telegram",
-          });
-          void broadcastCommandWake(dev.id);
-          await reply(`⏳ Status von *${dev.name}* angefordert...`);
+          // Read-only intent: no audit, no wake, no agent_commands row.
+          const r = await systemStatus({ userId, deviceId: dev.id, source: "telegram" });
+          await reply(`📊 *${dev.name}*: ${r.speech}`);
+          return jsonResponse({ ok: true });
+        }
+
+        if (text.startsWith("/price") || text.startsWith("/strom")) {
+          const dev = pickDevice();
+          if (!dev) {
+            await reply("Kein Gerät verknüpft.");
+            return jsonResponse({ ok: true });
+          }
+          const r = await energyPriceNow({ userId, deviceId: dev.id, source: "telegram" });
+          await reply(`⚡ ${r.speech}`);
           return jsonResponse({ ok: true });
         }
 
