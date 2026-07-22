@@ -2,6 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { jsonResponse } from "@/lib/agent-api.server";
 import { broadcastCommandWake } from "@/lib/broadcast.server";
+import {
+  pumpOn,
+  pumpOff,
+  pumpStatus,
+  systemStatus,
+  energyPriceNow,
+  mqttPublish,
+  type IntentCtx,
+} from "@/lib/voice-intents.server";
 
 type Profile = {
   id: string;
@@ -214,15 +223,10 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             await reply("Kein Gerät verknüpft.");
             return jsonResponse({ ok: true });
           }
+          const ctx: IntentCtx = { userId, deviceId: dev.id, source: "telegram" };
           if (action === "status") {
-            await supabaseAdmin.from("agent_commands").insert({
-              device_id: dev.id,
-              user_id: userId,
-              kind: "status",
-              source: "telegram",
-            });
-            void broadcastCommandWake(dev.id);
-            await reply(`⏳ Pumpen-Status von *${dev.name}* angefordert…`);
+            const r = await pumpStatus(ctx);
+            await reply(`💧 *${dev.name}*: ${r.speech}`);
             return jsonResponse({ ok: true });
           }
           if (action !== "on" && action !== "off" && action !== "an" && action !== "aus") {
@@ -231,27 +235,10 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
           }
           const isOn = action === "on" || action === "an";
           const minutesRaw = Number(parts[2]);
-          const minutes = isOn
-            ? Math.max(1, Math.min(120, Number.isFinite(minutesRaw) ? minutesRaw : 10))
-            : undefined;
-          await supabaseAdmin.from("agent_commands").insert({
-            device_id: dev.id,
-            user_id: userId,
-            kind: "plugin_manual",
-            payload: {
-              id: "pump",
-              runner: "nodered",
-              action: isOn ? "on" : "off",
-              ...(minutes ? { minutes } : {}),
-            },
-            source: "telegram",
-          });
-          void broadcastCommandWake(dev.id);
-          await reply(
-            isOn
-              ? `💧 Pumpe *AN* für ${minutes} min gesendet an *${dev.name}*`
-              : `⏹️ Pumpe *AUS* gesendet an *${dev.name}*`,
-          );
+          const r = isOn
+            ? await pumpOn(ctx, Number.isFinite(minutesRaw) ? minutesRaw : undefined)
+            : await pumpOff(ctx);
+          await reply(`${isOn ? "💧" : "⏹️"} *${dev.name}*: ${r.speech}`);
           return jsonResponse({ ok: true });
         }
 
@@ -326,14 +313,20 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             await reply("Kein Gerät verknüpft.");
             return jsonResponse({ ok: true });
           }
-          await supabaseAdmin.from("agent_commands").insert({
-            device_id: dev.id,
-            user_id: userId,
-            kind: "status",
-            source: "telegram",
-          });
-          void broadcastCommandWake(dev.id);
-          await reply(`⏳ Status von *${dev.name}* angefordert...`);
+          // Read-only intent: no audit, no wake, no agent_commands row.
+          const r = await systemStatus({ userId, deviceId: dev.id, source: "telegram" });
+          await reply(`📊 *${dev.name}*: ${r.speech}`);
+          return jsonResponse({ ok: true });
+        }
+
+        if (text.startsWith("/price") || text.startsWith("/strom")) {
+          const dev = pickDevice();
+          if (!dev) {
+            await reply("Kein Gerät verknüpft.");
+            return jsonResponse({ ok: true });
+          }
+          const r = await energyPriceNow({ userId, deviceId: dev.id, source: "telegram" });
+          await reply(`⚡ ${r.speech}`);
           return jsonResponse({ ok: true });
         }
 
@@ -360,22 +353,19 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             const payload = parts.slice(3).join(" ");
             const dev = pickDevice();
             if (!dev) return jsonResponse({ ok: true });
-            await supabaseAdmin.from("agent_commands").insert({
-              device_id: dev.id,
-              user_id: userId,
-              kind: "mqtt_publish",
-              payload: { topic, payload },
-              source: "telegram",
-            });
-            void broadcastCommandWake(dev.id);
-            await reply(`⏳ MQTT publish \`${topic}\` an *${dev.name}*...`);
+            const r = await mqttPublish(
+              { userId, deviceId: dev.id, source: "telegram" },
+              topic,
+              payload,
+            );
+            await reply(`${r.ok ? "📡" : "⛔"} *${dev.name}*: ${r.speech}`);
             return jsonResponse({ ok: true });
           }
           await reply("Usage: `/mqtt pub <topic> <nachricht>`");
           return jsonResponse({ ok: true });
         }
 
-        await reply("Unbekannter Befehl. /pump on|off|status · /devices /status /containers /plugins /mqtt");
+        await reply("Unbekannter Befehl. /pump on|off|status · /devices /status /price /containers /plugins /mqtt");
         return jsonResponse({ ok: true });
       },
     },
