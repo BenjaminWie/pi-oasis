@@ -697,8 +697,8 @@
     "id": "pihub_weather_example",
     "type": "comment",
     "z": "pihub_cloud_bridge_tab",
-    "name": "Analytics payloads: weather_dwd, tibber_pulse, pump_guard, pump_control",
-    "info": "Wire your existing Tibber/Weather/Pump metric nodes into Event In. Use component names weather_dwd, tibber_pulse, pump_guard, pump_control so cloud charts and AI reasoning can find them.",
+    "name": "Analytics payloads: weather_dwd, tibber_pulse, pump_guard, pump_control, system_stats",
+    "info": "Wire your Tibber/Weather/Pump/System metric nodes into Event In. Use component names weather_dwd, tibber_pulse, pump_guard, pump_control, system_stats so cloud charts, voice-intents (pump.status/system.status/energy.price_now) and AI reasoning can find them. Read-only Telegram + Alexa intents read device_state_latest — make sure metrics flow into cloud events so those replies stay fresh without extra polling.",
     "x": 340,
     "y": 780,
     "wires": []
