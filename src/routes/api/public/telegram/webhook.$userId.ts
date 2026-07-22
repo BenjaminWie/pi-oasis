@@ -223,15 +223,10 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             await reply("Kein Gerät verknüpft.");
             return jsonResponse({ ok: true });
           }
+          const ctx: IntentCtx = { userId, deviceId: dev.id, source: "telegram" };
           if (action === "status") {
-            await supabaseAdmin.from("agent_commands").insert({
-              device_id: dev.id,
-              user_id: userId,
-              kind: "status",
-              source: "telegram",
-            });
-            void broadcastCommandWake(dev.id);
-            await reply(`⏳ Pumpen-Status von *${dev.name}* angefordert…`);
+            const r = await pumpStatus(ctx);
+            await reply(`💧 *${dev.name}*: ${r.speech}`);
             return jsonResponse({ ok: true });
           }
           if (action !== "on" && action !== "off" && action !== "an" && action !== "aus") {
@@ -240,27 +235,10 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
           }
           const isOn = action === "on" || action === "an";
           const minutesRaw = Number(parts[2]);
-          const minutes = isOn
-            ? Math.max(1, Math.min(120, Number.isFinite(minutesRaw) ? minutesRaw : 10))
-            : undefined;
-          await supabaseAdmin.from("agent_commands").insert({
-            device_id: dev.id,
-            user_id: userId,
-            kind: "plugin_manual",
-            payload: {
-              id: "pump",
-              runner: "nodered",
-              action: isOn ? "on" : "off",
-              ...(minutes ? { minutes } : {}),
-            },
-            source: "telegram",
-          });
-          void broadcastCommandWake(dev.id);
-          await reply(
-            isOn
-              ? `💧 Pumpe *AN* für ${minutes} min gesendet an *${dev.name}*`
-              : `⏹️ Pumpe *AUS* gesendet an *${dev.name}*`,
-          );
+          const r = isOn
+            ? await pumpOn(ctx, Number.isFinite(minutesRaw) ? minutesRaw : undefined)
+            : await pumpOff(ctx);
+          await reply(`${isOn ? "💧" : "⏹️"} *${dev.name}*: ${r.speech}`);
           return jsonResponse({ ok: true });
         }
 
