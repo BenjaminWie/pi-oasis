@@ -2,6 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { jsonResponse } from "@/lib/agent-api.server";
 import { broadcastCommandWake } from "@/lib/broadcast.server";
+import {
+  pumpOn,
+  pumpOff,
+  pumpStatus,
+  systemStatus,
+  energyPriceNow,
+  mqttPublish,
+  type IntentCtx,
+} from "@/lib/voice-intents.server";
 
 type Profile = {
   id: string;
