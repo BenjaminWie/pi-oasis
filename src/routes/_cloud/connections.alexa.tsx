@@ -80,6 +80,27 @@ function AlexaPage() {
     },
   });
 
+  const updateUris = useServerFn(updateAlexaClientRedirectUris);
+  const updateUrisMut = useMutation({
+    mutationFn: (v: { id: string; redirect_uris: string[] }) =>
+      updateUris({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["alexa-clients"] });
+      toast.success("Redirect-URIs gespeichert");
+    },
+    onError: (e: any) => toast.error(String(e?.message ?? e)),
+  });
+
+  // Prefill from ?suggest= (deep-link from consent error page)
+  const suggested =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("suggest") ?? ""
+      : "";
+  const highlightId =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("highlight") ?? ""
+      : "";
+
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://pi-hub.benniwie.com";
   const authUrl = `${origin}/api/public/oauth/authorize`;
