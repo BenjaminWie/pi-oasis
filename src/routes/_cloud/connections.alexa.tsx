@@ -207,7 +207,7 @@ function AlexaPage() {
                   highlighted={c.id === highlightId}
                   suggested={c.id === highlightId ? suggested : ""}
                   onDelete={() => deleteMut.mutate(c.id)}
-                  onSave={(uris) => updateUrisMut.mutate({ id: c.id, redirect_uris: uris })}
+                  onSave={(uris: string[]) => updateUrisMut.mutate({ id: c.id, redirect_uris: uris })}
                   saving={updateUrisMut.isPending}
                 />
               ))}
