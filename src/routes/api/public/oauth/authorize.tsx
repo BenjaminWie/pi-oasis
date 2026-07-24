@@ -11,6 +11,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { getAlexaConsent } from "@/lib/alexa-oauth.functions";
 
 type LoaderData = {
   clientName: string;
@@ -21,45 +22,6 @@ type LoaderData = {
   userEmail: string | null;
   deviceName: string | null;
 };
-
-async function loadConsent(params: URLSearchParams): Promise<LoaderData> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const client_id = params.get("client_id") ?? "";
-  const redirect_uri = params.get("redirect_uri") ?? "";
-  const state = params.get("state") ?? "";
-  const scope = params.get("scope") ?? "control";
-  const response_type = params.get("response_type") ?? "code";
-
-  if (response_type !== "code") throw new Error("unsupported response_type");
-  if (!client_id || !redirect_uri) throw new Error("missing client_id or redirect_uri");
-
-  const { data: client } = await supabaseAdmin
-    .from("alexa_oauth_clients")
-    .select("id, name, user_id, device_id, redirect_uris")
-    .eq("client_id", client_id)
-    .maybeSingle();
-  if (!client) throw new Error("unknown client_id");
-  if (!(client.redirect_uris as string[]).includes(redirect_uri)) {
-    throw new Error(`redirect_uri not in allowlist for this client (${redirect_uri})`);
-  }
-
-  const { data: device } = await supabaseAdmin
-    .from("devices")
-    .select("name")
-    .eq("id", client.device_id!)
-    .maybeSingle();
-
-  return {
-    clientName: (client as any).name || "Alexa Skill",
-    clientId: client_id,
-    redirectUri: redirect_uri,
-    scope,
-    state,
-    userEmail: null,
-    deviceName: (device as any)?.name ?? null,
-  };
-}
 
 export const Route = createFileRoute("/api/public/oauth/authorize")({
   ssr: false,
@@ -79,7 +41,15 @@ export const Route = createFileRoute("/api/public/oauth/authorize")({
   },
   loader: async ({ location }) => {
     const params = new URLSearchParams(location.search);
-    return loadConsent(params);
+    const result = await getAlexaConsent({
+      data: {
+        client_id: params.get("client_id") ?? "",
+        redirect_uri: params.get("redirect_uri") ?? "",
+        scope: params.get("scope") ?? "control",
+        response_type: params.get("response_type") ?? "code",
+      },
+    });
+    return { ...result, state: params.get("state") ?? "" } as LoaderData;
   },
   component: Consent,
   errorComponent: ({ error }) => (
