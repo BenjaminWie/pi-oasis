@@ -196,25 +196,27 @@ function AlexaPage() {
           )}
 
           {clients.data && clients.data.length > 0 && (
-            <div className="space-y-1.5 pt-2 border-t border-border">
+            <div className="space-y-3 pt-2 border-t border-border">
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
                 Aktive Clients
               </div>
               {clients.data.map((c: any) => (
-                <div key={c.id} className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="truncate">{c.client_id}</span>
-                  <button
-                    onClick={() => deleteMut.mutate(c.id)}
-                    className="text-destructive p-1"
-                    aria-label="widerrufen"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
+                <ClientRow
+                  key={c.id}
+                  client={c}
+                  highlighted={c.id === highlightId}
+                  suggested={c.id === highlightId ? suggested : ""}
+                  onDelete={() => deleteMut.mutate(c.id)}
+                  onSave={(uris) => updateUrisMut.mutate({ id: c.id, redirect_uris: uris })}
+                  saving={updateUrisMut.isPending}
+                />
               ))}
             </div>
           )}
         </li>
+
+        {/* placeholder to preserve original list numbering */}
+        <li className="hidden"></li>
 
         <li className="rounded-2xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
