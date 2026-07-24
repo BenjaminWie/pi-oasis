@@ -133,19 +133,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
               return jsonResponse({ ok: true });
             }
             await reply(`🎙 verstanden: «${voiceTranscript}»`);
-            // If it doesn't look like a slash-command, ask AI to map intent
             text = voiceTranscript.trim();
-            if (!text.startsWith("/")) {
-              const mapped = await mapVoiceToCommand(text);
-              if (!mapped) {
-                await reply(
-                  "🤖 Konnte daraus keinen Befehl ableiten. Versuch z.B. „Status“ oder „Container“.",
-                );
-                return jsonResponse({ ok: true });
-              }
-              text = mapped;
-              await reply(`→ \`${mapped}\``);
-            }
           }
         }
 
@@ -365,7 +353,28 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
           return jsonResponse({ ok: true });
         }
 
-        await reply("Unbekannter Befehl. /pump on|off|status · /devices /status /price /containers /plugins /mqtt");
+        // ---- Freetext / voice → AI brain with tool access ----
+        if (!text.startsWith("/")) {
+          const dev = paired[0];
+          if (!dev) {
+            await reply("Kein Gerät verknüpft. Erst pairen, dann kann ich dich verstehen.");
+            return jsonResponse({ ok: true });
+          }
+          try {
+            const { brainReply } = await import("@/lib/assistant-brain.server");
+            const answer = await brainReply(
+              { userId, deviceId: dev.id, scopes: ["read", "control"], tokenId: "telegram" },
+              text,
+              { channel: "telegram" },
+            );
+            await reply(answer);
+          } catch (e: any) {
+            await reply(`🤖 Fehler: ${String(e?.message || e).slice(0, 200)}`);
+          }
+          return jsonResponse({ ok: true });
+        }
+
+        await reply("Unbekannter Befehl. /pump on|off|status · /devices /status /price /containers /plugins /mqtt · oder frag einfach frei");
         return jsonResponse({ ok: true });
       },
     },
