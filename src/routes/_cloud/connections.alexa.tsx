@@ -1,13 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Copy, Check, ExternalLink, Mic, ArrowLeft, KeyRound, Trash2 } from "lucide-react";
+import { Copy, Check, ExternalLink, Mic, ArrowLeft, KeyRound, Trash2, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listAlexaClients, createAlexaClient, deleteAlexaClient } from "@/lib/alexa-oauth.functions";
+import {
+  listAlexaClients,
+  createAlexaClient,
+  deleteAlexaClient,
+  updateAlexaClientRedirectUris,
+} from "@/lib/alexa-oauth.functions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_cloud/connections/alexa")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    highlight: (s.highlight as string) ?? "",
+    suggest: (s.suggest as string) ?? "",
+  }),
   component: AlexaPage,
 });
 
