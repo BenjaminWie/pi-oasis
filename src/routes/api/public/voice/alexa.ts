@@ -199,8 +199,28 @@ export const Route = createFileRoute("/api/public/voice/alexa")({
               ),
             );
           }
+          if (intent === "AskIntent" || intent === "FreeQuestionIntent") {
+            const question = slot("Question") || slot("Query") || slot("Text");
+            if (!question) return jsonResponse(ask("Was möchtest du wissen?", false));
+            try {
+              const { brainReply } = await import("@/lib/assistant-brain.server");
+              const answer = await brainReply(ctx, question, { channel: "alexa" });
+              return jsonResponse(ask(answer.slice(0, 600)));
+            } catch (e: any) {
+              return jsonResponse(ask(`Fehler: ${String(e?.message || e).slice(0, 120)}`));
+            }
+          }
           if (intent === "AMAZON.StopIntent" || intent === "AMAZON.CancelIntent") {
             return jsonResponse(ask("Tschüss.", true));
+          }
+          // Fallback: forward the raw utterance as a free question if present
+          const raw = body.request.intent?.slots?.Query?.value || body.request.intent?.slots?.Text?.value;
+          if (raw) {
+            try {
+              const { brainReply } = await import("@/lib/assistant-brain.server");
+              const answer = await brainReply(ctx, String(raw), { channel: "alexa" });
+              return jsonResponse(ask(answer.slice(0, 600)));
+            } catch { /* fallthrough */ }
           }
           return jsonResponse(ask("Das habe ich noch nicht gelernt."));
         } catch (e: any) {

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bot, MessageCircle, Mic, ChevronRight } from "lucide-react";
+import { Bot, MessageCircle, Mic, ChevronRight, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_cloud/connections/")({
   component: ConnectionsIndexPage,
@@ -18,6 +18,23 @@ function ConnectionsIndexPage() {
       </div>
 
       <div className="relative z-10 space-y-3">
+        <Link
+          to="/connections/assistant"
+          className="relative z-10 flex items-center gap-4 rounded-2xl border border-primary/40 bg-primary/5 p-4 hover:bg-primary/10 active:scale-[0.98] transition-all cursor-pointer"
+        >
+          <div className="rounded-xl bg-primary/15 p-3 text-primary">
+            <Sparkles size={24} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-sm">Pi-Hub Assistent</div>
+            <div className="text-[11px] text-muted-foreground leading-tight">
+              Chat mit Tool-Zugriff. Nutzt dieselben Werkzeuge wie Alexa & Telegram.
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-muted-foreground" />
+        </Link>
+
+
         <Link
           to="/connections/mcp"
           className="relative z-10 flex items-center gap-4 rounded-2xl border border-border bg-card p-4 hover:bg-muted/40 active:scale-[0.98] transition-all cursor-pointer"
