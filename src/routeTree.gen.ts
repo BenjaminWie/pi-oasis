@@ -9,54 +9,62 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as CloudRouteImport } from './routes/_cloud'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiChatRouteImport } from './routes/api/chat'
-import { Route as CloudPumpRouteImport } from './routes/_cloud/pump'
-import { Route as CloudPluginsRouteImport } from './routes/_cloud/plugins'
-import { Route as CloudPairCallbackRouteImport } from './routes/_cloud/pair-callback'
-import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
-import { Route as CloudConnectionsRouteImport } from './routes/_cloud/connections'
-import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
-import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
-import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticated/plugins'
-import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
-import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as CloudRouteImport } from './routes/_cloud'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
-import { Route as CloudDevicesIndexRouteImport } from './routes/_cloud/devices.index'
-import { Route as CloudConnectionsIndexRouteImport } from './routes/_cloud/connections.index'
-import { Route as AuthenticatedPluginsIndexRouteImport } from './routes/_authenticated/plugins.index'
-import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
-import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
-import { Route as CloudConnectionsTelegramRouteImport } from './routes/_cloud/connections.telegram'
-import { Route as CloudConnectionsMcpRouteImport } from './routes/_cloud/connections.mcp'
-import { Route as CloudConnectionsAssistantRouteImport } from './routes/_cloud/connections.assistant'
-import { Route as CloudConnectionsAlexaRouteImport } from './routes/_cloud/connections.alexa'
-import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
+import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
+import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
+import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticated/plugins'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
+import { Route as CloudConnectionsRouteImport } from './routes/_cloud/connections'
+import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
+import { Route as CloudPairCallbackRouteImport } from './routes/_cloud/pair-callback'
+import { Route as CloudPluginsRouteImport } from './routes/_cloud/plugins'
+import { Route as CloudPumpRouteImport } from './routes/_cloud/pump'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
-import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
-import { Route as ApiPublicOauthTokenRouteImport } from './routes/api/public/oauth/token'
-import { Route as ApiPublicOauthAuthorizePostRouteImport } from './routes/api/public/oauth/authorize-post'
-import { Route as ApiPublicOauthAuthorizeRouteImport } from './routes/api/public/oauth/authorize'
-import { Route as ApiPublicLivePublishRouteImport } from './routes/api/public/live/publish'
-import { Route as ApiPublicIngestEventRouteImport } from './routes/api/public/ingest/event'
-import { Route as ApiPublicHooksAnomalyScanRouteImport } from './routes/api/public/hooks/anomaly-scan'
-import { Route as ApiPublicHooksAggregateEventsRouteImport } from './routes/api/public/hooks/aggregate-events'
-import { Route as ApiPublicCloudBridgeStrategyRouteImport } from './routes/api/public/cloud-bridge/strategy'
-import { Route as ApiPublicCloudBridgeEventRouteImport } from './routes/api/public/cloud-bridge/event'
-import { Route as ApiPublicCloudBridgeClaimRouteImport } from './routes/api/public/cloud-bridge/claim'
-import { Route as ApiPublicAgentResultRouteImport } from './routes/api/public/agent/result'
-import { Route as ApiPublicAgentRegisterRouteImport } from './routes/api/public/agent/register'
-import { Route as ApiPublicAgentPollRouteImport } from './routes/api/public/agent/poll'
+import { Route as AuthenticatedPluginsIndexRouteImport } from './routes/_authenticated/plugins.index'
+import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
+import { Route as CloudConnectionsIndexRouteImport } from './routes/_cloud/connections.index'
+import { Route as CloudConnectionsAlexaRouteImport } from './routes/_cloud/connections.alexa'
+import { Route as CloudConnectionsAssistantRouteImport } from './routes/_cloud/connections.assistant'
+import { Route as CloudConnectionsMcpRouteImport } from './routes/_cloud/connections.mcp'
+import { Route as CloudConnectionsTelegramRouteImport } from './routes/_cloud/connections.telegram'
+import { Route as CloudDevicesIndexRouteImport } from './routes/_cloud/devices.index'
+import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
+import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
 import { Route as ApiPublicAgentHeartbeatRouteImport } from './routes/api/public/agent/heartbeat'
+import { Route as ApiPublicAgentPollRouteImport } from './routes/api/public/agent/poll'
+import { Route as ApiPublicAgentRegisterRouteImport } from './routes/api/public/agent/register'
+import { Route as ApiPublicAgentResultRouteImport } from './routes/api/public/agent/result'
+import { Route as ApiPublicCloudBridgeClaimRouteImport } from './routes/api/public/cloud-bridge/claim'
+import { Route as ApiPublicCloudBridgeEventRouteImport } from './routes/api/public/cloud-bridge/event'
+import { Route as ApiPublicCloudBridgeStrategyRouteImport } from './routes/api/public/cloud-bridge/strategy'
+import { Route as ApiPublicHooksAggregateEventsRouteImport } from './routes/api/public/hooks/aggregate-events'
+import { Route as ApiPublicHooksAnomalyScanRouteImport } from './routes/api/public/hooks/anomaly-scan'
+import { Route as ApiPublicIngestEventRouteImport } from './routes/api/public/ingest/event'
+import { Route as ApiPublicLivePublishRouteImport } from './routes/api/public/live/publish'
+import { Route as ApiPublicOauthAuthorizeRouteImport } from './routes/api/public/oauth/authorize'
+import { Route as ApiPublicOauthAuthorizePostRouteImport } from './routes/api/public/oauth/authorize-post'
+import { Route as ApiPublicOauthTokenRouteImport } from './routes/api/public/oauth/token'
+import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
 import { Route as ApiPublicTelegramWebhookUserIdRouteImport } from './routes/api/public/telegram/webhook.$userId'
 
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CloudRoute = CloudRouteImport.update({
+  id: '/_cloud',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -64,73 +72,10 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CloudRoute = CloudRouteImport.update({
-  id: '/_cloud',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiChatRoute = ApiChatRouteImport.update({
-  id: '/api/chat',
-  path: '/api/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CloudPumpRoute = CloudPumpRouteImport.update({
-  id: '/pump',
-  path: '/pump',
-  getParentRoute: () => CloudRoute,
-} as any)
-const CloudPluginsRoute = CloudPluginsRouteImport.update({
-  id: '/plugins',
-  path: '/plugins',
-  getParentRoute: () => CloudRoute,
-} as any)
-const CloudPairCallbackRoute = CloudPairCallbackRouteImport.update({
-  id: '/pair-callback',
-  path: '/pair-callback',
-  getParentRoute: () => CloudRoute,
-} as any)
-const CloudDevicesRoute = CloudDevicesRouteImport.update({
-  id: '/devices',
-  path: '/devices',
-  getParentRoute: () => CloudRoute,
-} as any)
-const CloudConnectionsRoute = CloudConnectionsRouteImport.update({
-  id: '/connections',
-  path: '/connections',
-  getParentRoute: () => CloudRoute,
-} as any)
-const AuthenticatedTerminalRoute = AuthenticatedTerminalRouteImport.update({
-  id: '/terminal',
-  path: '/terminal',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedPluginsRoute = AuthenticatedPluginsRouteImport.update({
-  id: '/plugins',
-  path: '/plugins',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedOverviewRoute = AuthenticatedOverviewRouteImport.update({
-  id: '/overview',
-  path: '/overview',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedMqttRoute = AuthenticatedMqttRouteImport.update({
-  id: '/mqtt',
-  path: '/mqtt',
-  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedIntegrationsRoute =
   AuthenticatedIntegrationsRouteImport.update({
@@ -138,41 +83,86 @@ const AuthenticatedIntegrationsRoute =
     path: '/integrations',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const CloudDevicesIndexRoute = CloudDevicesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CloudDevicesRoute,
+const AuthenticatedMqttRoute = AuthenticatedMqttRouteImport.update({
+  id: '/mqtt',
+  path: '/mqtt',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const CloudConnectionsIndexRoute = CloudConnectionsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CloudConnectionsRoute,
+const AuthenticatedOverviewRoute = AuthenticatedOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedPluginsRoute = AuthenticatedPluginsRouteImport.update({
+  id: '/plugins',
+  path: '/plugins',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedTerminalRoute = AuthenticatedTerminalRouteImport.update({
+  id: '/terminal',
+  path: '/terminal',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const CloudConnectionsRoute = CloudConnectionsRouteImport.update({
+  id: '/connections',
+  path: '/connections',
+  getParentRoute: () => CloudRoute,
+} as any)
+const CloudDevicesRoute = CloudDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => CloudRoute,
+} as any)
+const CloudPairCallbackRoute = CloudPairCallbackRouteImport.update({
+  id: '/pair-callback',
+  path: '/pair-callback',
+  getParentRoute: () => CloudRoute,
+} as any)
+const CloudPluginsRoute = CloudPluginsRouteImport.update({
+  id: '/plugins',
+  path: '/plugins',
+  getParentRoute: () => CloudRoute,
+} as any)
+const CloudPumpRoute = CloudPumpRouteImport.update({
+  id: '/pump',
+  path: '/pump',
+  getParentRoute: () => CloudRoute,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedContainerIdRoute =
+  AuthenticatedContainerIdRouteImport.update({
+    id: '/container/$id',
+    path: '/container/$id',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedPluginsIndexRoute =
   AuthenticatedPluginsIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedPluginsRoute,
   } as any)
-const ApiPublicMcpRoute = ApiPublicMcpRouteImport.update({
-  id: '/api/public/mcp',
-  path: '/api/public/mcp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CloudDevicesIdRoute = CloudDevicesIdRouteImport.update({
+const AuthenticatedPluginsIdRoute = AuthenticatedPluginsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => CloudDevicesRoute,
+  getParentRoute: () => AuthenticatedPluginsRoute,
 } as any)
-const CloudConnectionsTelegramRoute =
-  CloudConnectionsTelegramRouteImport.update({
-    id: '/telegram',
-    path: '/telegram',
-    getParentRoute: () => CloudConnectionsRoute,
-  } as any)
-const CloudConnectionsMcpRoute = CloudConnectionsMcpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
+const CloudConnectionsIndexRoute = CloudConnectionsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CloudConnectionsRoute,
+} as any)
+const CloudConnectionsAlexaRoute = CloudConnectionsAlexaRouteImport.update({
+  id: '/alexa',
+  path: '/alexa',
   getParentRoute: () => CloudConnectionsRoute,
 } as any)
 const CloudConnectionsAssistantRoute =
@@ -181,69 +171,56 @@ const CloudConnectionsAssistantRoute =
     path: '/assistant',
     getParentRoute: () => CloudConnectionsRoute,
   } as any)
-const CloudConnectionsAlexaRoute = CloudConnectionsAlexaRouteImport.update({
-  id: '/alexa',
-  path: '/alexa',
+const CloudConnectionsMcpRoute = CloudConnectionsMcpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => CloudConnectionsRoute,
 } as any)
-const AuthenticatedPluginsIdRoute = AuthenticatedPluginsIdRouteImport.update({
+const CloudConnectionsTelegramRoute =
+  CloudConnectionsTelegramRouteImport.update({
+    id: '/telegram',
+    path: '/telegram',
+    getParentRoute: () => CloudConnectionsRoute,
+  } as any)
+const CloudDevicesIndexRoute = CloudDevicesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CloudDevicesRoute,
+} as any)
+const CloudDevicesIdRoute = CloudDevicesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => AuthenticatedPluginsRoute,
+  getParentRoute: () => CloudDevicesRoute,
 } as any)
-const AuthenticatedContainerIdRoute =
-  AuthenticatedContainerIdRouteImport.update({
-    id: '/container/$id',
-    path: '/container/$id',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
-  id: '/api/public/voice/alexa',
-  path: '/api/public/voice/alexa',
+const ApiPublicMcpRoute = ApiPublicMcpRouteImport.update({
+  id: '/api/public/mcp',
+  path: '/api/public/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicOauthTokenRoute = ApiPublicOauthTokenRouteImport.update({
-  id: '/api/public/oauth/token',
-  path: '/api/public/oauth/token',
+const ApiPublicAgentHeartbeatRoute = ApiPublicAgentHeartbeatRouteImport.update({
+  id: '/api/public/agent/heartbeat',
+  path: '/api/public/agent/heartbeat',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicOauthAuthorizePostRoute =
-  ApiPublicOauthAuthorizePostRouteImport.update({
-    id: '/api/public/oauth/authorize-post',
-    path: '/api/public/oauth/authorize-post',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicOauthAuthorizeRoute = ApiPublicOauthAuthorizeRouteImport.update({
-  id: '/api/public/oauth/authorize',
-  path: '/api/public/oauth/authorize',
+const ApiPublicAgentPollRoute = ApiPublicAgentPollRouteImport.update({
+  id: '/api/public/agent/poll',
+  path: '/api/public/agent/poll',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicLivePublishRoute = ApiPublicLivePublishRouteImport.update({
-  id: '/api/public/live/publish',
-  path: '/api/public/live/publish',
+const ApiPublicAgentRegisterRoute = ApiPublicAgentRegisterRouteImport.update({
+  id: '/api/public/agent/register',
+  path: '/api/public/agent/register',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicIngestEventRoute = ApiPublicIngestEventRouteImport.update({
-  id: '/api/public/ingest/event',
-  path: '/api/public/ingest/event',
+const ApiPublicAgentResultRoute = ApiPublicAgentResultRouteImport.update({
+  id: '/api/public/agent/result',
+  path: '/api/public/agent/result',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicHooksAnomalyScanRoute =
-  ApiPublicHooksAnomalyScanRouteImport.update({
-    id: '/api/public/hooks/anomaly-scan',
-    path: '/api/public/hooks/anomaly-scan',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksAggregateEventsRoute =
-  ApiPublicHooksAggregateEventsRouteImport.update({
-    id: '/api/public/hooks/aggregate-events',
-    path: '/api/public/hooks/aggregate-events',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCloudBridgeStrategyRoute =
-  ApiPublicCloudBridgeStrategyRouteImport.update({
-    id: '/api/public/cloud-bridge/strategy',
-    path: '/api/public/cloud-bridge/strategy',
+const ApiPublicCloudBridgeClaimRoute =
+  ApiPublicCloudBridgeClaimRouteImport.update({
+    id: '/api/public/cloud-bridge/claim',
+    path: '/api/public/cloud-bridge/claim',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCloudBridgeEventRoute =
@@ -252,30 +229,53 @@ const ApiPublicCloudBridgeEventRoute =
     path: '/api/public/cloud-bridge/event',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicCloudBridgeClaimRoute =
-  ApiPublicCloudBridgeClaimRouteImport.update({
-    id: '/api/public/cloud-bridge/claim',
-    path: '/api/public/cloud-bridge/claim',
+const ApiPublicCloudBridgeStrategyRoute =
+  ApiPublicCloudBridgeStrategyRouteImport.update({
+    id: '/api/public/cloud-bridge/strategy',
+    path: '/api/public/cloud-bridge/strategy',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicAgentResultRoute = ApiPublicAgentResultRouteImport.update({
-  id: '/api/public/agent/result',
-  path: '/api/public/agent/result',
+const ApiPublicHooksAggregateEventsRoute =
+  ApiPublicHooksAggregateEventsRouteImport.update({
+    id: '/api/public/hooks/aggregate-events',
+    path: '/api/public/hooks/aggregate-events',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksAnomalyScanRoute =
+  ApiPublicHooksAnomalyScanRouteImport.update({
+    id: '/api/public/hooks/anomaly-scan',
+    path: '/api/public/hooks/anomaly-scan',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIngestEventRoute = ApiPublicIngestEventRouteImport.update({
+  id: '/api/public/ingest/event',
+  path: '/api/public/ingest/event',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicAgentRegisterRoute = ApiPublicAgentRegisterRouteImport.update({
-  id: '/api/public/agent/register',
-  path: '/api/public/agent/register',
+const ApiPublicLivePublishRoute = ApiPublicLivePublishRouteImport.update({
+  id: '/api/public/live/publish',
+  path: '/api/public/live/publish',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicAgentPollRoute = ApiPublicAgentPollRouteImport.update({
-  id: '/api/public/agent/poll',
-  path: '/api/public/agent/poll',
+const ApiPublicOauthAuthorizeRoute = ApiPublicOauthAuthorizeRouteImport.update({
+  id: '/api/public/oauth/authorize',
+  path: '/api/public/oauth/authorize',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicAgentHeartbeatRoute = ApiPublicAgentHeartbeatRouteImport.update({
-  id: '/api/public/agent/heartbeat',
-  path: '/api/public/agent/heartbeat',
+const ApiPublicOauthAuthorizePostRoute =
+  ApiPublicOauthAuthorizePostRouteImport.update({
+    id: '/api/public/oauth/authorize-post',
+    path: '/api/public/oauth/authorize-post',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicOauthTokenRoute = ApiPublicOauthTokenRouteImport.update({
+  id: '/api/public/oauth/token',
+  path: '/api/public/oauth/token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
+  id: '/api/public/voice/alexa',
+  path: '/api/public/voice/alexa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicTelegramWebhookUserIdRoute =
@@ -575,25 +575,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_cloud': {
-      id: '/_cloud'
-      path: ''
+    '/': {
+      id: '/'
+      path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof CloudRouteImport
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -603,81 +589,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
+    '/_cloud': {
+      id: '/_cloud'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof CloudRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/chat': {
-      id: '/api/chat'
-      path: '/api/chat'
-      fullPath: '/api/chat'
-      preLoaderRoute: typeof ApiChatRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_cloud/pump': {
-      id: '/_cloud/pump'
-      path: '/pump'
-      fullPath: '/pump'
-      preLoaderRoute: typeof CloudPumpRouteImport
-      parentRoute: typeof CloudRoute
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_cloud/plugins': {
-      id: '/_cloud/plugins'
-      path: '/plugins'
-      fullPath: '/plugins'
-      preLoaderRoute: typeof CloudPluginsRouteImport
-      parentRoute: typeof CloudRoute
-    }
-    '/_cloud/pair-callback': {
-      id: '/_cloud/pair-callback'
-      path: '/pair-callback'
-      fullPath: '/pair-callback'
-      preLoaderRoute: typeof CloudPairCallbackRouteImport
-      parentRoute: typeof CloudRoute
-    }
-    '/_cloud/devices': {
-      id: '/_cloud/devices'
-      path: '/devices'
-      fullPath: '/devices'
-      preLoaderRoute: typeof CloudDevicesRouteImport
-      parentRoute: typeof CloudRoute
-    }
-    '/_cloud/connections': {
-      id: '/_cloud/connections'
-      path: '/connections'
-      fullPath: '/connections'
-      preLoaderRoute: typeof CloudConnectionsRouteImport
-      parentRoute: typeof CloudRoute
-    }
-    '/_authenticated/terminal': {
-      id: '/_authenticated/terminal'
-      path: '/terminal'
-      fullPath: '/terminal'
-      preLoaderRoute: typeof AuthenticatedTerminalRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/settings': {
-      id: '/_authenticated/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/plugins': {
-      id: '/_authenticated/plugins'
-      path: '/plugins'
-      fullPath: '/plugins'
-      preLoaderRoute: typeof AuthenticatedPluginsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/overview': {
-      id: '/_authenticated/overview'
-      path: '/overview'
-      fullPath: '/overview'
-      preLoaderRoute: typeof AuthenticatedOverviewRouteImport
+    '/_authenticated/integrations': {
+      id: '/_authenticated/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof AuthenticatedIntegrationsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mqtt': {
@@ -687,26 +624,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMqttRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/integrations': {
-      id: '/_authenticated/integrations'
-      path: '/integrations'
-      fullPath: '/integrations'
-      preLoaderRoute: typeof AuthenticatedIntegrationsRouteImport
+    '/_authenticated/overview': {
+      id: '/_authenticated/overview'
+      path: '/overview'
+      fullPath: '/overview'
+      preLoaderRoute: typeof AuthenticatedOverviewRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_cloud/devices/': {
-      id: '/_cloud/devices/'
-      path: '/'
-      fullPath: '/devices/'
-      preLoaderRoute: typeof CloudDevicesIndexRouteImport
-      parentRoute: typeof CloudDevicesRoute
+    '/_authenticated/plugins': {
+      id: '/_authenticated/plugins'
+      path: '/plugins'
+      fullPath: '/plugins'
+      preLoaderRoute: typeof AuthenticatedPluginsRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/_cloud/connections/': {
-      id: '/_cloud/connections/'
-      path: '/'
-      fullPath: '/connections/'
-      preLoaderRoute: typeof CloudConnectionsIndexRouteImport
-      parentRoute: typeof CloudConnectionsRoute
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/terminal': {
+      id: '/_authenticated/terminal'
+      path: '/terminal'
+      fullPath: '/terminal'
+      preLoaderRoute: typeof AuthenticatedTerminalRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_cloud/connections': {
+      id: '/_cloud/connections'
+      path: '/connections'
+      fullPath: '/connections'
+      preLoaderRoute: typeof CloudConnectionsRouteImport
+      parentRoute: typeof CloudRoute
+    }
+    '/_cloud/devices': {
+      id: '/_cloud/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof CloudDevicesRouteImport
+      parentRoute: typeof CloudRoute
+    }
+    '/_cloud/pair-callback': {
+      id: '/_cloud/pair-callback'
+      path: '/pair-callback'
+      fullPath: '/pair-callback'
+      preLoaderRoute: typeof CloudPairCallbackRouteImport
+      parentRoute: typeof CloudRoute
+    }
+    '/_cloud/plugins': {
+      id: '/_cloud/plugins'
+      path: '/plugins'
+      fullPath: '/plugins'
+      preLoaderRoute: typeof CloudPluginsRouteImport
+      parentRoute: typeof CloudRoute
+    }
+    '/_cloud/pump': {
+      id: '/_cloud/pump'
+      path: '/pump'
+      fullPath: '/pump'
+      preLoaderRoute: typeof CloudPumpRouteImport
+      parentRoute: typeof CloudRoute
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/container/$id': {
+      id: '/_authenticated/container/$id'
+      path: '/container/$id'
+      fullPath: '/container/$id'
+      preLoaderRoute: typeof AuthenticatedContainerIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/plugins/': {
       id: '/_authenticated/plugins/'
@@ -715,39 +708,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPluginsIndexRouteImport
       parentRoute: typeof AuthenticatedPluginsRoute
     }
-    '/api/public/mcp': {
-      id: '/api/public/mcp'
-      path: '/api/public/mcp'
-      fullPath: '/api/public/mcp'
-      preLoaderRoute: typeof ApiPublicMcpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_cloud/devices/$id': {
-      id: '/_cloud/devices/$id'
+    '/_authenticated/plugins/$id': {
+      id: '/_authenticated/plugins/$id'
       path: '/$id'
-      fullPath: '/devices/$id'
-      preLoaderRoute: typeof CloudDevicesIdRouteImport
-      parentRoute: typeof CloudDevicesRoute
+      fullPath: '/plugins/$id'
+      preLoaderRoute: typeof AuthenticatedPluginsIdRouteImport
+      parentRoute: typeof AuthenticatedPluginsRoute
     }
-    '/_cloud/connections/telegram': {
-      id: '/_cloud/connections/telegram'
-      path: '/telegram'
-      fullPath: '/connections/telegram'
-      preLoaderRoute: typeof CloudConnectionsTelegramRouteImport
-      parentRoute: typeof CloudConnectionsRoute
-    }
-    '/_cloud/connections/mcp': {
-      id: '/_cloud/connections/mcp'
-      path: '/mcp'
-      fullPath: '/connections/mcp'
-      preLoaderRoute: typeof CloudConnectionsMcpRouteImport
-      parentRoute: typeof CloudConnectionsRoute
-    }
-    '/_cloud/connections/assistant': {
-      id: '/_cloud/connections/assistant'
-      path: '/assistant'
-      fullPath: '/connections/assistant'
-      preLoaderRoute: typeof CloudConnectionsAssistantRouteImport
+    '/_cloud/connections/': {
+      id: '/_cloud/connections/'
+      path: '/'
+      fullPath: '/connections/'
+      preLoaderRoute: typeof CloudConnectionsIndexRouteImport
       parentRoute: typeof CloudConnectionsRoute
     }
     '/_cloud/connections/alexa': {
@@ -757,109 +729,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CloudConnectionsAlexaRouteImport
       parentRoute: typeof CloudConnectionsRoute
     }
-    '/_authenticated/plugins/$id': {
-      id: '/_authenticated/plugins/$id'
+    '/_cloud/connections/assistant': {
+      id: '/_cloud/connections/assistant'
+      path: '/assistant'
+      fullPath: '/connections/assistant'
+      preLoaderRoute: typeof CloudConnectionsAssistantRouteImport
+      parentRoute: typeof CloudConnectionsRoute
+    }
+    '/_cloud/connections/mcp': {
+      id: '/_cloud/connections/mcp'
+      path: '/mcp'
+      fullPath: '/connections/mcp'
+      preLoaderRoute: typeof CloudConnectionsMcpRouteImport
+      parentRoute: typeof CloudConnectionsRoute
+    }
+    '/_cloud/connections/telegram': {
+      id: '/_cloud/connections/telegram'
+      path: '/telegram'
+      fullPath: '/connections/telegram'
+      preLoaderRoute: typeof CloudConnectionsTelegramRouteImport
+      parentRoute: typeof CloudConnectionsRoute
+    }
+    '/_cloud/devices/': {
+      id: '/_cloud/devices/'
+      path: '/'
+      fullPath: '/devices/'
+      preLoaderRoute: typeof CloudDevicesIndexRouteImport
+      parentRoute: typeof CloudDevicesRoute
+    }
+    '/_cloud/devices/$id': {
+      id: '/_cloud/devices/$id'
       path: '/$id'
-      fullPath: '/plugins/$id'
-      preLoaderRoute: typeof AuthenticatedPluginsIdRouteImport
-      parentRoute: typeof AuthenticatedPluginsRoute
+      fullPath: '/devices/$id'
+      preLoaderRoute: typeof CloudDevicesIdRouteImport
+      parentRoute: typeof CloudDevicesRoute
     }
-    '/_authenticated/container/$id': {
-      id: '/_authenticated/container/$id'
-      path: '/container/$id'
-      fullPath: '/container/$id'
-      preLoaderRoute: typeof AuthenticatedContainerIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/api/public/voice/alexa': {
-      id: '/api/public/voice/alexa'
-      path: '/api/public/voice/alexa'
-      fullPath: '/api/public/voice/alexa'
-      preLoaderRoute: typeof ApiPublicVoiceAlexaRouteImport
+    '/api/public/mcp': {
+      id: '/api/public/mcp'
+      path: '/api/public/mcp'
+      fullPath: '/api/public/mcp'
+      preLoaderRoute: typeof ApiPublicMcpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/oauth/token': {
-      id: '/api/public/oauth/token'
-      path: '/api/public/oauth/token'
-      fullPath: '/api/public/oauth/token'
-      preLoaderRoute: typeof ApiPublicOauthTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/oauth/authorize-post': {
-      id: '/api/public/oauth/authorize-post'
-      path: '/api/public/oauth/authorize-post'
-      fullPath: '/api/public/oauth/authorize-post'
-      preLoaderRoute: typeof ApiPublicOauthAuthorizePostRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/oauth/authorize': {
-      id: '/api/public/oauth/authorize'
-      path: '/api/public/oauth/authorize'
-      fullPath: '/api/public/oauth/authorize'
-      preLoaderRoute: typeof ApiPublicOauthAuthorizeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/live/publish': {
-      id: '/api/public/live/publish'
-      path: '/api/public/live/publish'
-      fullPath: '/api/public/live/publish'
-      preLoaderRoute: typeof ApiPublicLivePublishRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/ingest/event': {
-      id: '/api/public/ingest/event'
-      path: '/api/public/ingest/event'
-      fullPath: '/api/public/ingest/event'
-      preLoaderRoute: typeof ApiPublicIngestEventRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/anomaly-scan': {
-      id: '/api/public/hooks/anomaly-scan'
-      path: '/api/public/hooks/anomaly-scan'
-      fullPath: '/api/public/hooks/anomaly-scan'
-      preLoaderRoute: typeof ApiPublicHooksAnomalyScanRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/aggregate-events': {
-      id: '/api/public/hooks/aggregate-events'
-      path: '/api/public/hooks/aggregate-events'
-      fullPath: '/api/public/hooks/aggregate-events'
-      preLoaderRoute: typeof ApiPublicHooksAggregateEventsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cloud-bridge/strategy': {
-      id: '/api/public/cloud-bridge/strategy'
-      path: '/api/public/cloud-bridge/strategy'
-      fullPath: '/api/public/cloud-bridge/strategy'
-      preLoaderRoute: typeof ApiPublicCloudBridgeStrategyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cloud-bridge/event': {
-      id: '/api/public/cloud-bridge/event'
-      path: '/api/public/cloud-bridge/event'
-      fullPath: '/api/public/cloud-bridge/event'
-      preLoaderRoute: typeof ApiPublicCloudBridgeEventRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cloud-bridge/claim': {
-      id: '/api/public/cloud-bridge/claim'
-      path: '/api/public/cloud-bridge/claim'
-      fullPath: '/api/public/cloud-bridge/claim'
-      preLoaderRoute: typeof ApiPublicCloudBridgeClaimRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/agent/result': {
-      id: '/api/public/agent/result'
-      path: '/api/public/agent/result'
-      fullPath: '/api/public/agent/result'
-      preLoaderRoute: typeof ApiPublicAgentResultRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/agent/register': {
-      id: '/api/public/agent/register'
-      path: '/api/public/agent/register'
-      fullPath: '/api/public/agent/register'
-      preLoaderRoute: typeof ApiPublicAgentRegisterRouteImport
+    '/api/public/agent/heartbeat': {
+      id: '/api/public/agent/heartbeat'
+      path: '/api/public/agent/heartbeat'
+      fullPath: '/api/public/agent/heartbeat'
+      preLoaderRoute: typeof ApiPublicAgentHeartbeatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/agent/poll': {
@@ -869,11 +785,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAgentPollRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/agent/heartbeat': {
-      id: '/api/public/agent/heartbeat'
-      path: '/api/public/agent/heartbeat'
-      fullPath: '/api/public/agent/heartbeat'
-      preLoaderRoute: typeof ApiPublicAgentHeartbeatRouteImport
+    '/api/public/agent/register': {
+      id: '/api/public/agent/register'
+      path: '/api/public/agent/register'
+      fullPath: '/api/public/agent/register'
+      preLoaderRoute: typeof ApiPublicAgentRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/agent/result': {
+      id: '/api/public/agent/result'
+      path: '/api/public/agent/result'
+      fullPath: '/api/public/agent/result'
+      preLoaderRoute: typeof ApiPublicAgentResultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cloud-bridge/claim': {
+      id: '/api/public/cloud-bridge/claim'
+      path: '/api/public/cloud-bridge/claim'
+      fullPath: '/api/public/cloud-bridge/claim'
+      preLoaderRoute: typeof ApiPublicCloudBridgeClaimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cloud-bridge/event': {
+      id: '/api/public/cloud-bridge/event'
+      path: '/api/public/cloud-bridge/event'
+      fullPath: '/api/public/cloud-bridge/event'
+      preLoaderRoute: typeof ApiPublicCloudBridgeEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cloud-bridge/strategy': {
+      id: '/api/public/cloud-bridge/strategy'
+      path: '/api/public/cloud-bridge/strategy'
+      fullPath: '/api/public/cloud-bridge/strategy'
+      preLoaderRoute: typeof ApiPublicCloudBridgeStrategyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/aggregate-events': {
+      id: '/api/public/hooks/aggregate-events'
+      path: '/api/public/hooks/aggregate-events'
+      fullPath: '/api/public/hooks/aggregate-events'
+      preLoaderRoute: typeof ApiPublicHooksAggregateEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/anomaly-scan': {
+      id: '/api/public/hooks/anomaly-scan'
+      path: '/api/public/hooks/anomaly-scan'
+      fullPath: '/api/public/hooks/anomaly-scan'
+      preLoaderRoute: typeof ApiPublicHooksAnomalyScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/ingest/event': {
+      id: '/api/public/ingest/event'
+      path: '/api/public/ingest/event'
+      fullPath: '/api/public/ingest/event'
+      preLoaderRoute: typeof ApiPublicIngestEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/live/publish': {
+      id: '/api/public/live/publish'
+      path: '/api/public/live/publish'
+      fullPath: '/api/public/live/publish'
+      preLoaderRoute: typeof ApiPublicLivePublishRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/oauth/authorize': {
+      id: '/api/public/oauth/authorize'
+      path: '/api/public/oauth/authorize'
+      fullPath: '/api/public/oauth/authorize'
+      preLoaderRoute: typeof ApiPublicOauthAuthorizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/oauth/authorize-post': {
+      id: '/api/public/oauth/authorize-post'
+      path: '/api/public/oauth/authorize-post'
+      fullPath: '/api/public/oauth/authorize-post'
+      preLoaderRoute: typeof ApiPublicOauthAuthorizePostRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/oauth/token': {
+      id: '/api/public/oauth/token'
+      path: '/api/public/oauth/token'
+      fullPath: '/api/public/oauth/token'
+      preLoaderRoute: typeof ApiPublicOauthTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/voice/alexa': {
+      id: '/api/public/voice/alexa'
+      path: '/api/public/voice/alexa'
+      fullPath: '/api/public/voice/alexa'
+      preLoaderRoute: typeof ApiPublicVoiceAlexaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/telegram/webhook/$userId': {
