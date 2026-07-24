@@ -67,3 +67,45 @@ export const deleteAlexaClient = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const getAlexaConsent = createServerFn({ method: "POST" })
+  .inputValidator((d: {
+    client_id: string;
+    redirect_uri: string;
+    scope?: string;
+    response_type?: string;
+  }) =>
+    z.object({
+      client_id: z.string().min(1),
+      redirect_uri: z.string().min(1),
+      scope: z.string().default("control"),
+      response_type: z.string().default("code"),
+    }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    if (data.response_type !== "code") throw new Error("unsupported response_type");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: client } = await supabaseAdmin
+      .from("alexa_oauth_clients")
+      .select("id, name, user_id, device_id, redirect_uris")
+      .eq("client_id", data.client_id)
+      .maybeSingle();
+    if (!client) throw new Error("unknown client_id");
+    if (!(client.redirect_uris as string[]).includes(data.redirect_uri)) {
+      throw new Error(`redirect_uri not in allowlist for this client (${data.redirect_uri})`);
+    }
+    const { data: device } = await supabaseAdmin
+      .from("devices")
+      .select("name")
+      .eq("id", client.device_id!)
+      .maybeSingle();
+    return {
+      clientName: (client as any).name || "Alexa Skill",
+      clientId: data.client_id,
+      redirectUri: data.redirect_uri,
+      scope: data.scope,
+      state: "",
+      userEmail: null as string | null,
+      deviceName: (device as any)?.name ?? null as string | null,
+    };
+  });
