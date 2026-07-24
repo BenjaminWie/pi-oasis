@@ -15,8 +15,8 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_cloud/connections/alexa")({
   validateSearch: (s: Record<string, unknown>) => ({
-    highlight: (s.highlight as string) ?? "",
-    suggest: (s.suggest as string) ?? "",
+    highlight: typeof s.highlight === "string" ? s.highlight : undefined,
+    suggest: typeof s.suggest === "string" ? s.suggest : undefined,
   }),
   component: AlexaPage,
 });
