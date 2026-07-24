@@ -39,16 +39,24 @@ export const Route = createFileRoute("/api/public/oauth/authorize-post")({
         if (!user.id) return jsonResponse({ error: "no user" }, 401);
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { isRedirectUriAllowed } = await import("@/lib/alexa-oauth.functions");
         const { data: client } = await supabaseAdmin
           .from("alexa_oauth_clients")
           .select("id, user_id, device_id, redirect_uris")
           .eq("client_id", body.client_id)
           .maybeSingle();
         if (!client || client.user_id !== user.id) {
+          console.warn("[alexa-oauth] approve: client not owned", { client_id: body.client_id, user_id: user.id });
           return jsonResponse({ error: "client not owned by user" }, 403);
         }
-        if (!(client.redirect_uris as string[]).includes(body.redirect_uri)) {
-          return jsonResponse({ error: "redirect_uri not allowed" }, 400);
+        const allowed = (client.redirect_uris as string[]) ?? [];
+        if (!isRedirectUriAllowed(allowed, body.redirect_uri)) {
+          console.warn("[alexa-oauth] approve: redirect_uri mismatch", {
+            client_id: body.client_id,
+            received: body.redirect_uri,
+            allowed,
+          });
+          return jsonResponse({ error: `redirect_uri not allowed: ${body.redirect_uri}` }, 400);
         }
 
         if (!body.approve) {
