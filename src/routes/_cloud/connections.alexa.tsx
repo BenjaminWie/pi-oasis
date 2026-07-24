@@ -215,9 +215,6 @@ function AlexaPage() {
           )}
         </li>
 
-        {/* placeholder to preserve original list numbering */}
-        <li className="hidden"></li>
-
         <li className="rounded-2xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">3</span>
