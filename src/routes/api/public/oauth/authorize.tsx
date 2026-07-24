@@ -52,18 +52,55 @@ export const Route = createFileRoute("/api/public/oauth/authorize")({
     return { ...result, state: params.get("state") ?? "" } as LoaderData;
   },
   component: Consent,
-  errorComponent: ({ error }) => (
-    <main className="max-w-md mx-auto p-6 space-y-3">
-      <h1 className="text-lg font-semibold">Verknüpfung fehlgeschlagen</h1>
-      <p className="text-sm text-muted-foreground">
-        {String((error as Error)?.message ?? error)}
-      </p>
-      <p className="text-xs text-muted-foreground">
-        Prüfe in der Alexa Skill Konsole, dass Authorization URI, Client ID
-        und Redirect URIs exakt so hinterlegt sind wie unter /connections/alexa gezeigt.
-      </p>
-    </main>
-  ),
+  errorComponent: ({ error }) => {
+    const e = error as any;
+    const isMismatch = e?.code === "redirect_uri_mismatch";
+    const received: string | undefined = e?.received;
+    const clientId: string | undefined = e?.clientId;
+    const allowed: string[] = e?.allowed ?? [];
+    const fixHref =
+      isMismatch && received
+        ? `/connections/alexa?highlight=${encodeURIComponent(clientId ?? "")}&suggest=${encodeURIComponent(received)}`
+        : "/connections/alexa";
+    return (
+      <main className="max-w-md mx-auto p-6 space-y-3">
+        <h1 className="text-lg font-semibold">Verknüpfung fehlgeschlagen</h1>
+        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+          {String(e?.message ?? error)}
+        </p>
+        {isMismatch && (
+          <div className="rounded-xl border border-border bg-card p-3 text-xs space-y-2">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">empfangen</div>
+              <code className="font-mono text-[11px] break-all">{received}</code>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">aktuell erlaubt</div>
+              {allowed.length === 0 ? (
+                <em className="text-muted-foreground">(leer)</em>
+              ) : (
+                <ul className="font-mono text-[11px] space-y-0.5">
+                  {allowed.map((u, i) => (
+                    <li key={i} className="break-all">{u}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <a
+              href={fixHref}
+              className="inline-block mt-1 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs"
+            >
+              In Allowlist eintragen →
+            </a>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Prüfe in der Alexa Skill Konsole, dass Authorization URI, Client ID
+          und Redirect URIs exakt so hinterlegt sind wie unter /connections/alexa gezeigt.
+        </p>
+      </main>
+    );
+  },
 });
 
 function Consent() {
