@@ -12,7 +12,7 @@ export const listAlexaClients = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("alexa_oauth_clients")
-      .select("id, client_id, name, device_id, created_at, last_used_at")
+      .select("id, client_id, name, device_id, redirect_uris, created_at, last_used_at")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
