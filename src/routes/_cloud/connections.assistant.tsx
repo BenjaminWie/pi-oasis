@@ -59,7 +59,7 @@ function AssistantPage() {
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        headers: () => (token ? { Authorization: `Bearer ${token}` } : {}),
+        headers: () => (token ? { Authorization: `Bearer ${token}` } : ({} as Record<string, string>)),
       }),
     [token],
   );
@@ -114,7 +114,7 @@ function AssistantPage() {
                 const toolParts = m.parts.filter((p) => p.type.startsWith("tool-"));
                 return (
                   <Message key={m.id} from={m.role === "user" ? "user" : "assistant"}>
-                    <MessageContent variant={m.role === "user" ? "contained" : "flat"}>
+                    <MessageContent className={m.role === "assistant" ? "bg-transparent p-0" : undefined}>
                       {m.role === "assistant" ? (
                         <MessageResponse>{text}</MessageResponse>
                       ) : (
@@ -133,7 +133,7 @@ function AssistantPage() {
             )}
             {status === "submitted" && (
               <Message from="assistant">
-                <MessageContent variant="flat">
+                <MessageContent className="bg-transparent p-0">
                   <Shimmer>Denke nach…</Shimmer>
                 </MessageContent>
               </Message>
