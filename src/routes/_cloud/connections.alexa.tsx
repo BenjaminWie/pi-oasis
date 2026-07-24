@@ -273,3 +273,118 @@ function AlexaPage() {
     </div>
   );
 }
+
+function ClientRow({
+  client,
+  highlighted,
+  suggested,
+  onDelete,
+  onSave,
+  saving,
+}: {
+  client: { id: string; client_id: string; redirect_uris: string[] | null };
+  highlighted: boolean;
+  suggested: string;
+  onDelete: () => void;
+  onSave: (uris: string[]) => void;
+  saving: boolean;
+}) {
+  const initial = client.redirect_uris ?? [];
+  const [uris, setUris] = useState<string[]>(initial);
+  const [draft, setDraft] = useState(suggested);
+  const dirty = uris.join("|") !== initial.join("|");
+
+  function add(uri: string) {
+    const v = uri.trim();
+    if (!v) return;
+    try {
+      new URL(v);
+    } catch {
+      toast.error("Ungültige URL");
+      return;
+    }
+    if (uris.includes(v)) return;
+    setUris([...uris, v]);
+    setDraft("");
+  }
+  function remove(i: number) {
+    setUris(uris.filter((_, idx) => idx !== i));
+  }
+  function addAmazonDefaults() {
+    const defaults = [
+      "https://layla.amazon.com/api/skill/link/",
+      "https://pitangui.amazon.com/api/skill/link/",
+      "https://alexa.amazon.co.jp/api/skill/link/",
+    ];
+    const next = [...uris];
+    for (const d of defaults) if (!next.includes(d)) next.push(d);
+    setUris(next);
+  }
+
+  return (
+    <div
+      className={`rounded-xl border p-3 space-y-2 ${
+        highlighted ? "border-primary/60 bg-primary/5" : "border-border bg-background"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <code className="text-[11px] font-mono truncate">{client.client_id}</code>
+        <button onClick={onDelete} className="text-destructive p-1" aria-label="widerrufen">
+          <Trash2 size={12} />
+        </button>
+      </div>
+      <div className="space-y-1">
+        <div className="text-[9px] uppercase tracking-widest text-muted-foreground">
+          Erlaubte Redirect-URIs (Einträge mit „/" am Ende matchen jeden Vendor-ID-Suffix)
+        </div>
+        {uris.length === 0 && (
+          <div className="text-[10px] text-muted-foreground italic">keine — Alexa-Linking wird fehlschlagen</div>
+        )}
+        {uris.map((u, i) => (
+          <div
+            key={i}
+            className="flex items-center justify-between gap-2 text-[10px] font-mono bg-card border border-border rounded px-2 py-1"
+          >
+            <span className="truncate">{u}</span>
+            <button onClick={() => remove(i)} className="text-muted-foreground shrink-0" aria-label="entfernen">
+              <X size={11} />
+            </button>
+          </div>
+        ))}
+        <div className="flex gap-1 pt-1">
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="https://layla.amazon.com/api/skill/link/AAAA…"
+            className="h-7 text-[10px] font-mono"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2"
+            onClick={() => add(draft)}
+            aria-label="hinzufügen"
+          >
+            <Plus size={12} />
+          </Button>
+        </div>
+        <button
+          onClick={addAmazonDefaults}
+          className="text-[10px] text-primary underline underline-offset-2"
+        >
+          Alexa-Standard-Prefixes hinzufügen
+        </button>
+      </div>
+      {dirty && (
+        <Button
+          onClick={() => onSave(uris)}
+          disabled={saving}
+          size="sm"
+          className="w-full h-7 text-[10px]"
+        >
+          {saving ? "speichere…" : "Änderungen speichern"}
+        </Button>
+      )}
+    </div>
+  );
+}
