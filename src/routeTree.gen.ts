@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CloudRouteImport } from './routes/_cloud'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as CloudPumpRouteImport } from './routes/_cloud/pump'
 import { Route as CloudPluginsRouteImport } from './routes/_cloud/plugins'
 import { Route as CloudPairCallbackRouteImport } from './routes/_cloud/pair-callback'
@@ -73,6 +74,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CloudPumpRoute = CloudPumpRouteImport.update({
@@ -286,6 +292,7 @@ export interface FileRoutesByFullPath {
   '/devices': typeof CloudDevicesRouteWithChildren
   '/pair-callback': typeof CloudPairCallbackRoute
   '/pump': typeof CloudPumpRoute
+  '/api/chat': typeof ApiChatRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
@@ -325,6 +332,7 @@ export interface FileRoutesByTo {
   '/pair-callback': typeof CloudPairCallbackRoute
   '/plugins': typeof AuthenticatedPluginsIndexRoute
   '/pump': typeof CloudPumpRoute
+  '/api/chat': typeof ApiChatRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
@@ -369,6 +377,7 @@ export interface FileRoutesById {
   '/_cloud/pair-callback': typeof CloudPairCallbackRoute
   '/_cloud/plugins': typeof CloudPluginsRoute
   '/_cloud/pump': typeof CloudPumpRoute
+  '/api/chat': typeof ApiChatRoute
   '/_authenticated/container/$id': typeof AuthenticatedContainerIdRoute
   '/_authenticated/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/_cloud/connections/alexa': typeof CloudConnectionsAlexaRoute
@@ -412,6 +421,7 @@ export interface FileRouteTypes {
     | '/devices'
     | '/pair-callback'
     | '/pump'
+    | '/api/chat'
     | '/container/$id'
     | '/plugins/$id'
     | '/connections/alexa'
@@ -451,6 +461,7 @@ export interface FileRouteTypes {
     | '/pair-callback'
     | '/plugins'
     | '/pump'
+    | '/api/chat'
     | '/container/$id'
     | '/plugins/$id'
     | '/connections/alexa'
@@ -494,6 +505,7 @@ export interface FileRouteTypes {
     | '/_cloud/pair-callback'
     | '/_cloud/plugins'
     | '/_cloud/pump'
+    | '/api/chat'
     | '/_authenticated/container/$id'
     | '/_authenticated/plugins/$id'
     | '/_cloud/connections/alexa'
@@ -528,6 +540,7 @@ export interface RootRouteChildren {
   CloudRoute: typeof CloudRouteWithChildren
   AuthRoute: typeof AuthRoute
   LoginRoute: typeof LoginRoute
+  ApiChatRoute: typeof ApiChatRoute
   ApiPublicMcpRoute: typeof ApiPublicMcpRoute
   ApiPublicAgentHeartbeatRoute: typeof ApiPublicAgentHeartbeatRoute
   ApiPublicAgentPollRoute: typeof ApiPublicAgentPollRoute
@@ -582,6 +595,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_cloud/pump': {
@@ -938,6 +958,7 @@ const rootRouteChildren: RootRouteChildren = {
   CloudRoute: CloudRouteWithChildren,
   AuthRoute: AuthRoute,
   LoginRoute: LoginRoute,
+  ApiChatRoute: ApiChatRoute,
   ApiPublicMcpRoute: ApiPublicMcpRoute,
   ApiPublicAgentHeartbeatRoute: ApiPublicAgentHeartbeatRoute,
   ApiPublicAgentPollRoute: ApiPublicAgentPollRoute,

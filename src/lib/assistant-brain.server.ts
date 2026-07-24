@@ -19,13 +19,13 @@ Regeln:
 - Bei Fehlern (pi_offline, missing scope) erkläre in einem Satz, was los ist.
 - Keine Emojis inflationär, max. 1-2 pro Antwort.`;
 
-function buildTools(ctx: ToolCtx, defs: ToolDef[]) {
+function buildTools(ctx: ToolCtx, defs: ToolDef[]): Record<string, ReturnType<typeof tool>> {
   const map: Record<string, ReturnType<typeof tool>> = {};
   for (const def of defs) {
     if (!ctx.scopes.includes(def.scope)) continue;
     map[def.name] = tool({
       description: def.description,
-      inputSchema: def.inputSchema as z.ZodTypeAny,
+      inputSchema: def.inputSchema as unknown as z.ZodObject<z.ZodRawShape>,
       execute: async (args: unknown) => {
         const t0 = Date.now();
         try {
@@ -37,7 +37,7 @@ function buildTools(ctx: ToolCtx, defs: ToolDef[]) {
           return { error: String(e?.message || e) };
         }
       },
-    });
+    }) as ReturnType<typeof tool>;
   }
   return map;
 }
