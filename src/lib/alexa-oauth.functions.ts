@@ -68,6 +68,17 @@ export const deleteAlexaClient = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Match if entry is an exact match, or if entry ends with '/' and the incoming
+// URI starts with it (so default prefixes like 'https://layla.amazon.com/api/skill/link/'
+// cover any vendor-ID suffix Alexa appends).
+export function isRedirectUriAllowed(allowed: string[], received: string): boolean {
+  for (const a of allowed) {
+    if (a === received) return true;
+    if (a.endsWith("/") && received.startsWith(a)) return true;
+  }
+  return false;
+}
+
 export const getAlexaConsent = createServerFn({ method: "POST" })
   .inputValidator((d: {
     client_id: string;
@@ -90,15 +101,32 @@ export const getAlexaConsent = createServerFn({ method: "POST" })
       .select("id, name, user_id, device_id, redirect_uris")
       .eq("client_id", data.client_id)
       .maybeSingle();
-    if (!client) throw new Error("unknown client_id");
-    if (!(client.redirect_uris as string[]).includes(data.redirect_uri)) {
-      throw new Error(`redirect_uri not in allowlist for this client (${data.redirect_uri})`);
+    if (!client) {
+      console.warn("[alexa-oauth] unknown client_id", { client_id: data.client_id });
+      throw new Error("unknown client_id");
+    }
+    const allowed = (client.redirect_uris as string[]) ?? [];
+    if (!isRedirectUriAllowed(allowed, data.redirect_uri)) {
+      console.warn("[alexa-oauth] redirect_uri mismatch", {
+        client_id: data.client_id,
+        received: data.redirect_uri,
+        allowed,
+      });
+      const err = new Error(
+        `redirect_uri not in allowlist for this client.\nempfangen: ${data.redirect_uri}\nerlaubt: ${allowed.join(", ") || "(leer)"}`,
+      );
+      (err as any).code = "redirect_uri_mismatch";
+      (err as any).received = data.redirect_uri;
+      (err as any).allowed = allowed;
+      (err as any).clientId = data.client_id;
+      throw err;
     }
     const { data: device } = await supabaseAdmin
       .from("devices")
       .select("name")
       .eq("id", client.device_id!)
       .maybeSingle();
+    console.info("[alexa-oauth] consent shown", { client_id: data.client_id });
     return {
       clientName: (client as any).name || "Alexa Skill",
       clientId: data.client_id,
@@ -108,4 +136,22 @@ export const getAlexaConsent = createServerFn({ method: "POST" })
       userEmail: null as string | null,
       deviceName: (device as any)?.name ?? null as string | null,
     };
+  });
+
+export const updateAlexaClientRedirectUris = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; redirect_uris: string[] }) =>
+    z.object({
+      id: z.string().uuid(),
+      redirect_uris: z.array(z.string().url()).max(20),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    // RLS: user must own the row (user_id = auth.uid()).
+    const { error } = await context.supabase
+      .from("alexa_oauth_clients")
+      .update({ redirect_uris: data.redirect_uris })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
