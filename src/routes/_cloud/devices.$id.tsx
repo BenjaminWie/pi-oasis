@@ -24,15 +24,17 @@ function DevicePage() {
   const { data } = useQuery({
     queryKey: ["device", id],
     queryFn: () => fetchDevice({ data: { id } }),
-    refetchInterval: 5000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: false,
+    staleTime: 30_000,
   });
 
   const { data: events = [] } = useQuery({
     queryKey: ["device-events-mini", id],
     queryFn: () => fetchEvents({ data: { deviceId: id, limit: 20 } }),
-    refetchInterval: 8000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: false,
+    staleTime: 30_000,
     enabled: !!data?.device?.device_token_hash,
   });
 

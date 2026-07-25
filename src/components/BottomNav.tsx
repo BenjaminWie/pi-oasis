@@ -19,9 +19,9 @@ export function BottomNav() {
   const brokers = useQuery({
     queryKey: ["mqtt-brokers"],
     queryFn: () => brokersFn(),
-    refetchInterval: 30000,
+    refetchInterval: 5 * 60_000,
     refetchIntervalInBackground: false,
-    staleTime: 30000,
+    staleTime: 5 * 60_000,
   });
 
   const hasMqtt = (brokers.data?.length ?? 0) > 0;

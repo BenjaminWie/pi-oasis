@@ -20,8 +20,9 @@ function DevicesIndexPage() {
   const { data: devices = [], isLoading } = useQuery({
     queryKey: ["devices"],
     queryFn: () => fetchDevices(),
-    refetchInterval: 5000,
+    refetchInterval: 60_000,
     refetchIntervalInBackground: false,
+    staleTime: 60_000,
   });
 
   const createMutation = useMutation({

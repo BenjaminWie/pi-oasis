@@ -11,8 +11,8 @@ export function useDynamicFavicon() {
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
     queryFn: () => fetchDevices(),
-    refetchInterval: 5 * 60_000,
-    staleTime: 4 * 60_000,
+    refetchInterval: 15 * 60_000,
+    staleTime: 15 * 60_000,
   });
 
   const paired = devices.filter((d: any) => d.paired);
