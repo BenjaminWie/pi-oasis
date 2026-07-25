@@ -117,7 +117,7 @@ function Consent() {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) throw new Error("Bitte erneut anmelden.");
-      const res = await fetch("/api/public/oauth/authorize", {
+      const res = await fetch("/api/public/oauth/authorize-post", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
