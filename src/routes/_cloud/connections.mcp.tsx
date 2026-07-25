@@ -36,7 +36,8 @@ function McpPage() {
   const { data: audit = [] } = useQuery({
     queryKey: ["mcp-audit"],
     queryFn: () => fetchAudit(),
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
+    staleTime: 60_000,
   });
 
   const create = useMutation({
