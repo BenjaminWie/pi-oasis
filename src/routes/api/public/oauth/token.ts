@@ -1,22 +1,24 @@
-// OAuth 2.0 Token endpoint (RFC 6749 §4.1.3) for Alexa Account Linking.
+// OAuth 2.0 Token endpoint (RFC 6749 §4.1.3 / §5.1) for Alexa Account Linking.
 //
-// POST /api/public/oauth/token
-//   application/x-www-form-urlencoded, HTTP Basic auth = client_id:client_secret
-//
-// grant_type=authorization_code
-//   -> validates the code (sha256 hash lookup, one-shot, expiry, redirect_uri
-//      match), then mints an opaque mcp_tokens row (source='alexa') and returns
-//      { access_token, token_type: "Bearer", expires_in, refresh_token }.
-//
-// grant_type=refresh_token
-//   -> extends the linked mcp_tokens row's expiry and returns a new access_token.
+// Every response includes RFC-required no-store cache headers, and every
+// exchange (success + failure) is logged to `alexa_oauth_token_log` so the UI
+// can show why Alexa gave up. Alexa expects access-token lifetimes in the
+// 1h ballpark for its refresh scheduler, so we cap `expires_in` at 3600
+// while keeping the underlying token valid for 30d (Alexa will refresh long
+// before that, giving us cheap re-verification).
 
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { jsonResponse } from "@/lib/agent-api.server";
 
-const ACCESS_TTL_SEC = 60 * 60 * 24 * 30; // 30 days
+const ACCESS_TTL_SEC = 60 * 60 * 24 * 30; // 30 days actual validity
+const ALEXA_EXPIRES_IN = 3600;             // what we advertise to Alexa (1h → forces refresh cycle)
 const REFRESH_PREFIX = "rt_";
+
+const NO_STORE_HEADERS = {
+  "Cache-Control": "no-store",
+  Pragma: "no-cache",
+};
 
 function sha(s: string) {
   return createHash("sha256").update(s).digest("hex");
@@ -29,8 +31,31 @@ function safeEqual(a: string, b: string) {
   return timingSafeEqual(A, B);
 }
 
+function oauthResponse(body: unknown, status = 200) {
+  const r = jsonResponse(body, status);
+  const h = new Headers(r.headers);
+  for (const [k, v] of Object.entries(NO_STORE_HEADERS)) h.set(k, v);
+  return new Response(r.body, { status: r.status, headers: h });
+}
+
+async function logExchange(row: {
+  event: string;
+  client_id?: string | null;
+  grant_type?: string | null;
+  ok: boolean;
+  error_code?: string | null;
+  note?: string | null;
+  remote_ip?: string | null;
+}) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("alexa_oauth_token_log").insert(row);
+  } catch (e) {
+    console.error("[alexa-oauth-token] log failed", (e as Error).message);
+  }
+}
+
 async function parseCreds(request: Request, form: URLSearchParams) {
-  // HTTP Basic first, then body fallback (Alexa uses either).
   const h = request.headers.get("authorization");
   if (h?.startsWith("Basic ")) {
     try {
@@ -94,40 +119,61 @@ export const Route = createFileRoute("/api/public/oauth/token")({
           },
         }),
       POST: async ({ request }) => {
-        const ct = request.headers.get("content-type") ?? "";
+        const remote_ip =
+          request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+          request.headers.get("cf-connecting-ip") ?? null;
         const bodyText = await request.text();
-        const form = ct.includes("application/x-www-form-urlencoded")
-          ? new URLSearchParams(bodyText)
-          : new URLSearchParams(bodyText); // Alexa always sends form; be tolerant.
-
+        const form = new URLSearchParams(bodyText);
         const grant_type = form.get("grant_type");
         const { client_id, client_secret } = await parseCreds(request, form);
+
+        console.info("[alexa-oauth-token] request", { grant_type, client_id, remote_ip });
+
         if (!client_id || !client_secret) {
-          return jsonResponse({ error: "invalid_client" }, 401);
+          await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "invalid_client", note: "missing credentials", remote_ip });
+          return oauthResponse({ error: "invalid_client" }, 401);
         }
         const client = await verifyClient(client_id, client_secret);
-        if (!client) return jsonResponse({ error: "invalid_client" }, 401);
+        if (!client) {
+          await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "invalid_client", note: "bad secret or unknown client", remote_ip });
+          return oauthResponse({ error: "invalid_client" }, 401);
+        }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         if (grant_type === "authorization_code") {
           const code = form.get("code");
           const redirect_uri = form.get("redirect_uri");
-          if (!code || !redirect_uri) return jsonResponse({ error: "invalid_request" }, 400);
+          if (!code || !redirect_uri) {
+            await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "invalid_request", note: "missing code or redirect_uri", remote_ip });
+            return oauthResponse({ error: "invalid_request" }, 400);
+          }
           const code_hash = sha(code);
           const { data: row } = await supabaseAdmin
             .from("alexa_oauth_codes")
             .select("*")
             .eq("code_hash", code_hash)
             .maybeSingle();
-          if (!row) return jsonResponse({ error: "invalid_grant" }, 400);
-          if (row.client_id !== client_id) return jsonResponse({ error: "invalid_grant" }, 400);
-          if (row.redirect_uri !== redirect_uri) return jsonResponse({ error: "invalid_grant" }, 400);
-          if (row.used_at) return jsonResponse({ error: "invalid_grant" }, 400);
-          if (new Date(row.expires_at).getTime() < Date.now()) {
-            return jsonResponse({ error: "invalid_grant" }, 400);
+          if (!row) {
+            await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "invalid_grant", note: "code not found", remote_ip });
+            return oauthResponse({ error: "invalid_grant" }, 400);
           }
-          // single-use: delete immediately
+          if (row.client_id !== client_id) {
+            await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "invalid_grant", note: "client_id mismatch", remote_ip });
+            return oauthResponse({ error: "invalid_grant" }, 400);
+          }
+          if (row.redirect_uri !== redirect_uri) {
+            await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "invalid_grant", note: `redirect_uri mismatch (got ${redirect_uri})`, remote_ip });
+            return oauthResponse({ error: "invalid_grant" }, 400);
+          }
+          if (row.used_at) {
+            await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "invalid_grant", note: "code already used", remote_ip });
+            return oauthResponse({ error: "invalid_grant" }, 400);
+          }
+          if (new Date(row.expires_at).getTime() < Date.now()) {
+            await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "invalid_grant", note: "code expired", remote_ip });
+            return oauthResponse({ error: "invalid_grant" }, 400);
+          }
           await supabaseAdmin.from("alexa_oauth_codes").delete().eq("code_hash", code_hash);
 
           const refresh_token = REFRESH_PREFIX + randomBytes(24).toString("base64url");
@@ -144,10 +190,12 @@ export const Route = createFileRoute("/api/public/oauth/token")({
             .update({ last_used_at: new Date().toISOString() })
             .eq("client_id", client_id);
 
-          return jsonResponse({
+          await logExchange({ event: "token", client_id, grant_type, ok: true, note: "authorization_code exchange", remote_ip });
+
+          return oauthResponse({
             access_token: access,
             token_type: "Bearer",
-            expires_in: ACCESS_TTL_SEC,
+            expires_in: ALEXA_EXPIRES_IN,
             refresh_token,
             scope: scopes.join(" "),
           });
@@ -155,7 +203,10 @@ export const Route = createFileRoute("/api/public/oauth/token")({
 
         if (grant_type === "refresh_token") {
           const refresh_token = form.get("refresh_token");
-          if (!refresh_token) return jsonResponse({ error: "invalid_request" }, 400);
+          if (!refresh_token) {
+            await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "invalid_request", note: "missing refresh_token", remote_ip });
+            return oauthResponse({ error: "invalid_request" }, 400);
+          }
           const rt_hash = sha(refresh_token);
           const { data: existing } = await supabaseAdmin
             .from("mcp_tokens")
@@ -163,9 +214,11 @@ export const Route = createFileRoute("/api/public/oauth/token")({
             .eq("refresh_token_hash", rt_hash)
             .eq("source", "alexa")
             .maybeSingle();
-          if (!existing) return jsonResponse({ error: "invalid_grant" }, 400);
+          if (!existing) {
+            await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "invalid_grant", note: "unknown refresh_token", remote_ip });
+            return oauthResponse({ error: "invalid_grant" }, 400);
+          }
 
-          // rotate: delete old row, issue fresh access+refresh
           await supabaseAdmin.from("mcp_tokens").delete().eq("id", existing.id);
           const new_refresh = REFRESH_PREFIX + randomBytes(24).toString("base64url");
           const { access } = await mintAccessToken({
@@ -174,16 +227,18 @@ export const Route = createFileRoute("/api/public/oauth/token")({
             scopes: (existing.scopes ?? ["control"]) as string[],
             refresh_token: new_refresh,
           });
-          return jsonResponse({
+          await logExchange({ event: "token", client_id, grant_type, ok: true, note: "refresh_token rotated", remote_ip });
+          return oauthResponse({
             access_token: access,
             token_type: "Bearer",
-            expires_in: ACCESS_TTL_SEC,
+            expires_in: ALEXA_EXPIRES_IN,
             refresh_token: new_refresh,
             scope: ((existing.scopes ?? ["control"]) as string[]).join(" "),
           });
         }
 
-        return jsonResponse({ error: "unsupported_grant_type" }, 400);
+        await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "unsupported_grant_type", remote_ip });
+        return oauthResponse({ error: "unsupported_grant_type" }, 400);
       },
     },
   },
