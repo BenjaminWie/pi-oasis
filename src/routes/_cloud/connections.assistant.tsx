@@ -73,15 +73,32 @@ function AssistantPage() {
   });
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  const preflightFn = useServerFn(chatPreflight);
+  const preflight = useQuery({
+    queryKey: ["chat-preflight"],
+    queryFn: () => preflightFn(),
+    enabled: ready && !!token,
+    staleTime: 60_000,
+    retry: false,
+  });
+
   useEffect(() => {
     textareaRef.current?.focus();
   }, [status]);
 
   const busy = status === "submitted" || status === "streaming";
+  const blocker =
+    !ready
+      ? "loading"
+      : !token
+      ? "no_session"
+      : preflight.data && preflight.data.ok === false
+      ? preflight.data.code
+      : null;
 
   const handleSubmit = (msg: PromptInputMessage) => {
     const text = msg.text?.trim();
-    if (!text || busy) return;
+    if (!text || busy || blocker) return;
     void sendMessage({ text });
   };
 
@@ -95,6 +112,31 @@ function AssistantPage() {
           Sprich frei mit deiner Anlage. Der Assistent nutzt dieselben Tools wie MCP, Telegram und Alexa.
         </p>
       </div>
+
+      {blocker && blocker !== "loading" && (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 flex gap-3 items-start">
+          <AlertCircle className="size-4 mt-0.5 text-destructive shrink-0" />
+          <div className="text-xs space-y-1">
+            {blocker === "no_session" && (
+              <>
+                <div className="font-medium">Nicht angemeldet</div>
+                <div className="text-muted-foreground">Bitte auf /auth erneut anmelden.</div>
+              </>
+            )}
+            {blocker === "no_paired_device" && (
+              <>
+                <div className="font-medium">Kein Pi verbunden</div>
+                <div className="text-muted-foreground">
+                  Der Assistent braucht einen gepairten Pi für seine Tools.{" "}
+                  <Link to="/devices" className="underline text-primary">
+                    Jetzt pairen →
+                  </Link>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
         <Conversation className="flex-1">
