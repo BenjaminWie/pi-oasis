@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bot, MessageCircle, Mic, ChevronRight, Sparkles } from "lucide-react";
+import { Bot, MessageCircle, Mic, ChevronRight, Sparkles, Activity } from "lucide-react";
 
 export const Route = createFileRoute("/_cloud/connections/")({
   component: ConnectionsIndexPage,
