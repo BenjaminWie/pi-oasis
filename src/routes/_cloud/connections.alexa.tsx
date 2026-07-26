@@ -270,7 +270,60 @@ function AlexaPage() {
             <li>"Alexa, sage Pi Hub: Pumpe aus."</li>
           </ul>
         </li>
+
+        <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">6</span>
+            <span className="text-xs font-bold">Token-Exchange Log</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Zeigt die letzten 30 Aufrufe an <code>/oauth/token</code>. Sag Bescheid, wenn Alexa
+            "Konto konnte nicht verknüpft werden" bringt — hier steht der Grund (z.B. redirect_uri mismatch).
+          </p>
+          <AlexaTokenLog />
+        </li>
       </ol>
+    </div>
+  );
+}
+
+function AlexaTokenLog() {
+  const fn = useServerFn(listAlexaTokenLog);
+  const { data, isLoading } = useQuery({
+    queryKey: ["alexa-token-log"],
+    queryFn: () => fn(),
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
+    staleTime: 10_000,
+  });
+  if (isLoading) return <div className="text-[10px] text-muted-foreground">Lade…</div>;
+  if (!data || data.length === 0)
+    return <div className="text-[10px] text-muted-foreground">Noch keine Aufrufe.</div>;
+  return (
+    <div className="rounded-xl border border-border bg-background overflow-hidden">
+      <table className="w-full text-[10px] font-mono">
+        <thead className="text-muted-foreground bg-card">
+          <tr className="text-left">
+            <th className="px-2 py-1">Zeit</th>
+            <th className="px-2 py-1">Grant</th>
+            <th className="px-2 py-1">OK</th>
+            <th className="px-2 py-1">Fehler / Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(data as any[]).map((r) => (
+            <tr key={r.id} className="border-t border-border">
+              <td className="px-2 py-1 whitespace-nowrap">{new Date(r.created_at).toLocaleTimeString()}</td>
+              <td className="px-2 py-1">{r.grant_type ?? "—"}</td>
+              <td className={`px-2 py-1 ${r.ok ? "text-primary" : "text-destructive"}`}>{r.ok ? "✓" : "✗"}</td>
+              <td className="px-2 py-1 truncate max-w-[280px]" title={`${r.error_code ?? ""} ${r.note ?? ""}`}>
+                {r.error_code ? <span className="text-destructive mr-1">{r.error_code}</span> : null}
+                {r.note ?? "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

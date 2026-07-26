@@ -3,7 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getDevice, enqueueCommand, deleteDevice, regeneratePairing } from "@/lib/cloud.functions";
 import { listDeviceEvents } from "@/lib/control.functions";
-import { ArrowLeft, RefreshCw, Trash2, Play, Square, RotateCcw, Power } from "lucide-react";
+import { listAlerts, acknowledgeAlert, scanDeviceAnomalies } from "@/lib/alerts.functions";
+import { ArrowLeft, RefreshCw, Trash2, Play, Square, RotateCcw, Power, AlertTriangle, ShieldCheck } from "lucide-react";
 import { StatGauge } from "@/components/StatGauge";
 import { DeviceAnalytics } from "@/components/DeviceAnalytics";
 
