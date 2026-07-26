@@ -201,12 +201,12 @@ function AssistantPage() {
                   ? "z.B. Pumpe 5 Minuten an, Wetter, Status…"
                   : "Lade Session…"
               }
-              disabled={!ready || !token}
+              disabled={!ready || !token || !!blocker}
             />
             <PromptInputFooter className="justify-end">
               <PromptInputSubmit
                 status={busy ? "streaming" : undefined}
-                disabled={!ready || !token}
+                disabled={!ready || !token || !!blocker}
               />
             </PromptInputFooter>
           </PromptInput>
