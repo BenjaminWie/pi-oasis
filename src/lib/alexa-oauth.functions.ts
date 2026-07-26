@@ -18,6 +18,18 @@ export const listAlexaClients = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+export const listAlexaTokenLog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("alexa_oauth_token_log")
+      .select("id, event, client_id, grant_type, ok, error_code, note, created_at")
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
 export const createAlexaClient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { device_id?: string; name?: string }) =>

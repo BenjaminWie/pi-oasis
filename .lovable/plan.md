@@ -1,76 +1,63 @@
-## Warum die Kosten hoch sind
 
-Die "Zero-Wake"-Architektur haben wir serverseitig umgesetzt (Live-Relay via Broadcast, Session-Aggregation, 15-min Heartbeat). Aber die **Cloud-UI selbst pollt weiterhin sehr aggressiv** — jedes offene Browser-Tab läuft dauerhaft gegen Supabase:
+Four independent tracks. All in cloud UI + server; nothing changes on the Pi runtime.
 
-| Ort | aktuelles Intervall | Rows pro Query |
-|---|---|---|
-| `_cloud/devices/index` (Liste) | **5 s** | alle Devices des Users |
-| `_cloud/devices/$id` (Detail) | **5 s** Device + **8 s** Events(20) | 1 Row + 20 Events |
-| `_cloud/pump` | 5 min Devices, **Realtime-Subscribe** | — |
-| `_authenticated/overview` | 5 s + 10 s | Pi-lokal (kein Supabase) |
-| `_authenticated/mqtt` | **2 s** Messages | Pi-lokal |
-| `_authenticated/plugins.index` / `plugins.$id` | 10 s / 5 s | Pi-lokal |
-| `_authenticated/settings` | 10 s | Pi-lokal |
-| `_authenticated/integrations` | 15 s | Pi-lokal |
-| `BottomNav` (jede Cloud-Seite) | 30 s `listMqttBrokers` | Pi-lokal |
-| `connections.mcp` | 10 s | tokens+audit |
-| `DeviceAnalytics` | 30 s + 5 min | events+buckets |
-| `use-dynamic-favicon` | 5 min + Realtime-Subscribe auf `devices` | — |
+## 1) Alexa: one step further, still failing
 
-Rechenbeispiel worst case: `/_cloud/devices/$id` einen Tag offen  
-= 17 280 Device-Reads + 10 800 Event-Reads = **~28k Requests/Tag pro Tab** — allein diese Seite treibt den heutigen 2-Credit-Verbrauch.
+State: Consent + Approve now works (the earlier HTML-instead-of-JSON bug is gone). The current failure ("Konto konnte nicht mit Alexa verknüpft werden") happens *after* our redirect back to Alexa, i.e. during Alexa's server-to-server call to `/api/public/oauth/token`. We have zero visibility into that call today.
 
-Dazu kommt:
-- `favicon`-Hook öffnet auf **jeder** Seite einen persistenten Realtime-Channel auf `devices` (Broadcast ist billig, aber der `postgres_changes`-Subscribe erzeugt DB-Traffic bei jedem Update).
-- Cloud-Seiten setzen `staleTime` nicht → jeder Fokuswechsel refetcht sofort.
-- Kein `visibilityState`-Gate: Tab im Hintergrund pausiert zwar wegen `refetchIntervalInBackground:false`, aber `focus`-Refetch feuert on-return trotzdem.
+Diagnosis + fixes:
+- Add structured logging to `src/routes/api/public/oauth/token.ts`: log grant_type, client_id (masked), whether Basic vs body creds arrived, redirect_uri match result, and the outgoing response body — so the next Alexa attempt leaves a trace we can read via edge logs.
+- Persist token-exchange attempts to a new `alexa_oauth_token_log` table (event, client_id, ok/error, error_code, ts). Show the last 20 attempts in `/connections/alexa` so the user sees "Alexa hit /token at 17:52 → invalid_grant" without needing server logs.
+- Fix two spec-compliance risks that commonly trigger Alexa's generic error:
+  - Response header `Cache-Control: no-store` and `Pragma: no-cache` on token responses (RFC 6749 §5.1 — Alexa rejects cacheable token responses).
+  - Return `expires_in` as a JSON number ≤ 3600 for the *access token portion Alexa stores*; keep the internal 30-day validity but advertise 3600s so Alexa refreshes via `refresh_token` (many Amazon regions silently fail linking when `expires_in` is very large).
+- Add a "Test Token Exchange" button in `/connections/alexa` that simulates Alexa's POST with a freshly-minted throwaway code, so we can prove the endpoint end-to-end without reopening the Alexa app.
 
-## Ziel
+Not changed: consent page, code minting, client registration — those already work.
 
-Von ~2 Credits/Tag auf **≤0.5 Credits/Tag**, ohne UX-Qualität in der Cloud zu verlieren. Pi-lokale Polls (Overview/MQTT/Plugins/Settings) treffen Supabase **nicht** — die lassen wir bewusst so, das ist keine DB-Last.
+## 2) Assistant chat: "AI is not authorized"
 
-## Änderungen
+Root cause candidates verified by reading `src/routes/api/public/../../api/chat.ts` and `connections.assistant.tsx`:
+- `/api/chat` returns plain `"Unauthorized"` / `"No paired device"` / `"messages required"` as `text/plain`, and the AI SDK surfaces that as `error.message`. Any of these look like "not authorized" in the UI.
+- The client sends `Authorization: Bearer <token>` only if session already loaded. On a fresh tab the first send can race the session fetch.
+- Gateway log check for the last 7 days: **0 requests** — chat has never reached the model, meaning we bail out inside the route before calling `brainStream`.
 
-### 1. Cloud-Polls verlangsamen + Broadcast bevorzugen
-- `_cloud/devices/index`: 5 s → **60 s**, `staleTime: 60_000`, `refetchOnWindowFocus: false`.
-- `_cloud/devices/$id`:
-  - Device-Snapshot 5 s → **30 s**, plus Realtime-Subscribe auf `device_state_latest` Broadcast-Channel für Live-Werte (Node-RED published da bereits hin) — der 30-s-Poll wird nur Fallback.
-  - Events 8 s → **30 s** (letzte 20 Events reichen für UX).
-- `connections.mcp` 10 s → **60 s**, `refetchOnWindowFocus: false`.
-- `BottomNav.listMqttBrokers`: Ergebnis ist Pi-lokal (kein DB-Cost), aber jede Cloud-Route mountet es. Trotzdem harmlos — belassen, nur `staleTime: 5*60_000` setzen um Focus-Refetches zu killen.
+Fixes:
+- Return structured JSON errors from `/api/chat` (`{ error, code }`) with proper status; surface `code` in the UI (e.g. `no_paired_device` → "Verbinde erst einen Pi", `unauthorized` → "Bitte neu anmelden").
+- Log the exact bail-out reason server-side (already have `console.warn` pattern elsewhere).
+- Assistant page: block submit until `token && ready`, and add a visible banner with the concrete reason when `error` is set.
+- Add a lightweight `/api/chat/preflight` GET that returns `{ ok, userId, deviceId, reason? }` so the page shows the real blocker on mount instead of only after the first send.
 
-### 2. Favicon-Hook entschärfen
-- `use-dynamic-favicon` in `__root` oder Provider laufen lassen (single-instance), **nicht** in `BottomNav` / Seiten mehrfach. Realtime-Subscribe von `postgres_changes` → **`device_state_latest`-Broadcast** umziehen (Node-RED published dort schon). Fallback-Query 5 min → **15 min**.
+## 3) Token / credits dashboard
 
-### 3. Global React-Query Defaults
-In `src/router.tsx` (QueryClient-Erzeugung):
-```ts
-defaultOptions: {
-  queries: {
-    staleTime: 30_000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: "always",
-  },
-}
-```
-Verhindert Focus-Storms und deckelt Refetch-Kosten für alle bestehenden `useQuery`s ohne pro-Aufruf-Override.
+New page `/connections/usage` (linked from Connections index):
+- **Lovable AI Gateway usage** (this is the "tokens" cost driver): server function calls `credits--get_credit_balance` via a proxy `createServerFn`, plus a per-day chart from `list_ai_gateway_requests` grouped by day and by `model_type` (chat vs image). Shows total credits used today / 7d / 30d and cost per channel by inspecting the request's `X-Lovable-AIG-Run-ID` we already forward.
+- **DB egress proxy**: count rows written per day from `mcp_audit`, `telegram_audit`, `device_events`, `pump_sessions` — this is our "Zero-Wake" health meter, tracks the 0.5-credit/day target we're aiming for.
+- **Per-channel breakdown**: rows grouped by `source` (chat vs telegram vs alexa vs mcp) using the `mcp_tokens.source` column plus `mcp_audit.token_id` join.
+- Small warnings when today's projected usage > yesterday's × 2.
 
-### 4. DeviceAnalytics
-- 30 s → **2 min** (Analytics-Charts brauchen keine Sekunden-Auflösung).
-- 5 min bleibt.
+Server functions only; no new Pi load. Reads through `requireSupabaseAuth`.
 
-### 5. Kein Datenbank-Schema-Change nötig
-Keine Migrations, keine Server-Function-Änderungen, kein Voice/Alexa/Telegram-Impact. Reine Client-Frequenz-Anpassung + Broadcast-Wiederverwendung.
+## 4) Short-cycle & fault warnings
 
-## Erwarteter Effekt
+Data already exists in `pump_sessions` (duration_s, kwh, trigger) and `device_events` (component, status, message).
 
-Ein permanent offener Device-Detail-Tab: 28 000 → **~3 800 Requests/Tag** (−86 %). Devices-Liste offen: 17 000 → **1 440 Requests/Tag** (−92 %). MCP-Seite: 8 600 → 1 440 (−83 %). Damit landen wir realistisch unter 0.5 Credits/Tag, sofern nicht mehrere Tabs 24/7 offen sind.
+Add:
+- SQL function `detect_pump_anomalies(device uuid, window interval)` returning rows for: (a) `short_cycle` = ≥3 sessions in 10 min where each `duration_s < 60`, (b) `stuck_on` = session with `duration_s > 15*60` still open, (c) `no_flow` = session ended with `avg_watts < X` while pump was commanded on, (d) `fault_event` = any `device_events.status='error'` in last 24h.
+- New table `alerts` (id, device_id, kind, severity, first_seen, last_seen, count, acknowledged_at). A cron-triggered edge callback (via existing `/api/public/hooks/anomaly-scan.ts` pattern) runs the function every 5 min and upserts alerts. No new Pi wakes — pure cloud read of already-buffered data.
+- UI: red banner on `/devices/$id` and `/overview` when unacknowledged high-severity alerts exist, with a "Bestätigen" button that sets `acknowledged_at`. Alert list section on the device page grouped by kind, with the last 5 sessions inline.
+- Telegram: optional push on new `high` alert via the already-wired bot (opt-in toggle on the device settings page). Zero-wake — cloud-originated, doesn't poll the Pi.
 
-## Nach dem Umbau
+## Technical details
 
-- 1 Tag beobachten via `supabase--slow_queries` / Credits-Balance-Tool.
-- Falls immer noch zu hoch: Device-Detail-Live-Werte komplett auf Broadcast-only (Poll deaktivieren, nur On-Focus einmal laden).
+- New migration: `alerts`, `alexa_oauth_token_log`, `detect_pump_anomalies()` SQL function; all with GRANTs and RLS scoped to `auth.uid()` via `device.user_id`.
+- New server fns: `getUsageSummary`, `getAlerts`, `acknowledgeAlert`, `simulateAlexaTokenExchange`, `chatPreflight`.
+- New routes: `src/routes/_cloud/connections.usage.tsx`, alert banners in existing device routes.
+- Edits: `src/routes/api/public/oauth/token.ts` (headers, logging, `expires_in`), `src/routes/api/public/../api/chat.ts` (JSON errors), `src/routes/_cloud/connections.assistant.tsx` (preflight + banner).
+- No changes to `agent/`, plugin runner, or MQTT paths.
 
-## Technische Referenzen (für den Build-Turn)
-- Files: `src/router.tsx`, `src/routes/_cloud/devices.index.tsx`, `src/routes/_cloud/devices.$id.tsx`, `src/routes/_cloud/connections.mcp.tsx`, `src/hooks/use-dynamic-favicon.ts`, `src/components/DeviceAnalytics.tsx`, `src/components/BottomNav.tsx`.
-- Broadcast-Channel für Live-State existiert bereits (`/api/public/live/publish` + `device_state_latest`) — nur clientseitig abonnieren.
+## Open questions before build
+
+1. For the Alexa `expires_in`, OK to advertise 3600s to Alexa while we keep the internal 30-day token (Alexa will just refresh hourly)? This is the safest fix but slightly increases refresh traffic.
+2. Should short-cycle alerts also *stop* the pump automatically, or only warn?
+3. Telegram push on alerts — default on or opt-in?
