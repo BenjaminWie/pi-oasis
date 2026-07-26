@@ -64,6 +64,56 @@ export type Database = {
           },
         ]
       }
+      alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          count: number
+          created_at: string
+          device_id: string
+          first_seen: string
+          id: string
+          kind: string
+          last_seen: string
+          payload: Json
+          severity: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          count?: number
+          created_at?: string
+          device_id: string
+          first_seen?: string
+          id?: string
+          kind: string
+          last_seen?: string
+          payload?: Json
+          severity?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          count?: number
+          created_at?: string
+          device_id?: string
+          first_seen?: string
+          id?: string
+          kind?: string
+          last_seen?: string
+          payload?: Json
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alexa_oauth_clients: {
         Row: {
           client_id: string
@@ -144,6 +194,42 @@ export type Database = {
           scope?: string
           used_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      alexa_oauth_token_log: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          error_code: string | null
+          event: string
+          grant_type: string | null
+          id: string
+          note: string | null
+          ok: boolean
+          remote_ip: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          event: string
+          grant_type?: string | null
+          id?: string
+          note?: string | null
+          ok?: boolean
+          remote_ip?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          event?: string
+          grant_type?: string | null
+          id?: string
+          note?: string | null
+          ok?: boolean
+          remote_ip?: string | null
         }
         Relationships: []
       }
@@ -801,7 +887,26 @@ export type Database = {
       aggregate_device_events_daily:
         | { Args: never; Returns: undefined }
         | { Args: { _since?: string }; Returns: undefined }
+      detect_pump_anomalies: {
+        Args: { _device_id: string; _window_minutes?: number }
+        Returns: {
+          count: number
+          kind: string
+          payload: Json
+          severity: string
+        }[]
+      }
       recompute_anomaly_baselines: { Args: never; Returns: undefined }
+      upsert_alert: {
+        Args: {
+          _count: number
+          _device_id: string
+          _kind: string
+          _payload: Json
+          _severity: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
