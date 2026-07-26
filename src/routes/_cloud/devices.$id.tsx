@@ -48,6 +48,27 @@ function DevicePage() {
     },
   });
 
+  // Alerts (short-cycles, stuck-on, fault_event). Cheap: 1 select per device page.
+  const listAlertsFn = useServerFn(listAlerts);
+  const ackFn = useServerFn(acknowledgeAlert);
+  const scanFn = useServerFn(scanDeviceAnomalies);
+  const alerts = useQuery({
+    queryKey: ["alerts", id],
+    queryFn: () => listAlertsFn(),
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+    refetchIntervalInBackground: false,
+  });
+  const ackMut = useMutation({
+    mutationFn: (alertId: string) => ackFn({ data: { id: alertId } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["alerts", id] }),
+  });
+  const scanMut = useMutation({
+    mutationFn: () => scanFn({ data: { deviceId: id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["alerts", id] }),
+  });
+  const deviceAlerts = ((alerts.data as any[]) ?? []).filter((a) => a.device_id === id);
+
   if (!data) return <div className="px-5 text-xs text-muted-foreground">Lade...</div>;
 
   const d = data.device;
