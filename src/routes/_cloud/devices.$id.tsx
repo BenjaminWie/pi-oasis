@@ -98,6 +98,60 @@ function DevicePage() {
         )}
       </div>
 
+      {deviceAlerts.length > 0 && (
+        <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-bold text-destructive">
+              <AlertTriangle className="size-4" />
+              {deviceAlerts.length} offene Warnung{deviceAlerts.length > 1 ? "en" : ""}
+            </div>
+            <button
+              onClick={() => scanMut.mutate()}
+              disabled={scanMut.isPending}
+              className="text-[10px] text-primary underline underline-offset-2"
+            >
+              {scanMut.isPending ? "prüfe…" : "erneut prüfen"}
+            </button>
+          </div>
+          {deviceAlerts.map((a: any) => (
+            <div key={a.id} className="rounded-xl border border-border bg-background p-3 space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-bold">
+                  {a.kind === "short_cycle" && "Kurzzyklen — Pumpe geht ständig an/aus"}
+                  {a.kind === "stuck_on" && "Pumpe hängt fest — läuft ununterbrochen"}
+                  {a.kind === "fault_event" && "Fehlermeldung vom Gerät"}
+                  {!["short_cycle","stuck_on","fault_event"].includes(a.kind) && a.kind}
+                </div>
+                <span className={`text-[9px] uppercase tracking-widest ${a.severity === "critical" ? "text-destructive" : "text-amber-500"}`}>
+                  {a.severity}
+                </span>
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                seit {new Date(a.first_seen).toLocaleString()} · {a.count}× · zuletzt {new Date(a.last_seen).toLocaleTimeString()}
+              </div>
+              {a.payload?.avg_duration_s !== undefined && (
+                <div className="text-[10px] text-muted-foreground">
+                  Ø-Dauer: {a.payload.avg_duration_s}s
+                </div>
+              )}
+              {a.payload?.last_message && (
+                <div className="text-[10px] font-mono bg-card border border-border rounded px-2 py-1 mt-1">
+                  {a.payload.last_message}
+                </div>
+              )}
+              <button
+                onClick={() => ackMut.mutate(a.id)}
+                disabled={ackMut.isPending}
+                className="inline-flex items-center gap-1 text-[10px] text-primary mt-1"
+              >
+                <ShieldCheck className="size-3" />
+                bestätigen
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {!paired ? (
         <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
           <h3 className="text-xs uppercase tracking-widest text-muted-foreground">Pairing-Code</h3>
