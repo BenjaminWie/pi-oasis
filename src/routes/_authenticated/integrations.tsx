@@ -107,6 +107,8 @@ function IntegrationsPage() {
     ? [
         `CLOUD_BRIDGE_URL=${info.cloudBridge.eventUrl}`,
         `CLOUD_STRATEGY_URL=${info.cloudBridge.strategyUrl}`,
+        `CLOUD_LIVE_URL=${info.cloudBridge.liveUrl}`,
+        `CLOUD_REALTIME_BOOTSTRAP_URL=${info.cloudBridge.realtimeBootstrapUrl}`,
         `CLOUD_COMMAND_POLL_URL=${info.cloudBridge.commandPollUrl}`,
         `CLOUD_COMMAND_RESULT_URL=${info.cloudBridge.commandResultUrl}`,
         `CLOUD_DEVICE_TOKEN=${revealedToken ?? "<erst oben Token anzeigen>"}`,
@@ -150,6 +152,8 @@ function IntegrationsPage() {
         </div>
         <Row label="CLOUD_BRIDGE_URL" value={info?.cloudBridge.eventUrl ?? null} />
         <Row label="CLOUD_STRATEGY_URL" value={info?.cloudBridge.strategyUrl ?? null} />
+        <Row label="CLOUD_LIVE_URL" value={info?.cloudBridge.liveUrl ?? null} />
+        <Row label="CLOUD_REALTIME_BOOTSTRAP_URL" value={info?.cloudBridge.realtimeBootstrapUrl ?? null} />
         <Row label="CLOUD_COMMAND_POLL_URL" value={info?.cloudBridge.commandPollUrl ?? null} />
         <Row label="CLOUD_COMMAND_RESULT_URL" value={info?.cloudBridge.commandResultUrl ?? null} />
         <Row

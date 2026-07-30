@@ -65,6 +65,21 @@
         "name": "MQTT_BROKER_PORT",
         "type": "num",
         "value": "1883"
+      },
+      {
+        "name": "CLOUD_REALTIME_BOOTSTRAP_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/agent/realtime"
+      },
+      {
+        "name": "CLOUD_WS_URL",
+        "type": "str",
+        "value": ""
+      },
+      {
+        "name": "CLOUD_DEVICE_ID",
+        "type": "str",
+        "value": ""
       }
     ]
   },
@@ -633,7 +648,6 @@
     "y": 540,
     "wires": []
   },
-
   {
     "id": "pihub_build_result",
     "type": "function",
@@ -728,5 +742,205 @@
     "willPayload": "",
     "willMsg": {},
     "sessionExpiry": ""
+  },
+  {
+    "id": "pihub_ws_comment",
+    "type": "comment",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "WebSocket-Kommandokanal (primär) — Bootstrap: GET /api/public/agent/realtime",
+    "info": "Hole CLOUD_WS_URL und CLOUD_DEVICE_ID einmalig ueber den Bootstrap-Endpoint (Bearer CLOUD_DEVICE_TOKEN).\nCLOUD_WS_URL = wss://<supabase-url ohne https>/realtime/v1/websocket?apikey=<supabaseKey>&vsn=1.0.0\nKanal = commands:<deviceId>. Kommandos kommen als broadcast-Event 'wake' mit vollem Payload an.\nDer 15-Minuten-Poll bleibt nur als Safety-Net.",
+    "x": 420,
+    "y": 760,
+    "wires": []
+  },
+  {
+    "id": "pihub_ws_bootstrap_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Bootstrap Realtime (beim Deploy)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "2",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 220,
+    "y": 800,
+    "wires": [
+      [
+        "pihub_ws_build_bootstrap"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_build_bootstrap",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Realtime Bootstrap",
+    "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) { node.status({fill:'red',shape:'ring',text:'CLOUD_DEVICE_TOKEN fehlt'}); return null; }\nmsg.method = 'GET';\nmsg.url = env.get('CLOUD_REALTIME_BOOTSTRAP_URL');\nmsg.headers = { 'Authorization': 'Bearer ' + token };\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 520,
+    "y": 800,
+    "wires": [
+      [
+        "pihub_ws_http_bootstrap"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_http_bootstrap",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "GET Realtime Bootstrap (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 800,
+    "y": 800,
+    "wires": [
+      [
+        "pihub_ws_store_bootstrap"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_store_bootstrap",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Store Realtime Info",
+    "func": "var b = msg.payload || {};\nif (!b.supabaseUrl || !b.deviceId) { node.status({fill:'red',shape:'ring',text:'bootstrap fehlgeschlagen'}); return null; }\nvar wss = b.supabaseUrl.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + b.supabaseKey + '&vsn=1.0.0';\nflow.set('pihub_ws_url', wss);\nflow.set('pihub_device_id', b.deviceId);\nflow.set('pihub_channel', b.channel || ('commands:' + b.deviceId));\nnode.status({fill:'green',shape:'dot',text:'channel ' + (b.channel || b.deviceId)});\nnode.warn('Trage in die Tab-Env ein → CLOUD_WS_URL: ' + wss + ' | CLOUD_DEVICE_ID: ' + b.deviceId);\nreturn null;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1080,
+    "y": 800,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "pihub_ws_client",
+    "type": "websocket-client",
+    "path": "${CLOUD_WS_URL}",
+    "tls": "",
+    "wholemsg": "false",
+    "hb": "30",
+    "subprotocol": ""
+  },
+  {
+    "id": "pihub_ws_in",
+    "type": "websocket in",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Realtime Wake In",
+    "server": "",
+    "client": "pihub_ws_client",
+    "x": 200,
+    "y": 880,
+    "wires": [
+      [
+        "pihub_ws_parse"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_out",
+    "type": "websocket out",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Realtime Out (join/heartbeat)",
+    "server": "",
+    "client": "pihub_ws_client",
+    "x": 800,
+    "y": 940,
+    "wires": []
+  },
+  {
+    "id": "pihub_ws_join_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Join + Heartbeat (30s)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "30",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "5",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 220,
+    "y": 940,
+    "wires": [
+      [
+        "pihub_ws_join"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_join",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Phoenix Join/Heartbeat",
+    "func": "var deviceId = env.get('CLOUD_DEVICE_ID') || flow.get('pihub_device_id');\nif (!deviceId) { node.status({fill:'yellow',shape:'ring',text:'CLOUD_DEVICE_ID fehlt'}); return null; }\nvar ref = (context.get('ref') || 0) + 1;\ncontext.set('ref', ref);\nvar joined = context.get('joined') || 0;\nvar out;\nif (Date.now() - joined > 5 * 60 * 1000) {\n    context.set('joined', Date.now());\n    out = { topic: 'realtime:commands:' + deviceId, event: 'phx_join',\n            payload: { config: { broadcast: { self: false }, presence: { key: '' } } }, ref: String(ref) };\n    node.status({fill:'blue',shape:'dot',text:'join commands:' + deviceId});\n} else {\n    out = { topic: 'phoenix', event: 'heartbeat', payload: {}, ref: String(ref) };\n}\nreturn { payload: JSON.stringify(out) };",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 500,
+    "y": 940,
+    "wires": [
+      [
+        "pihub_ws_out"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_parse",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Parse Wake → Command",
+    "func": "var raw = msg.payload;\nvar m;\ntry { m = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch (e) { return null; }\nif (!m || m.event !== 'broadcast') return null;\nvar inner = m.payload || {};\nif (inner.event !== 'wake') return null;\nvar body = inner.payload || {};\nvar cmd = body.command;\nif (!cmd || !cmd.id) {\n    // Bare wake without payload → fall back to the poll endpoint.\n    node.status({fill:'yellow',shape:'ring',text:'bare wake → poll'});\n    return [null, { payload: {} }];\n}\nnode.status({fill:'green',shape:'dot',text:cmd.kind + ' ' + new Date().toLocaleTimeString()});\nreturn [{ payload: { command: cmd } }, null];",
+    "outputs": 2,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 480,
+    "y": 880,
+    "wires": [
+      [
+        "pihub_execute_command"
+      ],
+      [
+        "pihub_build_command_poll"
+      ]
+    ]
   }
 ]

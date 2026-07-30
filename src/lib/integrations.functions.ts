@@ -12,6 +12,8 @@ export interface IntegrationsInfo {
   cloudBridge: {
     eventUrl: string;
     strategyUrl: string;
+    liveUrl: string;
+    realtimeBootstrapUrl: string;
     commandPollUrl: string;
     commandResultUrl: string;
     deviceTokenPresent: boolean;
@@ -90,6 +92,8 @@ export const getIntegrationsInfo = createServerFn({ method: "GET" })
       cloudBridge: {
         eventUrl: `${cloudUrl}/api/public/cloud-bridge/event`,
         strategyUrl: `${cloudUrl}/api/public/cloud-bridge/strategy`,
+        liveUrl: `${cloudUrl}/api/public/live/publish`,
+        realtimeBootstrapUrl: `${cloudUrl}/api/public/agent/realtime`,
         commandPollUrl: `${cloudUrl}/api/public/agent/poll?runner=nodered`,
         commandResultUrl: `${cloudUrl}/api/public/agent/result`,
         deviceTokenPresent,
