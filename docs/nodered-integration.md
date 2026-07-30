@@ -79,30 +79,88 @@ Store on the flow context (`flow.set('strategy', msg.payload)`) and read it
 inside the Eco-Guard function node. If `eco_paused === true`, short-circuit
 the engine: `global.set("zisterne_eco_allow", false)`.
 
-## 3. Cloud commands → Node-RED → MQTT pump
+## 3. Cloud commands → Node-RED → MQTT pump (WebSocket first)
 
-Cloud, Alexa, Telegram and MCP pump actions are queued in the cloud and polled by
-Node-RED:
+Cloud, Alexa, Telegram and MCP pump actions are **pushed** over a Supabase
+Realtime WebSocket. HTTP polling is only a 15-minute safety net — this is what
+keeps the database asleep and the running cost near zero.
+
+### 3.1 Bootstrap (once per deploy)
+
+```http
+GET https://pi-hub.benniwie.com/api/public/agent/realtime
+Authorization: Bearer <CLOUD_DEVICE_TOKEN>
+```
+
+```json
+{
+  "supabaseUrl": "https://<project-ref>.supabase.co",
+  "supabaseKey": "<publishable/anon key — never the service role>",
+  "deviceId": "8f0c…",
+  "channel": "commands:8f0c…",
+  "safetyNetPollMs": 900000
+}
+```
+
+Build the socket URL from the response:
+
+```text
+CLOUD_WS_URL = wss://<project-ref>.supabase.co/realtime/v1/websocket?apikey=<supabaseKey>&vsn=1.0.0
+CLOUD_DEVICE_ID = <deviceId>
+```
+
+The template's `Store Realtime Info` node prints both values via `node.warn`
+so you can paste them into the tab env. They are stable — the device id only
+changes if you re-pair.
+
+### 3.2 Joining the channel
+
+Node-RED uses one `websocket in` + `websocket out` pair on the same
+`websocket-client` config (`path = ${CLOUD_WS_URL}`, payload mode "String").
+
+Send the Phoenix join frame after connect, then a heartbeat every 30 s
+(otherwise Realtime closes the socket after 60 s):
+
+```json
+{ "topic": "realtime:commands:<deviceId>", "event": "phx_join",
+  "payload": { "config": { "broadcast": { "self": false } } }, "ref": "1" }
+```
+
+```json
+{ "topic": "phoenix", "event": "heartbeat", "payload": {}, "ref": "2" }
+```
+
+### 3.3 Incoming command
+
+```json
+{
+  "topic": "realtime:commands:<deviceId>",
+  "event": "broadcast",
+  "payload": {
+    "type": "broadcast",
+    "event": "wake",
+    "payload": {
+      "ts": "2026-07-30T18:12:00Z",
+      "command": {
+        "id": "…",
+        "kind": "plugin_manual",
+        "payload": { "id": "pump", "runner": "nodered", "action": "on", "minutes": 10 }
+      }
+    }
+  }
+}
+```
+
+The full command travels inside the broadcast, so **no follow-up HTTP call is
+needed**. If `command` is `null` (oversized payload), fall back to:
 
 ```http
 GET https://pi-hub.benniwie.com/api/public/agent/poll?runner=nodered
 Authorization: Bearer <CLOUD_DEVICE_TOKEN>
 ```
 
-Example response:
-
-```json
-{
-  "command": {
-    "id": "...",
-    "kind": "plugin_manual",
-    "payload": { "id": "pump", "runner": "nodered", "action": "on", "minutes": 10 }
-  }
-}
-```
-
-The template maps this to MQTT topic `cmnd/zisterne/POWER` with payload `ON` or
-`OFF`, then acknowledges the command:
+The template maps the command to MQTT topic `cmnd/zisterne/POWER` with payload
+`ON`/`OFF` (auto-OFF via trigger node), then acknowledges it:
 
 ```http
 POST https://pi-hub.benniwie.com/api/public/agent/result
@@ -114,6 +172,17 @@ Content-Type: application/json
 
 The normal Pi agent ignores `runner=nodered` commands, so commands are not
 executed twice.
+
+### 3.4 WebSocket failure modes
+
+| Symptom | Cause |
+| ------- | ----- |
+| Socket connects, no messages | `phx_join` never sent, or wrong `realtime:` topic prefix |
+| Socket drops every ~60 s | heartbeat missing |
+| `401`/immediate close | wrong or missing `apikey` query param |
+| Bootstrap returns `unknown device` | `CLOUD_DEVICE_TOKEN` is not the pairing token |
+| Commands only arrive every 15 min | socket is down, safety-net poll is doing the work |
+
 
 ## 4. Store weather, Tibber and pump usage
 
