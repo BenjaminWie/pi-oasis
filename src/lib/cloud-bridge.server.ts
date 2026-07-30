@@ -183,7 +183,6 @@ async function execCommand(cmd: any) {
 // a socket reconnect) so nothing is lost if a broadcast is dropped.
 // ---------------------------------------------------------------------------
 
-const SAFETY_NET_MS = 15 * 60_000;
 const HEARTBEAT_MS = 15 * 60_000;
 const handled = new Set<string>();
 
