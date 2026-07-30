@@ -1,33 +1,40 @@
-## What I verified
+## What I can see
 
-- Every enqueue path already fires a wake broadcast on the Realtime channel `commands:<device_id>` (`broadcast.server.ts`, used by `cloud.functions.ts`, `mcp-tools.server.ts`, `voice-intents.server.ts`, Telegram webhook).
-- **Nothing subscribes to it.** `src/lib/cloud-bridge.server.ts` and `agent/index.mjs` both just loop with a 5 s sleep and hit `/api/public/agent/poll`. So we pay for ~17,000 worker invocations/day *and* still wait up to 5 s (plus a `devices` SELECT + a `last_seen_at` UPDATE on **every** poll — that's the Database slice in your usage chart).
-- DB rows are genuinely low now (25–36 `device_events`/day, `mcp_audit` empty), which confirms the cost is wakeups, not data.
-- Alexa: `alexa_oauth_token_log` is empty and `alexa_oauth_codes` has one unused row from Jul 25 → the linking dies on the consent leg, before the token endpoint is ever called.
+**Alexa — verified from the live database, not guessed:**
+
+- `alexa_oauth_token_log` has exactly **one** row from your attempt at **18:35 today**: `event: authorize`, `ok: true`, note `code issued → https://layla.amazon.com/api/skill/link/M26GRY8SJLYHDD`. So consent, login, redirect-URI allowlist and code minting all work now. That part is fixed.
+- There is **no `token` event at all** — and `alexa_oauth_codes` contains only an old row from July 25. Today's code was created and then **disappeared**.
+- The token endpoint is reachable in production (a manual POST returns a clean `401 invalid_client` JSON).
+
+Cause, from reading the code against the real schema: in `/api/public/oauth/token`, the handler **deletes the code first**, then calls `mintAccessToken()`, which inserts into `mcp_tokens`. That insert omits `token_prefix`, which is `NOT NULL` in the table, and passes `device_id` which is also `NOT NULL` but can be null for a client without a bound device. The insert throws → the request 500s → Alexa shows "Konto konnte nicht verknüpft werden" → and because the throw happens after the delete and before the log write, no `token` row is ever recorded. That is exactly the pattern in the data.
+
+**Docs:** correct, they were not updated. `docs/nodered-integration.md` still describes the 5-second polling model and never mentions `/api/public/agent/realtime`, the `commands:<device_id>` channel, or how Node-RED / the Pi should connect over WebSocket.
 
 ## Plan
 
-### 1. WebSocket command delivery (replaces polling)
-- The Pi bridge opens **one** Supabase Realtime WebSocket and subscribes to `commands:<device_id>`. Idle cost: zero HTTP requests, zero DB queries.
-- Carry the **full command** in the broadcast payload (`id`, `kind`, `payload`), not just a "wake" ping. The Pi executes immediately on message arrival and POSTs the result to `/api/public/agent/result`. Round trip becomes **sub-second** — press the button, pump runs.
-- `/api/public/agent/poll` stays, but only as a **safety net every 15 min** (and once at startup, to drain anything queued while offline). Same endpoint for Node-RED users who can't hold a socket.
-- Reconnect handling: on socket drop or resubscribe, do one catch-up poll, then go quiet again.
-- Result: ~17,000 requests/day → ~100/day plus one per actual command.
+### 1. Fix the Alexa token exchange (the actual blocker)
+- In `mintAccessToken`: set `token_prefix` from the generated token, and make `device_id` fall back to the client's bound device or the user's only paired device; if the column truly must stay non-null and no device exists, fail with a clear `invalid_grant` instead of a 500.
+- Reorder the exchange: validate → mint token → **then** mark the code used (`used_at`) instead of deleting it up front, so a failure never destroys the code.
+- Wrap the whole POST handler in try/catch that logs `event: "token", ok: false, error_code: "server_error"` with the message, and returns RFC-shaped `{"error":"server_error"}`. No failure path may be silent again.
+- Same treatment for the `refresh_token` grant.
+- After deploy: re-link in the Alexa app; `/connections/usage` and the log table will then show a `token` row either way.
 
-### 2. Trim the per-request DB work that's left
-- `poll.ts` writes `last_seen_at` on every call — with 15-min polling that's fine, but I'll also throttle it to at most once per 10 min so the safety-net poll and the heartbeat don't double-write.
-- `/api/public/live/publish` does a `devices` lookup per tick. Cache `token hash → device_id` in the worker's memory (TTL ~10 min) so high-rate MQTT ticks stop touching Postgres, and make the throttle configurable (default 2 s instead of 500 ms).
+### 2. Migration
+Relax `mcp_tokens.device_id` to nullable (Alexa clients can be account-scoped, not device-scoped) and give `token_prefix` a safe default, so this class of failure can't recur.
 
-### 3. Make the usage page show requests, not rows
-- Add a small per-endpoint/per-day counter (one upserted row per endpoint per day) and display invocations by source on `/connections/usage`, so you can see the real cost driver even while sending little data. Keep the row sparklines as a secondary panel.
+### 3. Rewrite `docs/nodered-integration.md` for the current architecture
+New/updated sections:
+- **Command delivery over WebSocket** — replace the polling description. Document `GET /api/public/agent/realtime` with the bearer device token, the response fields (`supabaseUrl`, `supabaseKey`, `deviceId`, `channel`, `safetyNetPollMs`), the channel name `commands:<device_id>`, the `wake` event shape with the inline command payload, and the 15-minute safety-net poll.
+- **Node-RED wiring** — how to subscribe with a websocket-in node (URL `wss://<supabase-url>/realtime/v1/websocket?apikey=<key>&vsn=1.0.0`, the `phx_join` on `realtime:commands:<device_id>`, heartbeat every 30s), plus the fallback path using `GET /api/public/agent/poll?runner=nodered`.
+- **Address table** — one clear table of every endpoint and its exact URL under `https://pi-hub.benniwie.com`: live publish, cloud-bridge event, strategy, agent realtime/poll/result/heartbeat, MCP, Alexa authorize/token.
+- **Push rate guidance** matching the current throttles (live tick 1/s, server-side `LIVE_PUBLISH_THROTTLE_MS` 2s, sessions/alarms only on change).
+- Remove the stale "poll every 5s" and duplicate section numbering (there are currently two "## 6" headings).
 
-### 4. Alexa: instrument, then fix
-- Log an `authorize` event into `alexa_oauth_token_log` at every exit of the consent flow: page opened, unknown client, redirect_uri mismatch (received vs. allowed), no session, approve clicked, code minted, denied.
-- Show those rows in the Alexa page log so the next attempt pinpoints the stop.
-- Fix the two issues already visible in code: `getAlexaConsent` returns `state: ""` instead of passing Alexa's `state` through, and an unauthenticated visitor in Alexa's in-app browser has no Supabase session, so the approve POST 401s and Alexa shows a generic error — the consent route will route through `/auth` preserving the full consent URL and return the user to it.
+### 4. Update `public/nodered-template.json`
+Add a documented WebSocket-command subflow alongside the existing safety-net poll, using the same env names already in the doc (`CLOUD_DEVICE_TOKEN`, `CLOUD_BRIDGE_URL`, `CLOUD_LIVE_URL`), and bump the in-flow comment nodes to describe the new flow.
+
+### 5. Surface the addresses in the app
+Extend `/integrations` (Pi) and the device page's Node-RED help so the realtime bootstrap URL and channel name are copyable, not doc-only.
 
 ## Technical notes
-- The Pi already has `@supabase/supabase-js` available; the bridge uses it with the publishable key plus the device token channel name — no service-role key on the Pi.
-- Broadcast is fire-and-forget, so the safety-net poll remains the correctness guarantee; commands stay `pending` until the Pi acks them.
-- Command payloads are small; if one ever exceeds the broadcast size limit, the Pi falls back to fetching it by id from `/api/public/agent/poll`.
-- Realtime messages are cheap compared to worker invocations, and one long-lived socket per device stays well inside the Realtime allowance.
+Files touched: `src/routes/api/public/oauth/token.ts`, one Supabase migration, `docs/nodered-integration.md`, `public/nodered-template.json`, `src/lib/integrations.functions.ts` (+ its route). No change to the broadcast helper or the Pi bridge — those are already correct.
