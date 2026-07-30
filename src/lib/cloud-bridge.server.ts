@@ -333,6 +333,7 @@ async function loop() {
 
     // Idle tick: no HTTP traffic happens here — the socket does the work.
     await sleep(socketDeviceId ? 60_000 : 15_000);
+  }
   await teardown();
 }
 
