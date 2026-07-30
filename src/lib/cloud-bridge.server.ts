@@ -173,62 +173,171 @@ async function execCommand(cmd: any) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Command transport
+//
+// Primary path: ONE Supabase Realtime WebSocket on `commands:<device_id>`.
+// The cloud pushes the full command in the broadcast payload, so the Pi
+// executes it the moment it arrives (sub-second) with zero HTTP requests while
+// idle. HTTP polling is only a safety net (every 15 min, on startup and after
+// a socket reconnect) so nothing is lost if a broadcast is dropped.
+// ---------------------------------------------------------------------------
+
+const SAFETY_NET_MS = 15 * 60_000;
+const HEARTBEAT_MS = 15 * 60_000;
+const handled = new Set<string>();
+
+type Cfg = { cloudUrl: string; deviceToken: string; deviceId: string };
+
+async function postResult(cfg: Cfg, id: string, result: any) {
+  await fetch(cfg.cloudUrl + "/api/public/agent/result", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${cfg.deviceToken}`,
+    },
+    body: JSON.stringify({ id, ...result }),
+  }).catch(() => {});
+}
+
+async function runCommand(cfg: Cfg, command: any) {
+  if (!command?.id || handled.has(command.id)) return;
+  handled.add(command.id);
+  if (handled.size > 500) handled.clear();
+  console.log("[cloud-bridge] cmd", command.kind, command.id);
+  const result = await execCommand(command);
+  await postResult(cfg, command.id, result);
+}
+
+/** Safety net / catch-up: drain anything queued while the socket was down. */
+async function drainViaPoll(cfg: Cfg) {
+  for (let i = 0; i < 10; i++) {
+    const r = await fetch(cfg.cloudUrl + "/api/public/agent/poll", {
+      headers: { Authorization: `Bearer ${cfg.deviceToken}` },
+      signal: AbortSignal.timeout(20_000),
+    }).catch(() => null);
+    if (!r || r.status === 204) return;
+    if (!r.ok) {
+      console.error("[cloud-bridge] poll", r.status);
+      return;
+    }
+    const { command } = (await r.json().catch(() => ({}))) as any;
+    if (!command) return;
+    await runCommand(cfg, command);
+  }
+}
+
+async function sendHeartbeat(cfg: Cfg) {
+  const snap = await snapshot();
+  if (!snap) return;
+  await fetch(cfg.cloudUrl + "/api/public/agent/heartbeat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${cfg.deviceToken}`,
+    },
+    body: JSON.stringify(snap),
+  }).catch(() => {});
+}
+
+/** One boot request: fetch the Realtime endpoint + public key for this device. */
+async function fetchRealtimeConfig(cfg: Cfg) {
+  const r = await fetch(cfg.cloudUrl + "/api/public/agent/realtime", {
+    headers: { Authorization: `Bearer ${cfg.deviceToken}` },
+    signal: AbortSignal.timeout(15_000),
+  }).catch(() => null);
+  if (!r || !r.ok) return null;
+  return (await r.json().catch(() => null)) as
+    | { supabaseUrl: string; supabaseKey: string; deviceId: string; channel: string }
+    | null;
+}
+
 async function loop() {
   const { getCloudConfig } = await import("./pin-store.server");
   let lastHeartbeat = 0;
+  let socketDeviceId: string | null = null;
+  let channel: any = null;
+  let client: any = null;
+
+  async function teardown() {
+    try {
+      if (client && channel) await client.removeChannel(channel);
+    } catch { /* ignore */ }
+    channel = null;
+    socketDeviceId = null;
+  }
 
   while (!stopRequested) {
-    const cfg = await getCloudConfig();
-    if (!cfg) {
-      await sleep(5000);
+    const raw = await getCloudConfig();
+    if (!raw) {
+      await teardown();
+      await sleep(30_000); // not paired — stay completely quiet
       continue;
     }
+    const cfg: Cfg = {
+      cloudUrl: raw.cloudUrl,
+      deviceToken: raw.deviceToken,
+      deviceId: raw.deviceId,
+    };
+
     try {
-      const now = Date.now();
-      // Zero-Wake: nur alle 15 min ein Heartbeat (nur "Pi lebt"-Anzeige).
-      // Live-Metriken laufen jetzt über /api/public/live/publish (Broadcast, kein DB-Wakeup).
-      if (now - lastHeartbeat > 15 * 60_000) {
-        lastHeartbeat = now;
-        const snap = await snapshot();
-        if (snap) {
-          await fetch(cfg.cloudUrl + "/api/public/agent/heartbeat", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${cfg.deviceToken}`,
-            },
-            body: JSON.stringify(snap),
-          }).catch(() => {});
+      // (Re)establish the WebSocket if needed.
+      if (socketDeviceId !== cfg.deviceId) {
+        await teardown();
+        const rt = await fetchRealtimeConfig(cfg);
+        if (rt) {
+          const { createClient } = await import("@supabase/supabase-js");
+          client = createClient(rt.supabaseUrl, rt.supabaseKey, {
+            auth: { persistSession: false, autoRefreshToken: false },
+          });
+          channel = client
+            .channel(rt.channel)
+            .on("broadcast", { event: "wake" }, ({ payload }: any) => {
+              const command = payload?.command;
+              if (command?.id) {
+                void runCommand(cfg, command).catch((e) =>
+                  console.error("[cloud-bridge] exec", e?.message || e),
+                );
+              } else {
+                // Bare wake (oversized payload): fetch it over HTTP.
+                void drainViaPoll(cfg).catch(() => {});
+              }
+            })
+            .subscribe((status: string) => {
+              console.log("[cloud-bridge] realtime", status);
+              if (status === "SUBSCRIBED") {
+                socketDeviceId = cfg.deviceId;
+                void drainViaPoll(cfg).catch(() => {}); // catch-up
+              }
+              if (status === "CHANNEL_ERROR" || status === "CLOSED" || status === "TIMED_OUT") {
+                socketDeviceId = null; // next tick re-subscribes + catches up
+              }
+            });
+        } else {
+          console.warn("[cloud-bridge] realtime config unavailable — HTTP safety net only");
+          await drainViaPoll(cfg);
         }
       }
 
-      const r = await fetch(cfg.cloudUrl + "/api/public/agent/poll", {
-        headers: { Authorization: `Bearer ${cfg.deviceToken}` },
-        signal: AbortSignal.timeout(35_000),
-      });
-      if (r.status === 204) continue;
-      if (!r.ok) {
-        console.error("[cloud-bridge] poll", r.status);
-        await sleep(5000);
-        continue;
+      const now = Date.now();
+      if (now - lastHeartbeat > HEARTBEAT_MS) {
+        lastHeartbeat = now;
+        await sendHeartbeat(cfg);
+        // Piggyback the safety-net drain on the heartbeat tick.
+        if (socketDeviceId !== cfg.deviceId) await drainViaPoll(cfg);
       }
-      const { command } = (await r.json()) as any;
-      if (!command) continue;
-      console.log("[cloud-bridge] cmd", command.kind, command.id);
-      const result = await execCommand(command);
-      await fetch(cfg.cloudUrl + "/api/public/agent/result", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${cfg.deviceToken}`,
-        },
-        body: JSON.stringify({ id: command.id, ...result }),
-      }).catch(() => {});
     } catch (e: any) {
       console.error("[cloud-bridge]", e?.message || e);
-      await sleep(5000);
+    }
+
+    // Idle tick: no HTTP traffic happens here — the socket does the work.
+    await sleep(socketDeviceId ? 60_000 : 15_000);
+    // Safety net for socket-connected devices runs on the heartbeat cadence.
+    if (socketDeviceId && Date.now() - lastHeartbeat > SAFETY_NET_MS) {
+      // handled on the next iteration by the heartbeat branch
     }
   }
+  await teardown();
 }
 
 function sleep(ms: number) {
