@@ -60,9 +60,8 @@ export const Route = createFileRoute("/api/public/live/publish")({
 
         const hash = sha256(token);
         const now = Date.now();
-        let deviceId = deviceCache.get(hash)?.at ?? 0 > 0 ? deviceCache.get(hash) : undefined;
         const cached = deviceCache.get(hash);
-        deviceId = cached && now - cached.at < DEVICE_CACHE_MS ? cached : undefined;
+        let deviceId = cached && now - cached.at < DEVICE_CACHE_MS ? cached : undefined;
 
         if (!deviceId) {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
