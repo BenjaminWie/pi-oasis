@@ -96,6 +96,7 @@ async function mintAccessToken(opts: {
     user_id: opts.user_id,
     device_id: opts.device_id,
     token_hash: access_hash,
+    token_prefix: access.slice(0, 8),
     scopes: opts.scopes,
     expires_at,
     name: "alexa",
@@ -119,6 +120,7 @@ export const Route = createFileRoute("/api/public/oauth/token")({
           },
         }),
       POST: async ({ request }) => {
+       try {
         const remote_ip =
           request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
           request.headers.get("cf-connecting-ip") ?? null;
@@ -174,16 +176,22 @@ export const Route = createFileRoute("/api/public/oauth/token")({
             await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "invalid_grant", note: "code expired", remote_ip });
             return oauthResponse({ error: "invalid_grant" }, 400);
           }
-          await supabaseAdmin.from("alexa_oauth_codes").delete().eq("code_hash", code_hash);
-
+          // Mint FIRST, mark the code used afterwards. Deleting the code up
+          // front used to destroy it whenever the token insert failed, leaving
+          // Alexa with an unrecoverable "linking failed" and no log row.
           const refresh_token = REFRESH_PREFIX + randomBytes(24).toString("base64url");
           const scopes = (row.scope ?? "control").split(/[\s,]+/).filter(Boolean);
           const { access } = await mintAccessToken({
             user_id: row.user_id,
-            device_id: row.device_id,
+            device_id: row.device_id ?? null,
             scopes,
             refresh_token,
           });
+
+          await supabaseAdmin
+            .from("alexa_oauth_codes")
+            .update({ used_at: new Date().toISOString() })
+            .eq("code_hash", code_hash);
 
           await supabaseAdmin
             .from("alexa_oauth_clients")
@@ -239,6 +247,17 @@ export const Route = createFileRoute("/api/public/oauth/token")({
 
         await logExchange({ event: "token", client_id, grant_type, ok: false, error_code: "unsupported_grant_type", remote_ip });
         return oauthResponse({ error: "unsupported_grant_type" }, 400);
+       } catch (e) {
+         const msg = (e as Error)?.message ?? String(e);
+         console.error("[alexa-oauth-token] server_error", msg);
+         await logExchange({
+           event: "token",
+           ok: false,
+           error_code: "server_error",
+           note: msg.slice(0, 400),
+         });
+         return oauthResponse({ error: "server_error", error_description: msg.slice(0, 200) }, 500);
+       }
       },
     },
   },
