@@ -271,19 +271,28 @@ export const Route = createFileRoute("/api/public/telegram/webhook/$userId")({
             return jsonResponse({ ok: true });
           }
 
-          await supabaseAdmin.from("agent_commands").insert({
-            device_id: plugin.deviceId,
-            user_id: userId,
-            kind: cmd.type === "control" ? "plugin_manual" : "plugin_get",
-            payload: {
-              id: plugin.id,
-              ...(cmd.type === "control" ? { runner: "nodered" } : {}),
-              action: cmd.name.includes("off") ? "off" : "on",
-              command: cmd.name
-            },
-            source: "telegram",
-          });
-          void broadcastCommandWake(plugin.deviceId);
+          const kind = cmd.type === "control" ? "plugin_manual" : "plugin_get";
+          const payload = {
+            id: plugin.id,
+            ...(cmd.type === "control" ? { runner: "nodered" } : {}),
+            action: cmd.name.includes("off") ? "off" : "on",
+            command: cmd.name,
+          };
+          const { data: inserted } = await supabaseAdmin
+            .from("agent_commands")
+            .insert({
+              device_id: plugin.deviceId,
+              user_id: userId,
+              kind,
+              payload,
+              source: "telegram",
+            })
+            .select("id")
+            .single();
+          void broadcastCommandWake(
+            plugin.deviceId,
+            inserted ? { id: inserted.id, kind, payload } : undefined,
+          );
 
           await reply(`⏳ Befehl \`${cmd.label}\` an *${plugin.name}* gesendet...`);
           return jsonResponse({ ok: true });
