@@ -40,6 +40,25 @@ export const Route = createFileRoute("/api/public/oauth/authorize-post")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { isRedirectUriAllowed } = await import("@/lib/alexa-oauth.functions");
+
+        // Instrumentation for the consent leg — without this we cannot tell
+        // whether Alexa ever received a code (token log stays empty either way).
+        const logConsent = (ok: boolean, error_code: string | null, note: string) =>
+          supabaseAdmin
+            .from("alexa_oauth_token_log")
+            .insert({
+              event: "authorize",
+              ok,
+              error_code,
+              note,
+              client_id: body.client_id ?? null,
+              grant_type: null,
+              remote_ip:
+                request.headers.get("cf-connecting-ip") ??
+                request.headers.get("x-forwarded-for"),
+            })
+            .then(() => {}, () => {});
+
         const { data: client } = await supabaseAdmin
           .from("alexa_oauth_clients")
           .select("id, user_id, device_id, redirect_uris")
@@ -47,6 +66,7 @@ export const Route = createFileRoute("/api/public/oauth/authorize-post")({
           .maybeSingle();
         if (!client || client.user_id !== user.id) {
           console.warn("[alexa-oauth] approve: client not owned", { client_id: body.client_id, user_id: user.id });
+          await logConsent(false, "client_not_owned", `user=${user.id}`);
           return jsonResponse({ error: "client not owned by user" }, 403);
         }
         const allowed = (client.redirect_uris as string[]) ?? [];
@@ -56,6 +76,11 @@ export const Route = createFileRoute("/api/public/oauth/authorize-post")({
             received: body.redirect_uri,
             allowed,
           });
+          await logConsent(
+            false,
+            "redirect_uri_mismatch",
+            `received=${body.redirect_uri} allowed=${allowed.join(",")}`,
+          );
           return jsonResponse({ error: `redirect_uri not allowed: ${body.redirect_uri}` }, 400);
         }
 
@@ -63,6 +88,7 @@ export const Route = createFileRoute("/api/public/oauth/authorize-post")({
           const u = new URL(body.redirect_uri);
           u.searchParams.set("error", "access_denied");
           if (body.state) u.searchParams.set("state", body.state);
+          await logConsent(false, "access_denied", "user declined");
           return jsonResponse({ redirect: u.toString() });
         }
 
@@ -79,11 +105,21 @@ export const Route = createFileRoute("/api/public/oauth/authorize-post")({
           scope: body.scope ?? "control",
           expires_at,
         });
-        if (error) return jsonResponse({ error: error.message }, 500);
+        if (error) {
+          await logConsent(false, "code_insert_failed", error.message);
+          return jsonResponse({ error: error.message }, 500);
+        }
 
         const u = new URL(body.redirect_uri);
         u.searchParams.set("code", code);
         if (body.state) u.searchParams.set("state", body.state);
+        // state is REQUIRED by Alexa: without it the app shows
+        // "Konto konnte nicht mit Alexa verknüpft werden" even on a valid code.
+        await logConsent(
+          true,
+          body.state ? null : "missing_state",
+          `code issued → ${u.origin}${u.pathname}${body.state ? "" : " (NO state param!)"}`,
+        );
         return jsonResponse({ redirect: u.toString() });
       },
     },
