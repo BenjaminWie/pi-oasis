@@ -48,10 +48,11 @@ async function enqueueAndWait(
     .select("id")
     .single();
   if (error || !cmd) return { ok: false, result: null, error: error?.message || "enqueue failed" };
-  // Zero-Wake: broadcast so Node-RED / the Pi bridge polls immediately
+  // Zero-Wake: push the whole command over the Realtime socket — the Pi runs it
+  // immediately, without an HTTP poll.
   try {
     const { broadcastCommandWake } = await import("@/lib/broadcast.server");
-    void broadcastCommandWake(ctx.deviceId);
+    void broadcastCommandWake(ctx.deviceId, { id: cmd.id, kind, payload });
   } catch { /* best-effort */ }
 
   const deadline = Date.now() + timeoutMs;

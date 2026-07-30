@@ -35,6 +35,13 @@ const Body = z.union([Tick, z.array(Tick).min(1).max(20)]);
 
 const lastEmit = new Map<string, number>();
 
+// token hash -> device id, cached per worker isolate so a high tick rate does
+// not hit Postgres on every message. Correctness still comes from the hash
+// comparison on a cache miss.
+const DEVICE_CACHE_MS = 10 * 60_000;
+const deviceCache = new Map<string, { id: string; at: number }>();
+const THROTTLE_MS = Number(process.env.LIVE_PUBLISH_THROTTLE_MS ?? 2000);
+
 export const Route = createFileRoute("/api/public/live/publish")({
   server: {
     handlers: {
@@ -51,18 +58,27 @@ export const Route = createFileRoute("/api/public/live/publish")({
         const token = bearer(request);
         if (!token) return jsonResponse({ error: "no token" }, 401);
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: device } = await supabaseAdmin
-          .from("devices")
-          .select("id")
-          .eq("device_token_hash", sha256(token))
-          .maybeSingle();
-        if (!device) return jsonResponse({ error: "unknown device" }, 401);
-
-        // Rate limit: 500ms per device
+        const hash = sha256(token);
         const now = Date.now();
+        const cached = deviceCache.get(hash);
+        let deviceId = cached && now - cached.at < DEVICE_CACHE_MS ? cached : undefined;
+
+        if (!deviceId) {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: device } = await supabaseAdmin
+            .from("devices")
+            .select("id")
+            .eq("device_token_hash", hash)
+            .maybeSingle();
+          if (!device) return jsonResponse({ error: "unknown device" }, 401);
+          deviceId = { id: device.id, at: now };
+          deviceCache.set(hash, deviceId);
+        }
+        const device = { id: deviceId.id };
+
+        // Rate limit (default 2s per device, LIVE_PUBLISH_THROTTLE_MS to tune)
         const prev = lastEmit.get(device.id) ?? 0;
-        if (now - prev < 500) return jsonResponse({ ok: true, throttled: true });
+        if (now - prev < THROTTLE_MS) return jsonResponse({ ok: true, throttled: true });
         lastEmit.set(device.id, now);
 
         let parsed;

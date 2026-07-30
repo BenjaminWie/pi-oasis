@@ -216,7 +216,11 @@ export const enqueueCommand = createServerFn({ method: "POST" })
     // Zero-Wake: ping the Realtime channel so Node-RED / the Pi bridge polls now
     try {
       const { broadcastCommandWake } = await import("@/lib/broadcast.server");
-      void broadcastCommandWake(data.deviceId);
+      void broadcastCommandWake(data.deviceId, {
+        id: row.id,
+        kind: data.kind,
+        payload: data.payload,
+      });
     } catch { /* best-effort */ }
     return { id: row.id };
   });
