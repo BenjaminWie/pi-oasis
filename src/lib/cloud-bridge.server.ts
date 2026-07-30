@@ -323,8 +323,9 @@ async function loop() {
       if (now - lastHeartbeat > HEARTBEAT_MS) {
         lastHeartbeat = now;
         await sendHeartbeat(cfg);
-        // Piggyback the safety-net drain on the heartbeat tick.
-        if (socketDeviceId !== cfg.deviceId) await drainViaPoll(cfg);
+        // Safety net: one drain per heartbeat window (~1 request / 15 min),
+        // in case a broadcast was dropped while we were connected.
+        await drainViaPoll(cfg);
       }
     } catch (e: any) {
       console.error("[cloud-bridge]", e?.message || e);
@@ -332,11 +333,6 @@ async function loop() {
 
     // Idle tick: no HTTP traffic happens here — the socket does the work.
     await sleep(socketDeviceId ? 60_000 : 15_000);
-    // Safety net for socket-connected devices runs on the heartbeat cadence.
-    if (socketDeviceId && Date.now() - lastHeartbeat > SAFETY_NET_MS) {
-      // handled on the next iteration by the heartbeat branch
-    }
-  }
   await teardown();
 }
 
