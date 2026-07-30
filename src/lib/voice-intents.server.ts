@@ -60,8 +60,8 @@ async function enqueue(ctx: IntentCtx, kind: string, payload: Record<string, unk
     .select("id")
     .single();
   if (error) throw new Error(error.message);
-  // wake Node-RED via Realtime broadcast — Postgres is NOT long-polled.
-  void broadcastCommandWake(ctx.deviceId);
+  // Push the command over Realtime — the Pi executes on socket delivery.
+  void broadcastCommandWake(ctx.deviceId, { id: data!.id as string, kind, payload });
   return data!.id as string;
 }
 

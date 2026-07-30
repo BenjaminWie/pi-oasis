@@ -40,6 +40,7 @@ import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
 import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
 import { Route as ApiPublicAgentHeartbeatRouteImport } from './routes/api/public/agent/heartbeat'
 import { Route as ApiPublicAgentPollRouteImport } from './routes/api/public/agent/poll'
+import { Route as ApiPublicAgentRealtimeRouteImport } from './routes/api/public/agent/realtime'
 import { Route as ApiPublicAgentRegisterRouteImport } from './routes/api/public/agent/register'
 import { Route as ApiPublicAgentResultRouteImport } from './routes/api/public/agent/result'
 import { Route as ApiPublicCloudBridgeClaimRouteImport } from './routes/api/public/cloud-bridge/claim'
@@ -213,6 +214,11 @@ const ApiPublicAgentPollRoute = ApiPublicAgentPollRouteImport.update({
   path: '/api/public/agent/poll',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAgentRealtimeRoute = ApiPublicAgentRealtimeRouteImport.update({
+  id: '/api/public/agent/realtime',
+  path: '/api/public/agent/realtime',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAgentRegisterRoute = ApiPublicAgentRegisterRouteImport.update({
   id: '/api/public/agent/register',
   path: '/api/public/agent/register',
@@ -320,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/devices/': typeof CloudDevicesIndexRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
+  '/api/public/agent/realtime': typeof ApiPublicAgentRealtimeRoute
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
@@ -361,6 +368,7 @@ export interface FileRoutesByTo {
   '/devices': typeof CloudDevicesIndexRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
+  '/api/public/agent/realtime': typeof ApiPublicAgentRealtimeRoute
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
@@ -409,6 +417,7 @@ export interface FileRoutesById {
   '/_cloud/devices/': typeof CloudDevicesIndexRoute
   '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
   '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
+  '/api/public/agent/realtime': typeof ApiPublicAgentRealtimeRoute
   '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
   '/api/public/agent/result': typeof ApiPublicAgentResultRoute
   '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
@@ -455,6 +464,7 @@ export interface FileRouteTypes {
     | '/devices/'
     | '/api/public/agent/heartbeat'
     | '/api/public/agent/poll'
+    | '/api/public/agent/realtime'
     | '/api/public/agent/register'
     | '/api/public/agent/result'
     | '/api/public/cloud-bridge/claim'
@@ -496,6 +506,7 @@ export interface FileRouteTypes {
     | '/devices'
     | '/api/public/agent/heartbeat'
     | '/api/public/agent/poll'
+    | '/api/public/agent/realtime'
     | '/api/public/agent/register'
     | '/api/public/agent/result'
     | '/api/public/cloud-bridge/claim'
@@ -543,6 +554,7 @@ export interface FileRouteTypes {
     | '/_cloud/devices/'
     | '/api/public/agent/heartbeat'
     | '/api/public/agent/poll'
+    | '/api/public/agent/realtime'
     | '/api/public/agent/register'
     | '/api/public/agent/result'
     | '/api/public/cloud-bridge/claim'
@@ -569,6 +581,7 @@ export interface RootRouteChildren {
   ApiPublicMcpRoute: typeof ApiPublicMcpRoute
   ApiPublicAgentHeartbeatRoute: typeof ApiPublicAgentHeartbeatRoute
   ApiPublicAgentPollRoute: typeof ApiPublicAgentPollRoute
+  ApiPublicAgentRealtimeRoute: typeof ApiPublicAgentRealtimeRoute
   ApiPublicAgentRegisterRoute: typeof ApiPublicAgentRegisterRoute
   ApiPublicAgentResultRoute: typeof ApiPublicAgentResultRoute
   ApiPublicCloudBridgeClaimRoute: typeof ApiPublicCloudBridgeClaimRoute
@@ -804,6 +817,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAgentPollRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/agent/realtime': {
+      id: '/api/public/agent/realtime'
+      path: '/api/public/agent/realtime'
+      fullPath: '/api/public/agent/realtime'
+      preLoaderRoute: typeof ApiPublicAgentRealtimeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/agent/register': {
       id: '/api/public/agent/register'
       path: '/api/public/agent/register'
@@ -1005,6 +1025,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMcpRoute: ApiPublicMcpRoute,
   ApiPublicAgentHeartbeatRoute: ApiPublicAgentHeartbeatRoute,
   ApiPublicAgentPollRoute: ApiPublicAgentPollRoute,
+  ApiPublicAgentRealtimeRoute: ApiPublicAgentRealtimeRoute,
   ApiPublicAgentRegisterRoute: ApiPublicAgentRegisterRoute,
   ApiPublicAgentResultRoute: ApiPublicAgentResultRoute,
   ApiPublicCloudBridgeClaimRoute: ApiPublicCloudBridgeClaimRoute,
@@ -1023,13 +1044,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
