@@ -449,6 +449,21 @@ export async function resolveToken(rawToken: string): Promise<{
   if (tok.expires_at && new Date(tok.expires_at).getTime() < Date.now()) {
     return { ok: false, error: "token expired" };
   }
+  // Account-scoped tokens (e.g. Alexa) may not be bound to a device — fall
+  // back to the user's first paired device so tools still resolve.
+  let deviceId: string | null = tok.device_id;
+  if (!deviceId) {
+    const { data: dev } = await supabaseAdmin
+      .from("devices")
+      .select("id")
+      .eq("user_id", tok.user_id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    deviceId = dev?.id ?? null;
+  }
+  if (!deviceId) return { ok: false, error: "no paired device" };
+
   // touch last_used (fire-and-forget)
   void supabaseAdmin
     .from("mcp_tokens")
@@ -458,7 +473,7 @@ export async function resolveToken(rawToken: string): Promise<{
     ok: true,
     ctx: {
       userId: tok.user_id,
-      deviceId: tok.device_id,
+      deviceId,
       scopes: (tok.scopes ?? ["read"]) as Scope[],
       tokenId: tok.id,
     },
