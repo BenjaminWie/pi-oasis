@@ -12,6 +12,12 @@ async function findDevice(token: string) {
   return data;
 }
 
+// last_seen_at write throttle (per worker isolate). The heartbeat already
+// touches the device every 15 min; this keeps the safety-net poll from adding
+// a second UPDATE on every call.
+const LAST_SEEN_MS = 10 * 60_000;
+const lastSeenWrite = new Map<string, number>();
+
 export const Route = createFileRoute("/api/public/agent/poll")({
   server: {
     handlers: {
@@ -22,11 +28,14 @@ export const Route = createFileRoute("/api/public/agent/poll")({
         if (!device) return jsonResponse({ error: "unknown device" }, 401);
         const runner = new URL(request.url).searchParams.get("runner");
 
-        // Touch last_seen
-        await supabaseAdmin
-          .from("devices")
-          .update({ last_seen_at: new Date().toISOString() })
-          .eq("id", device.id);
+        const now = Date.now();
+        if (now - (lastSeenWrite.get(device.id) ?? 0) > LAST_SEEN_MS) {
+          lastSeenWrite.set(device.id, now);
+          await supabaseAdmin
+            .from("devices")
+            .update({ last_seen_at: new Date().toISOString() })
+            .eq("id", device.id);
+        }
 
         // Zero-Wake: single query only. Node-RED / the Pi bridge subscribes to
         // the Supabase Realtime channel `commands:<device_id>` and only calls
