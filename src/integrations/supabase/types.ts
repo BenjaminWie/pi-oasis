@@ -664,7 +664,7 @@ export type Database = {
       mcp_tokens: {
         Row: {
           created_at: string
-          device_id: string
+          device_id: string | null
           expires_at: string | null
           id: string
           last_used_at: string | null
@@ -678,7 +678,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          device_id: string
+          device_id?: string | null
           expires_at?: string | null
           id?: string
           last_used_at?: string | null
@@ -687,12 +687,12 @@ export type Database = {
           scopes?: string[]
           source?: string
           token_hash: string
-          token_prefix: string
+          token_prefix?: string
           user_id: string
         }
         Update: {
           created_at?: string
-          device_id?: string
+          device_id?: string | null
           expires_at?: string | null
           id?: string
           last_used_at?: string | null
