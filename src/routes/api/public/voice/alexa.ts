@@ -23,8 +23,16 @@ function ask(text: string, end = true) {
 
 async function runTool(ctx: ToolCtx, name: string, args: Record<string, unknown>) {
   const tool = await findTool(name, ctx);
-  if (!tool) throw new Error("unknown tool " + name);
-  if (!ctx.scopes.includes(tool.scope)) throw new Error("missing scope " + tool.scope);
+  if (!tool) {
+    // Audit pre-execution failures too, otherwise they are invisible in the
+    // usage dashboard and the skill just speaks a generic error.
+    await writeAudit(ctx, name, "error", 0, "unknown tool");
+    throw new Error("unknown tool " + name);
+  }
+  if (!ctx.scopes.includes(tool.scope)) {
+    await writeAudit(ctx, tool.name, "error", 0, `missing scope ${tool.scope}`);
+    throw new Error("missing scope " + tool.scope);
+  }
   const parsed = tool.inputSchema.parse(args);
   const t0 = Date.now();
   try {

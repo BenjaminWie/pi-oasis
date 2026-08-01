@@ -181,7 +181,7 @@ export const Route = createFileRoute("/api/public/oauth/token")({
           // front used to destroy it whenever the token insert failed, leaving
           // Alexa with an unrecoverable "linking failed" and no log row.
           const refresh_token = REFRESH_PREFIX + randomBytes(24).toString("base64url");
-          const scopes = (row.scope ?? "control").split(/[\s,]+/).filter(Boolean);
+          const scopes = normalizeScopes(row.scope);
           const { access } = await mintAccessToken({
             user_id: row.user_id,
             device_id: row.device_id ?? null,
@@ -230,10 +230,11 @@ export const Route = createFileRoute("/api/public/oauth/token")({
 
           await supabaseAdmin.from("mcp_tokens").delete().eq("id", existing.id);
           const new_refresh = REFRESH_PREFIX + randomBytes(24).toString("base64url");
+          const scopes = normalizeScopes(existing.scopes as string[] | null);
           const { access } = await mintAccessToken({
             user_id: existing.user_id,
             device_id: existing.device_id,
-            scopes: (existing.scopes ?? ["control"]) as string[],
+            scopes,
             refresh_token: new_refresh,
           });
           await logExchange({ event: "token", client_id, grant_type, ok: true, note: "refresh_token rotated", remote_ip });
@@ -242,7 +243,7 @@ export const Route = createFileRoute("/api/public/oauth/token")({
             token_type: "Bearer",
             expires_in: ALEXA_EXPIRES_IN,
             refresh_token: new_refresh,
-            scope: ((existing.scopes ?? ["control"]) as string[]).join(" "),
+            scope: scopes.join(" "),
           });
         }
 
