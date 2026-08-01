@@ -7,6 +7,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash, randomBytes } from "crypto";
 import { jsonResponse, bearer } from "@/lib/agent-api.server";
+import { normalizeScope } from "@/lib/oauth-scope";
 
 export const Route = createFileRoute("/api/public/oauth/authorize-post")({
   server: {
