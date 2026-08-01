@@ -10,6 +10,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { jsonResponse } from "@/lib/agent-api.server";
+import { normalizeScopes } from "@/lib/oauth-scope";
 
 const ACCESS_TTL_SEC = 60 * 60 * 24 * 30; // 30 days actual validity
 const ALEXA_EXPIRES_IN = 3600;             // what we advertise to Alexa (1h → forces refresh cycle)
