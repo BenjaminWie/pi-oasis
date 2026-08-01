@@ -7,6 +7,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash, randomBytes } from "crypto";
 import { jsonResponse, bearer } from "@/lib/agent-api.server";
+import { normalizeScope } from "@/lib/oauth-scope";
 
 export const Route = createFileRoute("/api/public/oauth/authorize-post")({
   server: {
@@ -102,7 +103,10 @@ export const Route = createFileRoute("/api/public/oauth/authorize-post")({
           user_id: user.id,
           device_id: client.device_id,
           redirect_uri: body.redirect_uri,
-          scope: body.scope ?? "control",
+          // 'control' always implies 'read' — every voice intent starts with a
+          // read tool (list_plugins/get_status), so a control-only token would
+          // fail with "missing scope read" before any tool runs.
+          scope: normalizeScope(body.scope),
           expires_at,
         });
         if (error) {
