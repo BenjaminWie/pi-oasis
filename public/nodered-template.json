@@ -106,7 +106,7 @@
     "type": "comment",
     "z": "pihub_cloud_bridge_tab",
     "g": "pihub_cloud_bridge_tab_env",
-    "name": "Use CLOUD_DEVICE_TOKEN from Pi-Hub /integrations — not factory/reset/revocation token",
+    "name": "Use CLOUD_DEVICE_TOKEN from Pi-Hub /integrations \u2014 not factory/reset/revocation token",
     "info": "Do not enable the HTTP node's built-in Bearer Auth. This flow sets Authorization in msg.headers. If token is empty it will stop locally instead of spamming 401.",
     "x": 430,
     "y": 60,
@@ -296,7 +296,7 @@
     "type": "function",
     "z": "pihub_cloud_bridge_tab",
     "name": "Build Local Fallback Request",
-    "func": "var original = msg._pihubOriginalPayload || msg.payload || {};\nmsg.payload = original;\nif (!msg.payload.component) msg.payload.component = 'node_red_fallback';\nif (!msg.payload.status) msg.payload.status = 'warning';\nif (!msg.payload.ts) msg.payload.ts = new Date().toISOString();\nmsg.method = 'POST';\nmsg.url = env.get('LOCAL_API_URL') || 'http://127.0.0.1:3000/api/public/ingest/event';\nmsg.headers = { 'Content-Type': 'application/json' };\nvar localToken = env.get('PI_INGEST_TOKEN') || '';\nif (localToken) msg.headers.Authorization = 'Bearer ' + localToken;\nnode.status({fill:'yellow', shape:'ring', text:'cloud failed -> local RAM fallback'});\nnode.warn('Cloud-Bridge nicht erreichbar oder 401. Sende lokal als RAM-Fallback. Prüfe CLOUD_DEVICE_TOKEN, nicht Revocation/Factory Token.');\nreturn msg;",
+    "func": "var original = msg._pihubOriginalPayload || msg.payload || {};\nmsg.payload = original;\nif (!msg.payload.component) msg.payload.component = 'node_red_fallback';\nif (!msg.payload.status) msg.payload.status = 'warning';\nif (!msg.payload.ts) msg.payload.ts = new Date().toISOString();\nmsg.method = 'POST';\nmsg.url = env.get('LOCAL_API_URL') || 'http://127.0.0.1:3000/api/public/ingest/event';\nmsg.headers = { 'Content-Type': 'application/json' };\nvar localToken = env.get('PI_INGEST_TOKEN') || '';\nif (localToken) msg.headers.Authorization = 'Bearer ' + localToken;\nnode.status({fill:'yellow', shape:'ring', text:'cloud failed -> local RAM fallback'});\nnode.warn('Cloud-Bridge nicht erreichbar oder 401. Sende lokal als RAM-Fallback. Pr\u00fcfe CLOUD_DEVICE_TOKEN, nicht Revocation/Factory Token.');\nreturn msg;",
     "outputs": 1,
     "timeout": "",
     "noerr": 0,
@@ -469,7 +469,7 @@
     "id": "pihub_command_poll_tick",
     "type": "inject",
     "z": "pihub_cloud_bridge_tab",
-    "name": "Safety-net Command Poll (15m — wake channel is primary)",
+    "name": "Safety-net Command Poll (15m \u2014 wake channel is primary)",
     "props": [],
     "repeat": "900",
     "crontab": "",
@@ -712,7 +712,7 @@
     "type": "comment",
     "z": "pihub_cloud_bridge_tab",
     "name": "Analytics payloads: weather_dwd, tibber_pulse, pump_guard, pump_control, system_stats",
-    "info": "Wire your Tibber/Weather/Pump/System metric nodes into Event In. Use component names weather_dwd, tibber_pulse, pump_guard, pump_control, system_stats so cloud charts, voice-intents (pump.status/system.status/energy.price_now) and AI reasoning can find them. Read-only Telegram + Alexa intents read device_state_latest — make sure metrics flow into cloud events so those replies stay fresh without extra polling.",
+    "info": "Wire your Tibber/Weather/Pump/System metric nodes into Event In. Use component names weather_dwd, tibber_pulse, pump_guard, pump_control, system_stats so cloud charts, voice-intents (pump.status/system.status/energy.price_now) and AI reasoning can find them. Read-only Telegram + Alexa intents read device_state_latest \u2014 make sure metrics flow into cloud events so those replies stay fresh without extra polling.",
     "x": 340,
     "y": 780,
     "wires": []
@@ -747,7 +747,7 @@
     "id": "pihub_ws_comment",
     "type": "comment",
     "z": "pihub_cloud_bridge_tab",
-    "name": "WebSocket-Kommandokanal (primär) — Bootstrap: GET /api/public/agent/realtime",
+    "name": "WebSocket-Kommandokanal (prim\u00e4r) \u2014 Bootstrap: GET /api/public/agent/realtime",
     "info": "Hole CLOUD_WS_URL und CLOUD_DEVICE_ID einmalig ueber den Bootstrap-Endpoint (Bearer CLOUD_DEVICE_TOKEN).\nCLOUD_WS_URL = wss://<supabase-url ohne https>/realtime/v1/websocket?apikey=<supabaseKey>&vsn=1.0.0\nKanal = commands:<deviceId>. Kommandos kommen als broadcast-Event 'wake' mit vollem Payload an.\nDer 15-Minuten-Poll bleibt nur als Safety-Net.",
     "x": 420,
     "y": 760,
@@ -827,7 +827,7 @@
     "type": "function",
     "z": "pihub_cloud_bridge_tab",
     "name": "Store Realtime Info",
-    "func": "var b = msg.payload || {};\nif (!b.supabaseUrl || !b.deviceId) { node.status({fill:'red',shape:'ring',text:'bootstrap fehlgeschlagen'}); return null; }\nvar wss = b.supabaseUrl.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + b.supabaseKey + '&vsn=1.0.0';\nflow.set('pihub_ws_url', wss);\nflow.set('pihub_device_id', b.deviceId);\nflow.set('pihub_channel', b.channel || ('commands:' + b.deviceId));\nnode.status({fill:'green',shape:'dot',text:'channel ' + (b.channel || b.deviceId)});\nnode.warn('Trage in die Tab-Env ein → CLOUD_WS_URL: ' + wss + ' | CLOUD_DEVICE_ID: ' + b.deviceId);\nreturn null;",
+    "func": "var b = msg.payload || {};\nif (!b.supabaseUrl || !b.deviceId) { node.status({fill:'red',shape:'ring',text:'bootstrap fehlgeschlagen'}); return null; }\nvar wss = b.supabaseUrl.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + b.supabaseKey + '&vsn=1.0.0';\nflow.set('pihub_ws_url', wss);\nflow.set('pihub_device_id', b.deviceId);\nflow.set('pihub_channel', b.channel || ('commands:' + b.deviceId));\nnode.status({fill:'green',shape:'dot',text:'channel ' + (b.channel || b.deviceId)});\nnode.warn('Trage in die Tab-Env ein \u2192 CLOUD_WS_URL: ' + wss + ' | CLOUD_DEVICE_ID: ' + b.deviceId);\nreturn null;",
     "outputs": 1,
     "timeout": "",
     "noerr": 0,
@@ -924,8 +924,8 @@
     "id": "pihub_ws_parse",
     "type": "function",
     "z": "pihub_cloud_bridge_tab",
-    "name": "Parse Wake → Command",
-    "func": "var raw = msg.payload;\nvar m;\ntry { m = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch (e) { return null; }\nif (!m || m.event !== 'broadcast') return null;\nvar inner = m.payload || {};\nif (inner.event !== 'wake') return null;\nvar body = inner.payload || {};\nvar cmd = body.command;\nif (!cmd || !cmd.id) {\n    // Bare wake without payload → fall back to the poll endpoint.\n    node.status({fill:'yellow',shape:'ring',text:'bare wake → poll'});\n    return [null, { payload: {} }];\n}\nnode.status({fill:'green',shape:'dot',text:cmd.kind + ' ' + new Date().toLocaleTimeString()});\nreturn [{ payload: { command: cmd } }, null];",
+    "name": "Parse Wake \u2192 Command",
+    "func": "var raw = msg.payload;\nvar m;\ntry { m = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch (e) { return null; }\nif (!m || m.event !== 'broadcast') return null;\nvar inner = m.payload || {};\nif (inner.event !== 'wake') return null;\nvar body = inner.payload || {};\nvar cmd = body.command;\nif (!cmd || !cmd.id) {\n    // Bare wake without payload \u2192 fall back to the poll endpoint.\n    node.status({fill:'yellow',shape:'ring',text:'bare wake \u2192 poll'});\n    return [null, { payload: {} }];\n}\nnode.status({fill:'green',shape:'dot',text:cmd.kind + ' ' + new Date().toLocaleTimeString()});\nreturn [{ payload: { command: cmd } }, null];",
     "outputs": 2,
     "timeout": "",
     "noerr": 0,
@@ -942,5 +942,117 @@
         "pihub_build_command_poll"
       ]
     ]
+  },
+  {
+    "id": "pihub_sys_comment",
+    "type": "comment",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "System-Telemetrie \u2192 /api/public/live/publish (kein device_events-Write)",
+    "info": "Sendet CPU/RAM/Disk/Temp/Uptime alle 60s an den Live-Relay. Die Cloud broadcastet sie sofort und spiegelt sie max. 1x/5min in device_state_latest \u2014 so bleiben die Gauges gef\u00fcllt, ohne die DB pro Tick zu wecken.",
+    "x": 260,
+    "y": 840,
+    "wires": []
+  },
+  {
+    "id": "pihub_sys_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "System Stats (60s)",
+    "props": [],
+    "repeat": "60",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "10",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 160,
+    "y": 890,
+    "wires": [
+      [
+        "pihub_sys_exec"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_sys_exec",
+    "type": "exec",
+    "z": "pihub_cloud_bridge_tab",
+    "command": "read -r _c a b c pidle _r < /proc/stat; ptot=$((a+b+c+pidle)); sleep 1; read -r _c a b c idle _r < /proc/stat; tot=$((a+b+c+idle)); d=$((tot-ptot)); if [ \"$d\" -le 0 ]; then cpu=0; else cpu=$(( (100*(d-(idle-pidle)))/d )); fi; mem=$(free | awk '/Mem:/{printf \"%.1f\", $3/$2*100}'); swap=$(free | awk '/Swap:/{if($2>0) printf \"%.1f\", $3/$2*100; else printf \"0\"}'); disk=$(df -P / | awk 'NR==2{gsub(\"%\",\"\",$5); print $5}'); temp=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{printf \"%.1f\", $1/1000}'); [ -z \"$temp\" ] && temp=null; up=$(awk '{printf \"%d\", $1}' /proc/uptime); printf '{\"cpu_pct\":%s,\"mem_pct\":%s,\"swap_pct\":%s,\"disk_pct\":%s,\"temp_c\":%s,\"uptime_s\":%s}' \"$cpu\" \"$mem\" \"$swap\" \"$disk\" \"$temp\" \"$up\"",
+    "addpay": "",
+    "append": "",
+    "useSpawn": "false",
+    "timer": "20",
+    "winHide": false,
+    "oldrc": false,
+    "name": "Read CPU/RAM/Disk/Temp",
+    "x": 400,
+    "y": 890,
+    "wires": [
+      [
+        "pihub_sys_build"
+      ],
+      [],
+      []
+    ]
+  },
+  {
+    "id": "pihub_sys_build",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Live Telemetry Request",
+    "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) { node.status({fill:'red',shape:'ring',text:'CLOUD_DEVICE_TOKEN fehlt'}); return null; }\nvar s = msg.payload;\nif (typeof s === 'string') { try { s = JSON.parse(s); } catch (e) { node.error('sys stats parse: ' + e.message); return null; } }\nif (!s || typeof s !== 'object') return null;\nvar tick = { ts: new Date().toISOString() };\n['cpu_pct','mem_pct','disk_pct','swap_pct','temp_c','uptime_s'].forEach(function (k) {\n    var v = Number(s[k]);\n    if (isFinite(v)) tick[k] = v;\n});\nmsg.payload = tick;\nmsg.method = 'POST';\nmsg.url = env.get('CLOUD_LIVE_URL');\nmsg.headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };\nnode.status({fill:'blue',shape:'dot',text:'cpu ' + (tick.cpu_pct != null ? tick.cpu_pct : '?') + '%'});\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 680,
+    "y": 890,
+    "wires": [
+      [
+        "pihub_sys_http"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_sys_http",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "POST Live Telemetry (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": false,
+    "x": 960,
+    "y": 890,
+    "wires": [
+      [
+        "pihub_sys_debug"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_sys_debug",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Live telemetry result",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1220,
+    "y": 890,
+    "wires": []
   }
 ]

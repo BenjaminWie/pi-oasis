@@ -326,3 +326,53 @@ automatisch — dashboard-Cold-Start liest von dort in einer einzigen Query.
 - Alarm/Status-Wechsel: sofort → `CLOUD_BRIDGE_URL`
 - Session-Ende (Pumpe geht aus): 1× → `CLOUD_BRIDGE_URL` mit `pump_session=true`
 - Heartbeat: nicht mehr nötig, Pi-Bridge macht das alle 15 min selbst
+
+## 7. Systemwerte (CPU/RAM/Disk/Temp) — ab v3
+
+Systemtelemetrie gehört **nicht** mehr nach `device_events` (das erzeugte früher
+~600 Zeilen/Tag als `system_hardware`). Sie geht über denselben Live-Relay:
+
+`POST /api/public/live/publish`
+
+```json
+{ "cpu_pct": 14.2, "mem_pct": 61.0, "disk_pct": 17,
+  "swap_pct": 0, "temp_c": 48.3, "uptime_s": 918273 }
+```
+
+Was der Server damit macht:
+1. **Broadcast** auf `live:<device_id>` → offene Dashboards zeigen es sofort, 0 DB-Kosten.
+2. **Spiegel** nach `device_state_latest` — gedrosselt auf **max. 1 Write / 5 Min**
+   (`LIVE_SYS_MIRROR_MS`). Damit sind die Gauges auch dann gefüllt, wenn stunden-
+   lang kein Browser offen war. Kosten: ~288 winzige Upserts/Tag.
+
+Die mitgelieferte Flow-Vorlage enthält dafür den Zweig
+**„System Stats (60s)" → „Read CPU/RAM/Disk/Temp" (exec) → „Build Live Telemetry
+Request" → „POST Live Telemetry"**. Empfohlenes Intervall: 60 s.
+
+### Checkliste: „Warum kommen keine Systemwerte an?"
+
+1. `/connections/usage` → Tabelle **„Eingang pro Komponente"**. Steht dort
+   `system (live-relay): nie` oder ein Alter von Stunden, sendet Node-RED nicht.
+2. Geräteseite → Snapshot-Kopfzeile zeigt `live`, `vor X Min` oder
+   `keine Systemdaten`. Alles > 30 Min wird rot.
+3. Node-RED: exec-Node manuell auslösen — liefert er JSON? Auf Nicht-Pi-Systemen
+   fehlt `/sys/class/thermal/thermal_zone0/temp`, dann bleibt `temp_c` leer, der
+   Rest funktioniert trotzdem.
+4. `CLOUD_DEVICE_TOKEN` und `CLOUD_LIVE_URL` in den Tab-Env-Werten gesetzt?
+   (Werte stehen in Pi-Hub unter `/integrations`.)
+5. HTTP 401 = falscher/abgelaufener Token, 403/404 = falsche URL.
+
+## 8. Kosten-Regeln (was in die DB darf)
+
+| Datenart | Route | DB-Writes |
+| --- | --- | --- |
+| Watt/PV/Temp-Ticks | `/live/publish` | 0 |
+| Systemwerte | `/live/publish` | 1 / 5 Min |
+| Zustandswechsel, Warnung, Kritisch | `/cloud-bridge/event` | 1 pro Ereignis |
+| Abgeschlossener Pumplauf | `/cloud-bridge/event` (`pump_session`) | 1 |
+| Heartbeat der Pi-Bridge | `/agent/heartbeat` | 1 / 15 Min |
+
+`/cloud-bridge/event` verarbeitet einen ganzen Batch inzwischen in **einem
+einzigen** Postgres-Aufruf (`ingest_device_events`) inklusive Dedup, Spiegel und
+Session-Write-Back — vorher waren es 2–3 Roundtrips pro Ereignis.
+

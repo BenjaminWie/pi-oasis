@@ -42,6 +42,11 @@ const DEVICE_CACHE_MS = 10 * 60_000;
 const deviceCache = new Map<string, { id: string; at: number }>();
 const THROTTLE_MS = Number(process.env.LIVE_PUBLISH_THROTTLE_MS ?? 2000);
 
+// System telemetry mirror throttle: one small upsert per device per 5 min.
+const SYS_MIRROR_MS = Number(process.env.LIVE_SYS_MIRROR_MS ?? 5 * 60_000);
+const lastSysMirror = new Map<string, number>();
+
+
 export const Route = createFileRoute("/api/public/live/publish")({
   server: {
     handlers: {
@@ -89,6 +94,37 @@ export const Route = createFileRoute("/api/public/live/publish")({
         }
         const ticks = Array.isArray(parsed) ? parsed : [parsed];
         const tick = ticks[ticks.length - 1]; // send only the newest
+
+        // Persist system telemetry at most once per SYS_MIRROR_MS so the
+        // dashboard still shows CPU/RAM/Disk when no browser is listening.
+        // One tiny upsert (~1 write / 5 min) instead of device_events rows.
+        const sysKeys = [
+          "cpu_pct",
+          "mem_pct",
+          "disk_pct",
+          "swap_pct",
+          "temp_c",
+          "uptime_s",
+          "mqtt_broker_up",
+        ] as const;
+        const sys: Record<string, unknown> = {};
+        for (const k of sysKeys) if ((tick as any)[k] != null) sys[k] = (tick as any)[k];
+        if (Object.keys(sys).length) {
+          const lastSys = lastSysMirror.get(device.id) ?? 0;
+          if (now - lastSys >= SYS_MIRROR_MS) {
+            lastSysMirror.set(device.id, now);
+            try {
+              const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+              await (supabaseAdmin as any).rpc("mirror_device_system", {
+                _device_id: device.id,
+                _sys: sys,
+              });
+            } catch (e) {
+              console.warn("[live] system mirror failed", e);
+            }
+          }
+        }
+
 
         // Send via Supabase Realtime Broadcast HTTP endpoint.
         // https://supabase.com/docs/guides/realtime/broadcast#send-messages-using-rest-calls

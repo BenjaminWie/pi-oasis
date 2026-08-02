@@ -69,8 +69,39 @@ export const getUsageSummary = createServerFn({ method: "GET" })
       bySource.set(src, cur);
     }
 
+    // Ingest health: when did each component last send something? A branch of
+    // the Node-RED flow that dies is otherwise invisible for days.
+    const { data: recent } = await s
+      .from("device_events")
+      .select("component, occurred_at")
+      .gte("occurred_at", new Date(Date.now() - 14 * 86_400_000).toISOString())
+      .order("occurred_at", { ascending: false })
+      .limit(2000);
+    const lastByComponent = new Map<string, string>();
+    for (const r of (recent ?? []) as any[]) {
+      if (!lastByComponent.has(r.component)) lastByComponent.set(r.component, r.occurred_at);
+    }
+    const { data: stateRows } = await s
+      .from("device_state_latest")
+      .select("device_id, updated_at, sys_updated_at, cpu_pct, mem_pct, disk_pct, temp_c")
+      .limit(20);
+
     return {
       series: { mcpAudit, telegramAudit, deviceEvents, pumpSessions },
+      ingest: {
+        components: Array.from(lastByComponent.entries())
+          .map(([component, lastAt]) => ({ component, lastAt }))
+          .sort((a, b) => b.lastAt.localeCompare(a.lastAt)),
+        state: ((stateRows ?? []) as any[]).map((r) => ({
+          deviceId: r.device_id,
+          updatedAt: r.updated_at,
+          sysUpdatedAt: r.sys_updated_at,
+          cpu: r.cpu_pct,
+          mem: r.mem_pct,
+          disk: r.disk_pct,
+          temp: r.temp_c,
+        })),
+      },
       last24h: {
         totals: {
           mcpAudit: mcpAudit.filter((d) => d.day === todayISO()).reduce((a, b) => a + b.count, 0),
@@ -82,6 +113,7 @@ export const getUsageSummary = createServerFn({ method: "GET" })
       },
     };
   });
+
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);

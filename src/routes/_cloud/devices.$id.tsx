@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getDevice, enqueueCommand, deleteDevice, regeneratePairing } from "@/lib/cloud.functions";
@@ -22,22 +25,36 @@ function DevicePage() {
   const del = useServerFn(deleteDevice);
   const qc = useQueryClient();
 
+  // Zero-Wake: no interval polling. Fresh data arrives over the Realtime
+  // broadcast channel (`live:<device_id>`); we only refetch when a tick or a
+  // command actually happened.
   const { data } = useQuery({
     queryKey: ["device", id],
     queryFn: () => fetchDevice({ data: { id } }),
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
 
   const { data: events = [] } = useQuery({
     queryKey: ["device-events-mini", id],
     queryFn: () => fetchEvents({ data: { deviceId: id, limit: 20 } }),
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
-    staleTime: 30_000,
+    staleTime: 60_000,
     enabled: !!data?.device?.device_token_hash,
   });
+
+  // Live overlay straight from the broadcast — costs zero DB reads.
+  const [live, setLive] = useState<Record<string, any> | null>(null);
+  useEffect(() => {
+    const channel = supabase
+      .channel(`live:${id}`)
+      .on("broadcast", { event: "tick" }, ({ payload }: any) => {
+        setLive(payload ?? null);
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
 
   const cmd = useMutation({
     mutationFn: (vars: { kind: any; payload?: any }) =>
@@ -73,8 +90,24 @@ function DevicePage() {
 
   const d = data.device;
   const snap = (d.last_snapshot as any) || {};
+  const st = ((data as any).state ?? {}) as Record<string, any>;
   const online = d.last_seen_at && Date.now() - new Date(d.last_seen_at).getTime() < 120_000;
   const paired = !!d.device_token_hash;
+
+  // Priority: live broadcast → persisted mirror (device_state_latest) →
+  // legacy Pi heartbeat snapshot. Prevents empty gauges when only one of the
+  // three paths is active.
+  const pick = (...vals: any[]) => vals.find((v) => v != null && !Number.isNaN(v));
+  const sys = {
+    cpu: pick(live?.cpu_pct, st.cpu_pct, snap.cpu),
+    ram: pick(live?.mem_pct, st.mem_pct, snap.ram),
+    temp: pick(live?.temp_c, st.temp_c, snap.temp),
+    disk: pick(live?.disk_pct, st.disk_pct, snap.disk),
+  };
+  const sysAt = live ? new Date() : st.sys_updated_at ? new Date(st.sys_updated_at) : null;
+  const sysAgeMin = sysAt ? Math.round((Date.now() - sysAt.getTime()) / 60_000) : null;
+  const sysStale = sysAgeMin != null && sysAgeMin > 30;
+
 
   return (
     <div className="px-5 space-y-4">
@@ -181,21 +214,44 @@ function DevicePage() {
               <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">
                 Snapshot
               </h3>
-              <button
-                onClick={() => cmd.mutate({ kind: "status" })}
-                className="text-primary p-1 active:scale-90 transition-transform"
-                title="Aktualisieren"
-              >
-                <RefreshCw size={14} className={cmd.isPending ? "animate-spin" : ""} />
-              </button>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-[9px] uppercase tracking-widest ${
+                    live ? "text-primary" : sysStale ? "text-destructive" : "text-muted-foreground"
+                  }`}
+                >
+                  {live
+                    ? "live"
+                    : sysAgeMin == null
+                      ? "keine Systemdaten"
+                      : sysAgeMin < 1
+                        ? "gerade eben"
+                        : `vor ${sysAgeMin} Min`}
+                </span>
+                <button
+                  onClick={() => cmd.mutate({ kind: "status" })}
+                  className="text-primary p-1 active:scale-90 transition-transform"
+                  title="Aktualisieren"
+                >
+                  <RefreshCw size={14} className={cmd.isPending ? "animate-spin" : ""} />
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <StatGauge label="CPU" value={snap.cpu != null ? `${Math.round(snap.cpu)}` : "—"} unit="%" pct={snap.cpu ?? 0} tone={snap.cpu > 75 ? "warn" : "ok"} />
-              <StatGauge label="RAM" value={snap.ram != null ? `${Math.round(snap.ram)}` : "—"} unit="%" pct={snap.ram ?? 0} tone={snap.ram > 80 ? "warn" : "ok"} />
-              <StatGauge label="TMP" value={snap.temp != null ? `${Math.round(snap.temp)}` : "—"} unit="°C" pct={snap.temp != null ? (snap.temp / 85) * 100 : 0} tone={snap.temp > 70 ? "crit" : "accent"} />
-              <StatGauge label="Disk" value={snap.disk != null ? `${Math.round(snap.disk)}` : "—"} unit="%" pct={snap.disk ?? 0} tone={snap.disk > 90 ? "crit" : "ok"} />
+              <StatGauge label="CPU" value={sys.cpu != null ? `${Math.round(sys.cpu)}` : "—"} unit="%" pct={sys.cpu ?? 0} tone={sys.cpu > 75 ? "warn" : "ok"} />
+              <StatGauge label="RAM" value={sys.ram != null ? `${Math.round(sys.ram)}` : "—"} unit="%" pct={sys.ram ?? 0} tone={sys.ram > 80 ? "warn" : "ok"} />
+              <StatGauge label="TMP" value={sys.temp != null ? `${Math.round(sys.temp)}` : "—"} unit="°C" pct={sys.temp != null ? (sys.temp / 85) * 100 : 0} tone={sys.temp > 70 ? "crit" : "accent"} />
+              <StatGauge label="Disk" value={sys.disk != null ? `${Math.round(sys.disk)}` : "—"} unit="%" pct={sys.disk ?? 0} tone={sys.disk > 90 ? "crit" : "ok"} />
             </div>
+            {sysAgeMin == null && (
+              <p className="px-1 text-[10px] text-muted-foreground">
+                Keine Systemwerte empfangen. Node-RED muss cpu_pct/mem_pct/disk_pct/temp_c an
+                <span className="font-mono"> /api/public/live/publish </span>
+                senden (siehe Integrationen).
+              </p>
+            )}
           </div>
+
 
           <div className="space-y-3">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground px-1">

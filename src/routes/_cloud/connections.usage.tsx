@@ -76,7 +76,45 @@ function UsagePage() {
             <StatCard label="Pump Sessions" value={data.last24h.totals.pumpSessions} icon={<Activity className="size-4" />} />
           </div>
 
+          <Section title="Eingang pro Komponente (zuletzt)">
+            {data.ingest.components.length === 0 ? (
+              <div className="text-xs text-muted-foreground">Kein Eingang in 14 Tagen.</div>
+            ) : (
+              <table className="w-full text-xs">
+                <tbody>
+                  {data.ingest.components.map((c) => {
+                    const ageMin = Math.round((Date.now() - new Date(c.lastAt).getTime()) / 60_000);
+                    const stale = ageMin > 180;
+                    return (
+                      <tr key={c.component} className="border-t border-border first:border-0">
+                        <td className="py-1.5 font-mono">{c.component}</td>
+                        <td className={`py-1.5 text-right ${stale ? "text-destructive" : "text-muted-foreground"}`}>
+                          {ageMin < 60 ? `vor ${ageMin} Min` : `vor ${Math.round(ageMin / 60)} Std`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {data.ingest.state.map((s) => (
+                    <tr key={s.deviceId} className="border-t border-border">
+                      <td className="py-1.5 font-mono">system (live-relay)</td>
+                      <td
+                        className={`py-1.5 text-right ${
+                          s.sysUpdatedAt ? "text-muted-foreground" : "text-destructive"
+                        }`}
+                      >
+                        {s.sysUpdatedAt
+                          ? `vor ${Math.round((Date.now() - new Date(s.sysUpdatedAt).getTime()) / 60_000)} Min`
+                          : "nie"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Section>
+
           <Section title="Nach Quelle (letzte 24h)">
+
             {data.last24h.bySource.length === 0 ? (
               <div className="text-xs text-muted-foreground">Keine Tool-Aufrufe.</div>
             ) : (

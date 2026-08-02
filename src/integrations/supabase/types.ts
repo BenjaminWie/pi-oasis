@@ -535,48 +535,72 @@ export type Database = {
       }
       device_state_latest: {
         Row: {
+          cpu_pct: number | null
           device_id: string
+          disk_pct: number | null
           last_alarm_at: string | null
           last_alarm_message: string | null
           last_alarm_status: string | null
           last_reason: string | null
+          mem_pct: number | null
+          mqtt_broker_up: boolean | null
           outside_temp_c: number | null
           pump_on: boolean
           pump_started_at: string | null
           pv_surplus_w: number | null
           rain_next_24h_mm: number | null
           strategy_applied: string | null
+          swap_pct: number | null
+          sys_updated_at: string | null
+          temp_c: number | null
           updated_at: string
+          uptime_s: number | null
           watts_current: number | null
         }
         Insert: {
+          cpu_pct?: number | null
           device_id: string
+          disk_pct?: number | null
           last_alarm_at?: string | null
           last_alarm_message?: string | null
           last_alarm_status?: string | null
           last_reason?: string | null
+          mem_pct?: number | null
+          mqtt_broker_up?: boolean | null
           outside_temp_c?: number | null
           pump_on?: boolean
           pump_started_at?: string | null
           pv_surplus_w?: number | null
           rain_next_24h_mm?: number | null
           strategy_applied?: string | null
+          swap_pct?: number | null
+          sys_updated_at?: string | null
+          temp_c?: number | null
           updated_at?: string
+          uptime_s?: number | null
           watts_current?: number | null
         }
         Update: {
+          cpu_pct?: number | null
           device_id?: string
+          disk_pct?: number | null
           last_alarm_at?: string | null
           last_alarm_message?: string | null
           last_alarm_status?: string | null
           last_reason?: string | null
+          mem_pct?: number | null
+          mqtt_broker_up?: boolean | null
           outside_temp_c?: number | null
           pump_on?: boolean
           pump_started_at?: string | null
           pv_surplus_w?: number | null
           rain_next_24h_mm?: number | null
           strategy_applied?: string | null
+          swap_pct?: number | null
+          sys_updated_at?: string | null
+          temp_c?: number | null
           updated_at?: string
+          uptime_s?: number | null
           watts_current?: number | null
         }
         Relationships: [
@@ -895,6 +919,14 @@ export type Database = {
           payload: Json
           severity: string
         }[]
+      }
+      ingest_device_events: {
+        Args: { _device_id: string; _events: Json }
+        Returns: Json
+      }
+      mirror_device_system: {
+        Args: { _device_id: string; _sys: Json }
+        Returns: undefined
       }
       recompute_anomaly_baselines: { Args: never; Returns: undefined }
       upsert_alert: {

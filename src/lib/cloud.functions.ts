@@ -60,8 +60,16 @@ export const getDevice = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(20);
 
-    return { device, commands: commands ?? [] };
+    // Live mirror written by Node-RED / the Pi (system telemetry + pump state).
+    const { data: state } = await context.supabase
+      .from("device_state_latest")
+      .select("*")
+      .eq("device_id", data.id)
+      .maybeSingle();
+
+    return { device, commands: commands ?? [], state: state ?? null };
   });
+
 
 export const createDevice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

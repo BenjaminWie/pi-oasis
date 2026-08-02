@@ -2,6 +2,11 @@
 // Auth: Bearer = device_token (HMAC-hashed in devices.device_token_hash).
 // Body: { component, device?, status, message?, strategy_applied?, metrics?, ts? }
 // Single event or array (max 50).
+//
+// Zero-Wake: the whole batch (dedup + insert + device_state_latest mirror +
+// pump_sessions write-back) runs inside ONE Postgres call
+// (`ingest_device_events`), so the database wakes once per request instead of
+// 2–3 roundtrips per event.
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { bearer, jsonResponse, sha256 } from "@/lib/agent-api.server";
@@ -18,6 +23,11 @@ const Single = z.object({
 
 const Body = z.union([Single, z.array(Single).min(1).max(50)]);
 
+// token hash -> device id, cached per worker isolate so repeated ingests do
+// not hit Postgres just to resolve the device.
+const DEVICE_CACHE_MS = 10 * 60_000;
+const deviceCache = new Map<string, { id: string; at: number }>();
+
 export const Route = createFileRoute("/api/public/cloud-bridge/event")({
   server: {
     handlers: {
@@ -27,12 +37,20 @@ export const Route = createFileRoute("/api/public/cloud-bridge/event")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-        const { data: device } = await supabaseAdmin
-          .from("devices")
-          .select("id")
-          .eq("device_token_hash", sha256(token))
-          .maybeSingle();
-        if (!device) return jsonResponse({ error: "unknown device" }, 401);
+        const hash = sha256(token);
+        const now = Date.now();
+        const cached = deviceCache.get(hash);
+        let deviceId = cached && now - cached.at < DEVICE_CACHE_MS ? cached.id : null;
+        if (!deviceId) {
+          const { data: device } = await supabaseAdmin
+            .from("devices")
+            .select("id")
+            .eq("device_token_hash", hash)
+            .maybeSingle();
+          if (!device) return jsonResponse({ error: "unknown device" }, 401);
+          deviceId = device.id;
+          deviceCache.set(hash, { id: device.id, at: now });
+        }
 
         let parsed;
         try {
@@ -42,134 +60,27 @@ export const Route = createFileRoute("/api/public/cloud-bridge/event")({
         }
         const events = Array.isArray(parsed) ? parsed : [parsed];
 
-        const rows = events.map((e) => {
-          // Keep Node-RED flexible while preserving one canonical `watts` key
-          // for hourly rollups and AI reasoning. Existing flows often emit
-          // `watt` (Tasmota) or `house_power` (Tibber Pulse).
-          const metrics = { ...((e.metrics ?? {}) as Record<string, unknown>) };
-          const watts = metrics.watt ?? metrics.house_power;
-          if (metrics.watts == null && watts != null) metrics.watts = watts;
-          return {
-            device_id: device.id,
-            component: e.component,
-            device_label: e.device ?? "",
-            status: e.status,
-            message: e.message ?? null,
-            strategy_applied: e.strategy_applied ?? null,
-            metrics: metrics as any,
-            occurred_at: e.ts ?? new Date().toISOString(),
-          };
+        const payload = events.map((e) => ({
+          component: e.component,
+          device: e.device ?? "",
+          status: e.status,
+          message: e.message ?? null,
+          strategy_applied: e.strategy_applied ?? null,
+          metrics: e.metrics ?? {},
+          ts: e.ts ?? new Date().toISOString(),
+        }));
+
+        const { data, error } = await (supabaseAdmin as any).rpc("ingest_device_events", {
+          _device_id: deviceId,
+          _events: payload,
         });
+        if (error) return jsonResponse({ error: error.message }, 500);
 
-        // Server-side dedup: collapse consecutive heartbeats with the same
-        // (component, device_label, status) and ~equal watts (±5W) inside a
-        // 5-minute window into a single row (update occurred_at, bump sample_count).
-        // Rows on state change, warning/critical, or gap > 5 min still insert.
-        let inserted = 0;
-        let deduped = 0;
-        for (const row of rows) {
-          const { data: last } = await (supabaseAdmin as any)
-            .from("device_events")
-            .select("id, occurred_at, status, metrics, sample_count")
-            .eq("device_id", row.device_id)
-            .eq("component", row.component)
-            .eq("device_label", row.device_label)
-            .order("occurred_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          const wattsNew = Number((row.metrics as any)?.watts ?? NaN);
-          const wattsOld = Number(last?.metrics?.watts ?? NaN);
-          const wattsMatch =
-            (Number.isNaN(wattsNew) && Number.isNaN(wattsOld)) ||
-            (Number.isFinite(wattsNew) &&
-              Number.isFinite(wattsOld) &&
-              Math.abs(wattsNew - wattsOld) <= 5);
-          const gapMs = last ? Date.now() - new Date(last.occurred_at).getTime() : Infinity;
-          const canDedup =
-            last &&
-            last.status === row.status &&
-            row.status !== "warning" &&
-            row.status !== "critical" &&
-            wattsMatch &&
-            gapMs < 5 * 60_000;
-
-          if (canDedup) {
-            await (supabaseAdmin as any)
-              .from("device_events")
-              .update({
-                occurred_at: row.occurred_at,
-                sample_count: (last.sample_count ?? 1) + 1,
-              })
-              .eq("id", last.id);
-            deduped++;
-          } else {
-            const { error } = await supabaseAdmin.from("device_events").insert(row);
-            if (error) return jsonResponse({ error: error.message }, 500);
-            inserted++;
-          }
-        }
-
-        // Zero-Wake: mirror the latest state into device_state_latest so the
-        // dashboard can render immediately without scanning device_events.
-        // Also record completed pump runs as pump_sessions rows.
-        try {
-          const latest = rows[rows.length - 1];
-          const m = (latest.metrics ?? {}) as Record<string, any>;
-          const wattsNum = Number(m.watts ?? m.watt ?? m.house_power ?? NaN);
-          const patch: any = {
-            device_id: device.id,
-            updated_at: latest.occurred_at,
-          };
-          if (Number.isFinite(wattsNum)) patch.watts_current = wattsNum;
-          if (m.pv_surplus_watt != null) patch.pv_surplus_w = Number(m.pv_surplus_watt);
-          if (m.outside_temp != null) patch.outside_temp_c = Number(m.outside_temp);
-          if (m.forecast_rain_mm != null) patch.rain_next_24h_mm = Number(m.forecast_rain_mm);
-          if (latest.strategy_applied) patch.strategy_applied = latest.strategy_applied;
-          if (m.reason != null) patch.last_reason = String(m.reason).slice(0, 500);
-          if (m.pump_on != null) {
-            patch.pump_on = Boolean(m.pump_on);
-            if (patch.pump_on) patch.pump_started_at = latest.occurred_at;
-          } else if (typeof m.state === "number") {
-            patch.pump_on = m.state === 1;
-          }
-          if (latest.status === "warning" || latest.status === "critical") {
-            patch.last_alarm_status = latest.status;
-            patch.last_alarm_message = latest.message ?? null;
-            patch.last_alarm_at = latest.occurred_at;
-          }
-          await (supabaseAdmin as any)
-            .from("device_state_latest")
-            .upsert(patch, { onConflict: "device_id" });
-
-          // Session write-back: any event carrying pump_session summary metrics.
-          for (const e of events) {
-            const em = (e.metrics ?? {}) as any;
-            if (em.pump_session && em.started_at && em.stopped_at) {
-              const dur = Math.max(
-                0,
-                Math.round(
-                  (new Date(em.stopped_at).getTime() - new Date(em.started_at).getTime()) / 1000,
-                ),
-              );
-              await (supabaseAdmin as any).from("pump_sessions").insert({
-                device_id: device.id,
-                started_at: em.started_at,
-                stopped_at: em.stopped_at,
-                duration_s: dur,
-                avg_watts: em.avg_watts != null ? Number(em.avg_watts) : null,
-                kwh: em.kwh != null ? Number(em.kwh) : null,
-                pv_covered_pct: em.pv_covered_pct != null ? Number(em.pv_covered_pct) : null,
-                trigger: String(em.trigger ?? "manual").slice(0, 32),
-                reason: em.reason ? String(em.reason).slice(0, 500) : null,
-              });
-            }
-          }
-        } catch (e) {
-          console.warn("[event] state_latest/session upsert failed", e);
-        }
-
-        return jsonResponse({ ok: true, inserted, deduped });
+        return jsonResponse({
+          ok: true,
+          inserted: (data as any)?.inserted ?? 0,
+          deduped: (data as any)?.deduped ?? 0,
+        });
       },
     },
   },
