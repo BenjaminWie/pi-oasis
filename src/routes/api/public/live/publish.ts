@@ -42,6 +42,11 @@ const DEVICE_CACHE_MS = 10 * 60_000;
 const deviceCache = new Map<string, { id: string; at: number }>();
 const THROTTLE_MS = Number(process.env.LIVE_PUBLISH_THROTTLE_MS ?? 2000);
 
+// System telemetry mirror throttle: one small upsert per device per 5 min.
+const SYS_MIRROR_MS = Number(process.env.LIVE_SYS_MIRROR_MS ?? 5 * 60_000);
+const lastSysMirror = new Map<string, number>();
+
+
 export const Route = createFileRoute("/api/public/live/publish")({
   server: {
     handlers: {
