@@ -214,21 +214,44 @@ function DevicePage() {
               <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">
                 Snapshot
               </h3>
-              <button
-                onClick={() => cmd.mutate({ kind: "status" })}
-                className="text-primary p-1 active:scale-90 transition-transform"
-                title="Aktualisieren"
-              >
-                <RefreshCw size={14} className={cmd.isPending ? "animate-spin" : ""} />
-              </button>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-[9px] uppercase tracking-widest ${
+                    live ? "text-primary" : sysStale ? "text-destructive" : "text-muted-foreground"
+                  }`}
+                >
+                  {live
+                    ? "live"
+                    : sysAgeMin == null
+                      ? "keine Systemdaten"
+                      : sysAgeMin < 1
+                        ? "gerade eben"
+                        : `vor ${sysAgeMin} Min`}
+                </span>
+                <button
+                  onClick={() => cmd.mutate({ kind: "status" })}
+                  className="text-primary p-1 active:scale-90 transition-transform"
+                  title="Aktualisieren"
+                >
+                  <RefreshCw size={14} className={cmd.isPending ? "animate-spin" : ""} />
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <StatGauge label="CPU" value={snap.cpu != null ? `${Math.round(snap.cpu)}` : "—"} unit="%" pct={snap.cpu ?? 0} tone={snap.cpu > 75 ? "warn" : "ok"} />
-              <StatGauge label="RAM" value={snap.ram != null ? `${Math.round(snap.ram)}` : "—"} unit="%" pct={snap.ram ?? 0} tone={snap.ram > 80 ? "warn" : "ok"} />
-              <StatGauge label="TMP" value={snap.temp != null ? `${Math.round(snap.temp)}` : "—"} unit="°C" pct={snap.temp != null ? (snap.temp / 85) * 100 : 0} tone={snap.temp > 70 ? "crit" : "accent"} />
-              <StatGauge label="Disk" value={snap.disk != null ? `${Math.round(snap.disk)}` : "—"} unit="%" pct={snap.disk ?? 0} tone={snap.disk > 90 ? "crit" : "ok"} />
+              <StatGauge label="CPU" value={sys.cpu != null ? `${Math.round(sys.cpu)}` : "—"} unit="%" pct={sys.cpu ?? 0} tone={sys.cpu > 75 ? "warn" : "ok"} />
+              <StatGauge label="RAM" value={sys.ram != null ? `${Math.round(sys.ram)}` : "—"} unit="%" pct={sys.ram ?? 0} tone={sys.ram > 80 ? "warn" : "ok"} />
+              <StatGauge label="TMP" value={sys.temp != null ? `${Math.round(sys.temp)}` : "—"} unit="°C" pct={sys.temp != null ? (sys.temp / 85) * 100 : 0} tone={sys.temp > 70 ? "crit" : "accent"} />
+              <StatGauge label="Disk" value={sys.disk != null ? `${Math.round(sys.disk)}` : "—"} unit="%" pct={sys.disk ?? 0} tone={sys.disk > 90 ? "crit" : "ok"} />
             </div>
+            {sysAgeMin == null && (
+              <p className="px-1 text-[10px] text-muted-foreground">
+                Keine Systemwerte empfangen. Node-RED muss cpu_pct/mem_pct/disk_pct/temp_c an
+                <span className="font-mono"> /api/public/live/publish </span>
+                senden (siehe Integrationen).
+              </p>
+            )}
           </div>
+
 
           <div className="space-y-3">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground px-1">
