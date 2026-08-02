@@ -90,8 +90,24 @@ function DevicePage() {
 
   const d = data.device;
   const snap = (d.last_snapshot as any) || {};
+  const st = ((data as any).state ?? {}) as Record<string, any>;
   const online = d.last_seen_at && Date.now() - new Date(d.last_seen_at).getTime() < 120_000;
   const paired = !!d.device_token_hash;
+
+  // Priority: live broadcast → persisted mirror (device_state_latest) →
+  // legacy Pi heartbeat snapshot. Prevents empty gauges when only one of the
+  // three paths is active.
+  const pick = (...vals: any[]) => vals.find((v) => v != null && !Number.isNaN(v));
+  const sys = {
+    cpu: pick(live?.cpu_pct, st.cpu_pct, snap.cpu),
+    ram: pick(live?.mem_pct, st.mem_pct, snap.ram),
+    temp: pick(live?.temp_c, st.temp_c, snap.temp),
+    disk: pick(live?.disk_pct, st.disk_pct, snap.disk),
+  };
+  const sysAt = live ? new Date() : st.sys_updated_at ? new Date(st.sys_updated_at) : null;
+  const sysAgeMin = sysAt ? Math.round((Date.now() - sysAt.getTime()) / 60_000) : null;
+  const sysStale = sysAgeMin != null && sysAgeMin > 30;
+
 
   return (
     <div className="px-5 space-y-4">
