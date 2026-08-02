@@ -22,22 +22,36 @@ function DevicePage() {
   const del = useServerFn(deleteDevice);
   const qc = useQueryClient();
 
+  // Zero-Wake: no interval polling. Fresh data arrives over the Realtime
+  // broadcast channel (`live:<device_id>`); we only refetch when a tick or a
+  // command actually happened.
   const { data } = useQuery({
     queryKey: ["device", id],
     queryFn: () => fetchDevice({ data: { id } }),
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
 
   const { data: events = [] } = useQuery({
     queryKey: ["device-events-mini", id],
     queryFn: () => fetchEvents({ data: { deviceId: id, limit: 20 } }),
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
-    staleTime: 30_000,
+    staleTime: 60_000,
     enabled: !!data?.device?.device_token_hash,
   });
+
+  // Live overlay straight from the broadcast — costs zero DB reads.
+  const [live, setLive] = useState<Record<string, any> | null>(null);
+  useEffect(() => {
+    const channel = supabase
+      .channel(`live:${id}`)
+      .on("broadcast", { event: "tick" }, ({ payload }: any) => {
+        setLive(payload ?? null);
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
 
   const cmd = useMutation({
     mutationFn: (vars: { kind: any; payload?: any }) =>
