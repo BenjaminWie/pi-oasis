@@ -376,3 +376,51 @@ Request" → „POST Live Telemetry"**. Empfohlenes Intervall: 60 s.
 einzigen** Postgres-Aufruf (`ingest_device_events`) inklusive Dedup, Spiegel und
 Session-Write-Back — vorher waren es 2–3 Roundtrips pro Ereignis.
 
+
+## 9. Trace-/Debug-Mode (Request-IDs)
+
+Jeder ausgehende Request des Templates trägt jetzt den Header `x-request-id`
+(z. B. `evt-m8fq2k-a13c`). Die Cloud spiegelt ihn in **jeder** Antwort — auch bei
+401/400/500 — als Feld `rid` und als Response-Header zurück. Damit lässt sich
+exakt zuordnen, was gesendet und was verworfen wurde.
+
+### Schalter
+
+Tab-Env `TRACE_MODE`:
+
+| Wert | Wirkung |
+| --- | --- |
+| `off` | keine Debug-Ausgabe (Ringpuffer wird trotzdem gefüllt) |
+| `errors` (Default) | nur fehlgeschlagene Requests als Einzeiler |
+| `full` | jeder Request mit gesendetem Body und roher Antwort |
+
+Der Node **Trace Log (rid)** sammelt alle Antworten (inkl. Catch-Node der
+Cloud-Pushes) und hält die letzten 50 Einträge im Flow-Context
+(`flow.pihub_trace`). Der Inject-Node **Trace Report (letzte 50)** gibt sie
+gesammelt aus — auch wenn das Debug-Panel vorher zu war.
+
+Beispielzeile:
+
+```text
+evt-m8fq2k-a13c -> POST /cloud-bridge/event | 2 item(s) | 200 | received=2, inserted=1, deduped=1, dropped=0 (312 ms)
+```
+
+### Antwortfelder pro Route
+
+| Route | Felder | Bedeutung |
+| --- | --- | --- |
+| `/cloud-bridge/event` | `received`, `inserted`, `deduped`, `dropped` | `deduped` = identisches Ereignis war schon da, `dropped` = von der Ingest-Funktion verworfen |
+| `/live/publish` | `throttled`, `retry_in_ms`, `broadcast`, `received`, `used`, `dropped`, `system_fields`, `system_mirrored`, `mirror_skipped` | `throttled` = zu schnell gesendet (Standard 2 s/Gerät), `dropped` = ältere Ticks im Array, `mirror_skipped` = `no_system_fields` / `mirror_throttled` / `mirror_failed` |
+| `/agent/result` | `command_id`, `status` | Command als `done`/`failed` verbucht |
+| `/cloud-bridge/strategy` | `params`, `eco_paused`, `updated_at` | aktuelle Cloud-Strategie |
+
+### Symptom → was im Trace steht
+
+| Symptom | Trace-Zeile |
+| --- | --- |
+| Token falsch/leer | `401 | error=unknown device` bzw. `error=no token` |
+| Systemwerte kommen nicht an | `sys-… | 200 | mirror_skipped=mirror_throttled` (normal, max. 1 Write/5 Min) oder `system_fields=0` (Node-RED sendet keine Felder) |
+| Live-Ticks „verschwinden" | `throttled=true, retry_in_ms=…` — Sendetakt drosseln |
+| Doppelte Events | `deduped=…` > 0 |
+| Cloud nicht erreichbar | `no-response | transport=…` (Catch-Node) |
+| `RID-MISMATCH` | Ein Proxy/HTTP-Node überschreibt Header — im HTTP-Node dürfen keine festen Header/Auth gesetzt sein |
