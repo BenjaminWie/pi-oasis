@@ -10,7 +10,7 @@
 //   { watts?, pv_surplus_w?, outside_temp_c?, pump_on?, strategy_applied?, ts? }
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { bearer, jsonResponse, sha256 } from "@/lib/agent-api.server";
+import { bearer, requestId, sha256, tracedResponse } from "@/lib/agent-api.server";
 
 const Tick = z.object({
   // Pump / energy
@@ -56,7 +56,8 @@ export const Route = createFileRoute("/api/public/live/publish")({
           headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "authorization, content-type",
+            "Access-Control-Allow-Headers": "authorization, content-type, x-request-id",
+            "Access-Control-Expose-Headers": "x-request-id",
           },
         }),
       POST: async ({ request }) => {
