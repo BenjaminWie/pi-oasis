@@ -70,7 +70,7 @@ export const Route = createFileRoute("/api/public/agent/result")({
           }
         }
 
-        return jsonResponse({ ok: true });
+        return respond({ ok: true, command_id: body.id, status: body.ok ? "done" : "failed" });
       },
     },
   },
