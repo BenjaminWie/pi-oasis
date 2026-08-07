@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { bearer, jsonResponse, sha256 } from "@/lib/agent-api.server";
+import { bearer, requestId, sha256, tracedResponse } from "@/lib/agent-api.server";
 
 const Body = z.object({
   id: z.string().uuid(),
@@ -13,20 +13,22 @@ export const Route = createFileRoute("/api/public/agent/result")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const rid = requestId(request);
+        const respond = tracedResponse(rid);
         const token = bearer(request);
-        if (!token) return jsonResponse({ error: "no token" }, 401);
+        if (!token) return respond({ error: "no token" }, 401);
         const { data: device } = await supabaseAdmin
           .from("devices")
           .select("id, user_id")
           .eq("device_token_hash", sha256(token))
           .maybeSingle();
-        if (!device) return jsonResponse({ error: "unknown device" }, 401);
+        if (!device) return respond({ error: "unknown device" }, 401);
 
         let body;
         try {
           body = Body.parse(await request.json());
         } catch {
-          return jsonResponse({ error: "invalid body" }, 400);
+          return respond({ error: "invalid body" }, 400);
         }
 
         // Verify the command belongs to this device
@@ -36,7 +38,7 @@ export const Route = createFileRoute("/api/public/agent/result")({
           .eq("id", body.id)
           .eq("device_id", device.id)
           .maybeSingle();
-        if (!cmd) return jsonResponse({ error: "unknown command" }, 404);
+        if (!cmd) return respond({ error: "unknown command" }, 404);
 
         await supabaseAdmin
           .from("agent_commands")
@@ -68,7 +70,7 @@ export const Route = createFileRoute("/api/public/agent/result")({
           }
         }
 
-        return jsonResponse({ ok: true });
+        return respond({ ok: true, command_id: body.id, status: body.ok ? "done" : "failed" });
       },
     },
   },

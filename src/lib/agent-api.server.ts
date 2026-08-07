@@ -23,3 +23,28 @@ export function bearer(request: Request): string | null {
   if (!h?.startsWith("Bearer ")) return null;
   return h.slice(7);
 }
+
+/**
+ * Trace support: Node-RED sends `x-request-id` with every push. We echo it back
+ * in the JSON body (`rid`) and in the response header so the flow can correlate
+ * "what was sent" with "what the cloud did with it".
+ */
+export function requestId(request: Request): string {
+  const h = request.headers.get("x-request-id")?.trim();
+  if (h && h.length > 0 && h.length <= 64) return h;
+  return `srv-${randomBytes(6).toString("hex")}`;
+}
+
+/** Returns a jsonResponse variant that always carries the request id. */
+export function tracedResponse(rid: string) {
+  return (body: any, init: number | ResponseInit = 200): Response => {
+    const opts: ResponseInit = typeof init === "number" ? { status: init } : init;
+    const payload =
+      body && typeof body === "object" && !Array.isArray(body) ? { ...body, rid } : { data: body, rid };
+    return jsonResponse(payload, {
+      ...opts,
+      headers: { "x-request-id": rid, ...(opts.headers || {}) },
+    });
+  };
+}
+

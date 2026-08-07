@@ -9,7 +9,7 @@
 // 2–3 roundtrips per event.
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { bearer, jsonResponse, sha256 } from "@/lib/agent-api.server";
+import { bearer, requestId, sha256, tracedResponse } from "@/lib/agent-api.server";
 
 const Single = z.object({
   component: z.string().min(1).max(64),
@@ -32,8 +32,12 @@ export const Route = createFileRoute("/api/public/cloud-bridge/event")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const rid = requestId(request);
+        const respond = tracedResponse(rid);
+        const startedAt = Date.now();
+
         const token = bearer(request);
-        if (!token) return jsonResponse({ error: "no token" }, 401);
+        if (!token) return respond({ error: "no token" }, 401);
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -47,7 +51,7 @@ export const Route = createFileRoute("/api/public/cloud-bridge/event")({
             .select("id")
             .eq("device_token_hash", hash)
             .maybeSingle();
-          if (!device) return jsonResponse({ error: "unknown device" }, 401);
+          if (!device) return respond({ error: "unknown device" }, 401);
           deviceId = device.id;
           deviceCache.set(hash, { id: device.id, at: now });
         }
@@ -56,7 +60,7 @@ export const Route = createFileRoute("/api/public/cloud-bridge/event")({
         try {
           parsed = Body.parse(await request.json());
         } catch (e: any) {
-          return jsonResponse({ error: "invalid body", detail: String(e?.message ?? e) }, 400);
+          return respond({ error: "invalid body", detail: String(e?.message ?? e) }, 400);
         }
         const events = Array.isArray(parsed) ? parsed : [parsed];
 
@@ -74,12 +78,17 @@ export const Route = createFileRoute("/api/public/cloud-bridge/event")({
           _device_id: deviceId,
           _events: payload,
         });
-        if (error) return jsonResponse({ error: error.message }, 500);
+        if (error) return respond({ error: error.message, received: events.length }, 500);
 
-        return jsonResponse({
+        const inserted = (data as any)?.inserted ?? 0;
+        const deduped = (data as any)?.deduped ?? 0;
+        return respond({
           ok: true,
-          inserted: (data as any)?.inserted ?? 0,
-          deduped: (data as any)?.deduped ?? 0,
+          received: events.length,
+          inserted,
+          deduped,
+          dropped: Math.max(0, events.length - inserted - deduped),
+          ms: Date.now() - startedAt,
         });
       },
     },

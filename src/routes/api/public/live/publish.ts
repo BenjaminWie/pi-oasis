@@ -10,7 +10,7 @@
 //   { watts?, pv_surplus_w?, outside_temp_c?, pump_on?, strategy_applied?, ts? }
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { bearer, jsonResponse, sha256 } from "@/lib/agent-api.server";
+import { bearer, requestId, sha256, tracedResponse } from "@/lib/agent-api.server";
 
 const Tick = z.object({
   // Pump / energy
@@ -56,12 +56,20 @@ export const Route = createFileRoute("/api/public/live/publish")({
           headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "authorization, content-type",
+            "Access-Control-Allow-Headers": "authorization, content-type, x-request-id",
+            "Access-Control-Expose-Headers": "x-request-id",
           },
         }),
       POST: async ({ request }) => {
+        const rid = requestId(request);
+        const respond = (body: any, status = 200) =>
+          tracedResponse(rid)(body, {
+            status,
+            headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Expose-Headers": "x-request-id" },
+          });
+
         const token = bearer(request);
-        if (!token) return jsonResponse({ error: "no token" }, 401);
+        if (!token) return respond({ error: "no token" }, 401);
 
         const hash = sha256(token);
         const now = Date.now();
@@ -75,7 +83,7 @@ export const Route = createFileRoute("/api/public/live/publish")({
             .select("id")
             .eq("device_token_hash", hash)
             .maybeSingle();
-          if (!device) return jsonResponse({ error: "unknown device" }, 401);
+          if (!device) return respond({ error: "unknown device" }, 401);
           deviceId = { id: device.id, at: now };
           deviceCache.set(hash, deviceId);
         }
@@ -83,14 +91,21 @@ export const Route = createFileRoute("/api/public/live/publish")({
 
         // Rate limit (default 2s per device, LIVE_PUBLISH_THROTTLE_MS to tune)
         const prev = lastEmit.get(device.id) ?? 0;
-        if (now - prev < THROTTLE_MS) return jsonResponse({ ok: true, throttled: true });
+        if (now - prev < THROTTLE_MS)
+          return respond({
+            ok: true,
+            throttled: true,
+            broadcast: false,
+            system_mirrored: false,
+            retry_in_ms: Math.max(0, THROTTLE_MS - (now - prev)),
+          });
         lastEmit.set(device.id, now);
 
         let parsed;
         try {
           parsed = Body.parse(await request.json());
         } catch (e: any) {
-          return jsonResponse({ error: "invalid body", detail: String(e?.message ?? e) }, 400);
+          return respond({ error: "invalid body", detail: String(e?.message ?? e) }, 400);
         }
         const ticks = Array.isArray(parsed) ? parsed : [parsed];
         const tick = ticks[ticks.length - 1]; // send only the newest
@@ -109,6 +124,8 @@ export const Route = createFileRoute("/api/public/live/publish")({
         ] as const;
         const sys: Record<string, unknown> = {};
         for (const k of sysKeys) if ((tick as any)[k] != null) sys[k] = (tick as any)[k];
+        let systemMirrored = false;
+        let mirrorSkipped: string | null = Object.keys(sys).length ? null : "no_system_fields";
         if (Object.keys(sys).length) {
           const lastSys = lastSysMirror.get(device.id) ?? 0;
           if (now - lastSys >= SYS_MIRROR_MS) {
@@ -119,12 +136,15 @@ export const Route = createFileRoute("/api/public/live/publish")({
                 _device_id: device.id,
                 _sys: sys,
               });
+              systemMirrored = true;
             } catch (e) {
               console.warn("[live] system mirror failed", e);
+              mirrorSkipped = "mirror_failed";
             }
+          } else {
+            mirrorSkipped = "mirror_throttled";
           }
         }
-
 
         // Send via Supabase Realtime Broadcast HTTP endpoint.
         // https://supabase.com/docs/guides/realtime/broadcast#send-messages-using-rest-calls
@@ -150,12 +170,18 @@ export const Route = createFileRoute("/api/public/live/publish")({
             }),
           });
         } catch (e: any) {
-          return jsonResponse({ error: "broadcast failed", detail: String(e?.message ?? e) }, 502);
+          return respond({ error: "broadcast failed", detail: String(e?.message ?? e) }, 502);
         }
 
-        return jsonResponse({ ok: true }, {
-          status: 200,
-          headers: { "Access-Control-Allow-Origin": "*" },
+        return respond({
+          ok: true,
+          broadcast: true,
+          received: ticks.length,
+          used: 1,
+          dropped: ticks.length - 1,
+          system_fields: Object.keys(sys).length,
+          system_mirrored: systemMirrored,
+          mirror_skipped: mirrorSkipped,
         });
       },
     },

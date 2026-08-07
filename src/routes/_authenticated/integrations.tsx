@@ -118,6 +118,7 @@ function IntegrationsPage() {
         "MQTT_COMMAND_TOPIC=cmnd/zisterne/POWER",
         "MQTT_BROKER_HOST=mosquitto",
         "MQTT_BROKER_PORT=1883",
+        "TRACE_MODE=errors",
       ].join("\n")
     : "";
 
