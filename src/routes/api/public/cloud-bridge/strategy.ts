@@ -1,7 +1,7 @@
 // Node-RED polls this with the device's bearer token to get current strategy
 // params (PV threshold, Tibber cap, heat window, etc.) + eco_paused flag.
 import { createFileRoute } from "@tanstack/react-router";
-import { bearer, jsonResponse, sha256 } from "@/lib/agent-api.server";
+import { bearer, requestId, sha256, tracedResponse } from "@/lib/agent-api.server";
 
 const DEFAULTS = {
   pv_min_w: 300,
@@ -17,8 +17,10 @@ export const Route = createFileRoute("/api/public/cloud-bridge/strategy")({
   server: {
     handlers: {
       GET: async ({ request }) => {
+        const rid = requestId(request);
+        const respond = tracedResponse(rid);
         const token = bearer(request);
-        if (!token) return jsonResponse({ error: "no token" }, 401);
+        if (!token) return respond({ error: "no token" }, 401);
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: device } = await supabaseAdmin
@@ -26,7 +28,7 @@ export const Route = createFileRoute("/api/public/cloud-bridge/strategy")({
           .select("id")
           .eq("device_token_hash", sha256(token))
           .maybeSingle();
-        if (!device) return jsonResponse({ error: "unknown device" }, 401);
+        if (!device) return respond({ error: "unknown device" }, 401);
 
         const { data: profile } = await supabaseAdmin
           .from("strategy_profiles")
@@ -34,7 +36,7 @@ export const Route = createFileRoute("/api/public/cloud-bridge/strategy")({
           .eq("device_id", device.id)
           .maybeSingle();
 
-        return jsonResponse({
+        return respond({
           params: { ...DEFAULTS, ...((profile?.params as any) ?? {}) },
           eco_paused: !!profile?.eco_paused,
           updated_at: profile?.updated_at ?? null,
