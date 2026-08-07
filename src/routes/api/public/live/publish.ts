@@ -124,6 +124,8 @@ export const Route = createFileRoute("/api/public/live/publish")({
         ] as const;
         const sys: Record<string, unknown> = {};
         for (const k of sysKeys) if ((tick as any)[k] != null) sys[k] = (tick as any)[k];
+        let systemMirrored = false;
+        let mirrorSkipped: string | null = Object.keys(sys).length ? null : "no_system_fields";
         if (Object.keys(sys).length) {
           const lastSys = lastSysMirror.get(device.id) ?? 0;
           if (now - lastSys >= SYS_MIRROR_MS) {
@@ -134,12 +136,15 @@ export const Route = createFileRoute("/api/public/live/publish")({
                 _device_id: device.id,
                 _sys: sys,
               });
+              systemMirrored = true;
             } catch (e) {
               console.warn("[live] system mirror failed", e);
+              mirrorSkipped = "mirror_failed";
             }
+          } else {
+            mirrorSkipped = "mirror_throttled";
           }
         }
-
 
         // Send via Supabase Realtime Broadcast HTTP endpoint.
         // https://supabase.com/docs/guides/realtime/broadcast#send-messages-using-rest-calls
@@ -165,12 +170,18 @@ export const Route = createFileRoute("/api/public/live/publish")({
             }),
           });
         } catch (e: any) {
-          return jsonResponse({ error: "broadcast failed", detail: String(e?.message ?? e) }, 502);
+          return respond({ error: "broadcast failed", detail: String(e?.message ?? e) }, 502);
         }
 
-        return jsonResponse({ ok: true }, {
-          status: 200,
-          headers: { "Access-Control-Allow-Origin": "*" },
+        return respond({
+          ok: true,
+          broadcast: true,
+          received: ticks.length,
+          used: 1,
+          dropped: ticks.length - 1,
+          system_fields: Object.keys(sys).length,
+          system_mirrored: systemMirrored,
+          mirror_skipped: mirrorSkipped,
         });
       },
     },
