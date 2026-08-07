@@ -61,8 +61,15 @@ export const Route = createFileRoute("/api/public/live/publish")({
           },
         }),
       POST: async ({ request }) => {
+        const rid = requestId(request);
+        const respond = (body: any, status = 200) =>
+          tracedResponse(rid)(body, {
+            status,
+            headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Expose-Headers": "x-request-id" },
+          });
+
         const token = bearer(request);
-        if (!token) return jsonResponse({ error: "no token" }, 401);
+        if (!token) return respond({ error: "no token" }, 401);
 
         const hash = sha256(token);
         const now = Date.now();
@@ -76,7 +83,7 @@ export const Route = createFileRoute("/api/public/live/publish")({
             .select("id")
             .eq("device_token_hash", hash)
             .maybeSingle();
-          if (!device) return jsonResponse({ error: "unknown device" }, 401);
+          if (!device) return respond({ error: "unknown device" }, 401);
           deviceId = { id: device.id, at: now };
           deviceCache.set(hash, deviceId);
         }
@@ -84,14 +91,21 @@ export const Route = createFileRoute("/api/public/live/publish")({
 
         // Rate limit (default 2s per device, LIVE_PUBLISH_THROTTLE_MS to tune)
         const prev = lastEmit.get(device.id) ?? 0;
-        if (now - prev < THROTTLE_MS) return jsonResponse({ ok: true, throttled: true });
+        if (now - prev < THROTTLE_MS)
+          return respond({
+            ok: true,
+            throttled: true,
+            broadcast: false,
+            system_mirrored: false,
+            retry_in_ms: Math.max(0, THROTTLE_MS - (now - prev)),
+          });
         lastEmit.set(device.id, now);
 
         let parsed;
         try {
           parsed = Body.parse(await request.json());
         } catch (e: any) {
-          return jsonResponse({ error: "invalid body", detail: String(e?.message ?? e) }, 400);
+          return respond({ error: "invalid body", detail: String(e?.message ?? e) }, 400);
         }
         const ticks = Array.isArray(parsed) ? parsed : [parsed];
         const tick = ticks[ticks.length - 1]; // send only the newest
