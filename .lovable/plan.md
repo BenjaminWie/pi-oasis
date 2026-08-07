@@ -1,51 +1,41 @@
-## Was ich in der Datenbank tatsächlich gefunden habe
+# Node-RED Trace-/Debug-Mode mit Request-IDs
 
-Verifiziert per Query, nicht geraten:
+Ziel: Für jeden Push aus Node-RED (Event, Live-Telemetrie, Command-Result) siehst du im Node-RED-Debug genau, **was gesendet**, **was angekommen** und **was verworfen** wurde — anhand einer eindeutigen Request-ID, die beide Seiten teilen.
 
-- **Systemwerte kommen wirklich nicht mehr an.** Die letzten `system_hardware`- und `pump_monitor`-Events sind vom **30.07. 22:10 Uhr**. Seitdem nur noch `eco_intelligence` (zuletzt heute 18:01) und `pump_control` (heute 12:55). Der Node-RED-Flow, der CPU/RAM/Disk/Temp geschickt hat, sendet nicht mehr.
-- **`devices.last_snapshot` ist NULL** — obwohl `last_seen_at` aktuell ist (heute 19:22). Die Gauges auf der Geräteseite lesen genau dieses Feld. Es wird nur vom Pi-Heartbeat (`/api/public/agent/heartbeat`) geschrieben; der läuft offenbar nicht bzw. der Pi-Bridge-Prozess pollt nur (das bumpt `last_seen_at` ohne Snapshot). Deshalb: Gerät „online", Kacheln leer.
-- **Der nächtliche Cron-Job ist deaktiviert** (`cron.job` id 4, `active = false`). Aggregation (stündlich/täglich), Baselines und das Pruning von `device_events` laufen seit dem Deaktivieren nicht mehr → Analytics-Views bleiben stehen und alte Rohzeilen werden nie gelöscht.
-- **DB-Größe ist unkritisch**: 16 MB gesamt, `device_events` 2,7 MB / 1386 Zeilen, Disk 17 %, Verbindungen 12/60, Memory 55 %. Die 1,4 Credits/Tag kommen also **nicht** aus Datenvolumen, sondern aus Laufzeit/Aktivität der Instanz.
-- **145.154 zurückgerollte Transaktionen seit Boot** — auffällig hoch, deutet auf viele fehlschlagende Requests (RLS/Fehlerpfade), die die DB trotzdem wachhalten. Das wird noch nicht gemessen.
+## Was du danach hast
 
-## Warum die 1,4 Credits noch da sind
+- Jeder ausgehende Request trägt eine Request-ID (`rid`), z. B. `evt-1a2b3c`.
+- Die Cloud gibt die gleiche ID in der Antwort zurück, zusammen mit `inserted`, `deduped`, `throttled`, `mirrored` bzw. Fehlergrund.
+- Ein zentraler Trace-Zweig im Flow schreibt pro Request eine kompakte Zeile ins Debug-Panel:
+  `evt-1a2b3c → POST /cloud-bridge/event | 2 Events | 200 | inserted 1, deduped 1 (312 ms)`
+- Ein Schalter (`TRACE_MODE` in den Tab-Env-Werten) macht daraus bei Bedarf die volle Ausgabe inkl. gesendetem Body und roher Antwort. Aus = nur Fehler werden geloggt.
+- Ein lokaler Ringpuffer der letzten 50 Traces im Flow-Context, abrufbar über einen Inject-Node „Trace Report" — auch wenn das Debug-Panel gerade nicht offen war.
 
-Die Cloud-DB kostet primär pro *aktiver Zeit*, nicht pro Zeile. Alles, was sie regelmäßig aufweckt, hält die Kosten oben:
+## Änderungen
 
-1. **Ingest-Endpunkt macht 2–3 DB-Roundtrips pro Event.** `/api/public/cloud-bridge/event` führt pro Event ein SELECT (letztes Event suchen) plus UPDATE oder INSERT aus, dazu Upserts in `device_state_latest`. Bei Batches multipliziert sich das linear.
-2. **Offene Browser-Tabs pollen weiter.** Geräteseite alle 30 s (2 Queries), Analytics 120 s, Pump 300 s, lokale Overview 5 s. Ein den ganzen Tag offener Tab = tausende Server-Fn-Aufrufe.
-3. **Kein Messpunkt für Fehl-Requests**, obwohl die Rollback-Zahl zeigt, dass es viele gibt.
+### 1. Node-RED Template (`public/nodered-template.json`)
 
-## Plan
+- Neue Gruppe „Trace / Debug" mit:
+  - `pihub_trace_log` (function): nimmt jede Antwort/Fehler entgegen, baut die Trace-Zeile, hängt sie in den Ringpuffer `flow.trace` und gibt sie je nach `TRACE_MODE` (`off` / `errors` / `full`) aus.
+  - `pihub_trace_debug` (debug): Ausgabe im Debug-Panel.
+  - `pihub_trace_report` (inject + function): druckt die letzten 50 Traces gesammelt.
+- Alle vier Build-Nodes (`Build Cloud Event Request`, `Build Live Telemetry Request`, `Build Command Result`, `Build Strategy Request`) erzeugen `msg.rid`, setzen den Header `x-request-id`, merken sich `msg.traceSent` (Route, Body-Größe, Anzahl Events, Startzeit).
+- Alle HTTP-Nodes bekommen `Return: full response object` bzw. behalten `msg.statusCode`, damit auch 4xx/5xx sichtbar sind statt still zu enden; ihre Ausgänge (inkl. Catch-Node) laufen zusätzlich in `pihub_trace_log`.
+- Neue Tab-Env-Werte: `TRACE_MODE` (Default `errors`).
 
-### 1. Ingest auf einen Roundtrip pro Batch bringen
-- Dedup-Logik in eine einzige Postgres-Funktion (`ingest_device_events(jsonb)`) verlagern: Batch rein, Dedup/Insert/`device_state_latest`-Upsert/`pump_sessions` in **einer** Transaktion. Statt 3n Roundtrips → 1.
-- Token→device-Auflösung im Worker cachen (wie bereits in `/live/publish` gelöst).
+### 2. Server: Request-ID annehmen und zurückgeben
 
-### 2. UI-Polling auf Event-getrieben umstellen
-- Geräteseite und Analytics: `refetchInterval` entfernen, stattdessen auf den bestehenden Realtime-Broadcast (`live:<device_id>`) hören und nur bei tatsächlichem Tick invalidieren.
-- Lokale Pi-Seiten (`overview` 5 s, `mqtt` 2 s) treffen die Cloud nicht, bleiben wie sie sind.
-- Erwartung: bei geschlossenem Tab praktisch null DB-Aktivität.
+- `src/lib/agent-api.server.ts`: Helper `requestId(request)` (liest `x-request-id`, sonst generiert) und `jsonResponse` um optionalen `rid` erweitern, der als Feld im Body **und** als `x-request-id`-Header zurückkommt.
+- `src/routes/api/public/cloud-bridge/event.ts`: `rid` in allen Antworten (auch 401/400/500), plus Zähler `received`, `inserted`, `deduped`, sodass „verworfen" = `received - inserted` eindeutig ist.
+- `src/routes/api/public/live/publish.ts`: `rid` zurückgeben plus `broadcast: true/false`, `system_mirrored: true/false` und bei Throttling `throttled: true` mit `retry_in_ms` — genau das, was heute unsichtbar verworfen wird.
+- `src/routes/api/public/agent/result.ts` und `.../cloud-bridge/strategy.ts`: `rid` durchreichen.
 
-### 3. Systemwerte wieder anschließen (das eigentliche „nicht verbunden"-Problem)
-Zwei Wege, beide werden verdrahtet, damit es unabhängig vom Pi-Setup funktioniert:
-- **Persistenter Pfad:** `/api/public/live/publish` nimmt bereits `cpu_pct`, `mem_pct`, `disk_pct`, `temp_c`, `uptime_s` an, verwirft sie aber nach dem Broadcast. Diese Felder zusätzlich (throttled, max 1×/5 min) in `device_state_latest` spiegeln — neue Spalten `cpu_pct`, `mem_pct`, `disk_pct`, `temp_c`, `uptime_s`, `sys_updated_at`. Kosten: ~288 kleine Upserts/Tag statt 620 Event-Zeilen wie früher.
-- **UI:** Gauges auf `device_state_latest` umstellen mit Fallback auf `last_snapshot`, plus Live-Overlay aus dem Broadcast und sichtbarem „Stand: vor X Min"-Zeitstempel, damit stale Werte nie mehr wie aktuell aussehen.
+Kein Datenbank-Write kommt dazu; Tracing bleibt reine Antwort-Metadaten plus lokales Node-RED-Log.
 
-### 4. Node-RED-Vorlage nachziehen
-- `public/nodered-template.json`: den System-Telemetrie-Zweig auf `/api/public/live/publish` umhängen (alle 60 s, nur Broadcast/Spiegel — keine `device_events`-Zeilen mehr).
-- `device_events` nur noch für echte Zustandswechsel und Warnungen/Kritisch.
-- `docs/nodered-integration.md` entsprechend aktualisieren, inklusive Checkliste „warum kommen keine Systemwerte an".
+### 3. Doku
 
-### 5. Cron wieder aktivieren und Health sichtbar machen
-- Job 4 reaktivieren (nächtlich, 1× pro Tag), damit Rollups laufen und Rohzeilen gepruned werden.
-- Auf `/connections/usage` eine Zeile „Letzter Eingang pro Komponente" ergänzen (eine Query), damit ein abgerissener Node-RED-Zweig sofort auffällt statt nach Tagen.
+- `docs/nodered-integration.md`: neuer Abschnitt „Trace-/Debug-Mode" — `TRACE_MODE`-Werte, Aufbau der Trace-Zeile, Bedeutung von `deduped` / `throttled` / `system_mirrored`, und eine kurze Tabelle „Symptom → was im Trace steht".
 
-## Realistische Erwartung zu den Credits
+## Hinweis
 
-Punkt 1 + 2 senken die DB-Wachzeit deutlich; ein Rest bleibt, weil die Cloud-Instanz auch im Leerlauf abgerechnet wird. Von 1,4 auf ~0,5 ist plausibel, aber nicht garantiert — nach dem Umbau prüfe ich `db_health` und die Usage-Zahlen erneut und melde die echte Differenz. Falls dann die Instanzgröße der verbleibende Treiber ist, schlage ich ein Downsizing vor (Memory 55 %, Verbindungen 12/60 — Luft ist da).
-
-## Technische Details
-
-- Neue Migration: `ingest_device_events(jsonb)` (SECURITY DEFINER, `search_path=public`), Spalten auf `device_state_latest`, GRANTs für `service_role`, Cron-Job reaktivieren.
-- Angefasste Dateien: `src/routes/api/public/cloud-bridge/event.ts`, `src/routes/api/public/live/publish.ts`, `src/routes/_cloud/devices.$id.tsx`, `src/components/DeviceAnalytics.tsx`, `src/routes/_cloud/connections.usage.tsx`, `src/lib/usage.functions.ts`, `public/nodered-template.json`, `docs/nodered-integration.md`.
+Import des aktualisierten Templates ersetzt die bestehenden Nodes mit gleichen IDs; die Tab-Env-Werte (`CLOUD_DEVICE_TOKEN` etc.) musst du nach dem Import einmal prüfen bzw. `TRACE_MODE` ergänzen.
