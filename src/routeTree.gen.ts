@@ -49,6 +49,7 @@ import { Route as ApiPublicCloudBridgeStrategyRouteImport } from './routes/api/p
 import { Route as ApiPublicHooksAggregateEventsRouteImport } from './routes/api/public/hooks/aggregate-events'
 import { Route as ApiPublicHooksAnomalyScanRouteImport } from './routes/api/public/hooks/anomaly-scan'
 import { Route as ApiPublicIngestEventRouteImport } from './routes/api/public/ingest/event'
+import { Route as ApiPublicIngestLiveRouteImport } from './routes/api/public/ingest/live'
 import { Route as ApiPublicLivePublishRouteImport } from './routes/api/public/live/publish'
 import { Route as ApiPublicOauthAuthorizeRouteImport } from './routes/api/public/oauth/authorize'
 import { Route as ApiPublicOauthAuthorizePostRouteImport } from './routes/api/public/oauth/authorize-post'
@@ -264,6 +265,11 @@ const ApiPublicIngestEventRoute = ApiPublicIngestEventRouteImport.update({
   path: '/api/public/ingest/event',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIngestLiveRoute = ApiPublicIngestLiveRouteImport.update({
+  id: '/api/public/ingest/live',
+  path: '/api/public/ingest/live',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicLivePublishRoute = ApiPublicLivePublishRouteImport.update({
   id: '/api/public/live/publish',
   path: '/api/public/live/publish',
@@ -335,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/aggregate-events': typeof ApiPublicHooksAggregateEventsRoute
   '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
+  '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
@@ -377,6 +384,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/aggregate-events': typeof ApiPublicHooksAggregateEventsRoute
   '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
+  '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
@@ -426,6 +434,7 @@ export interface FileRoutesById {
   '/api/public/hooks/aggregate-events': typeof ApiPublicHooksAggregateEventsRoute
   '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
+  '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
@@ -473,6 +482,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/aggregate-events'
     | '/api/public/hooks/anomaly-scan'
     | '/api/public/ingest/event'
+    | '/api/public/ingest/live'
     | '/api/public/live/publish'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
@@ -515,6 +525,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/aggregate-events'
     | '/api/public/hooks/anomaly-scan'
     | '/api/public/ingest/event'
+    | '/api/public/ingest/live'
     | '/api/public/live/publish'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
@@ -563,6 +574,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/aggregate-events'
     | '/api/public/hooks/anomaly-scan'
     | '/api/public/ingest/event'
+    | '/api/public/ingest/live'
     | '/api/public/live/publish'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
@@ -590,6 +602,7 @@ export interface RootRouteChildren {
   ApiPublicHooksAggregateEventsRoute: typeof ApiPublicHooksAggregateEventsRoute
   ApiPublicHooksAnomalyScanRoute: typeof ApiPublicHooksAnomalyScanRoute
   ApiPublicIngestEventRoute: typeof ApiPublicIngestEventRoute
+  ApiPublicIngestLiveRoute: typeof ApiPublicIngestLiveRoute
   ApiPublicLivePublishRoute: typeof ApiPublicLivePublishRoute
   ApiPublicOauthAuthorizeRoute: typeof ApiPublicOauthAuthorizeRoute
   ApiPublicOauthAuthorizePostRoute: typeof ApiPublicOauthAuthorizePostRoute
@@ -880,6 +893,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIngestEventRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ingest/live': {
+      id: '/api/public/ingest/live'
+      path: '/api/public/ingest/live'
+      fullPath: '/api/public/ingest/live'
+      preLoaderRoute: typeof ApiPublicIngestLiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/live/publish': {
       id: '/api/public/live/publish'
       path: '/api/public/live/publish'
@@ -1034,6 +1054,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksAggregateEventsRoute: ApiPublicHooksAggregateEventsRoute,
   ApiPublicHooksAnomalyScanRoute: ApiPublicHooksAnomalyScanRoute,
   ApiPublicIngestEventRoute: ApiPublicIngestEventRoute,
+  ApiPublicIngestLiveRoute: ApiPublicIngestLiveRoute,
   ApiPublicLivePublishRoute: ApiPublicLivePublishRoute,
   ApiPublicOauthAuthorizeRoute: ApiPublicOauthAuthorizeRoute,
   ApiPublicOauthAuthorizePostRoute: ApiPublicOauthAuthorizePostRoute,
@@ -1044,13 +1065,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
