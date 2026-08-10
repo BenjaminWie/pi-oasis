@@ -36,15 +36,15 @@ export function BottomNav() {
   const hasMqtt = (brokers.data?.length ?? 0) > 0;
 
   const tabs = hasMqtt
-    ? [
+    ? ([
         baseTabs[0],
-        { to: "/mqtt", label: "MQTT", icon: Radio } as const,
         baseTabs[1],
+        { to: "/mqtt", label: "MQTT", icon: Radio } as const,
         baseTabs[2],
         baseTabs[3],
-        baseTabs[4],
-      ]
-    : [...baseTabs];
+        baseTabs[5],
+      ] as const)
+    : ([...baseTabs] as const);
 
   return (
     <nav
