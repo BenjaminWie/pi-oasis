@@ -39,7 +39,7 @@
       {
         "name": "LOCAL_API_URL",
         "type": "str",
-        "value": "http://127.0.0.1:3000/api/public/ingest/event"
+        "value": "http://127.0.0.1:8080/api/public/ingest/event"
       },
       {
         "name": "PI_INGEST_TOKEN",
