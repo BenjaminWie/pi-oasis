@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity,
   Bug,
   Droplets,
   Gauge,
@@ -34,7 +33,7 @@ import {
   getLocalTraces,
 } from "@/lib/local-telemetry.functions";
 
-export const Route = createFileRoute("/_authenticated/pump")({
+export const Route = createFileRoute("/_authenticated/pumpe")({
   head: () => ({
     meta: [
       { title: "Pumpensteuerung — Pi Hub lokal" },
@@ -491,5 +490,3 @@ function fmtTime(iso: string) {
     return iso;
   }
 }
-
-export { Activity };
