@@ -2,7 +2,8 @@
 // everything on the Pi: 48h JSONL storage + instant SSE fanout to open tabs.
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { bearer, requestId, tracedResponse } from "@/lib/agent-api.server";
+import { requestId, tracedResponse } from "@/lib/agent-api.server";
+import { guardLocalIngest } from "@/lib/local-ingest-guard.server";
 
 const Tick = z
   .object({
@@ -26,48 +27,22 @@ const Tick = z
 
 const Body = z.union([Tick, z.array(Tick).min(1).max(20)]);
 
-function isPrivateHost(host: string | null) {
-  const h = (host ?? "").split(":")[0];
-  return (
-    h === "localhost" ||
-    h === "127.0.0.1" ||
-    h.startsWith("192.168.") ||
-    h.startsWith("10.") ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(h)
-  );
-}
-
-export function isLocalCaller(request: Request) {
-  const ip =
-    request.headers.get("cf-connecting-ip") ||
-    request.headers.get("x-real-ip") ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    null;
-  return isPrivateHost(request.headers.get("host")) || isPrivateHost(ip);
-}
-
-export function guardLocalIngest(request: Request): string | null {
-  const expected = process.env.PI_INGEST_TOKEN || process.env.PI_LOCAL_INGEST_TOKEN || "";
-  if (expected) return bearer(request) === expected ? null : "unauthorized";
-  return isLocalCaller(request) ? null : "local ingest only";
-}
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, content-type, x-request-id",
+  "Access-Control-Expose-Headers": "x-request-id",
+};
 
 export const Route = createFileRoute("/api/public/ingest/live")({
   server: {
     handlers: {
-      OPTIONS: async () =>
-        new Response(null, {
-          status: 204,
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "authorization, content-type, x-request-id",
-            "Access-Control-Expose-Headers": "x-request-id",
-          },
-        }),
+      OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
       POST: async ({ request }) => {
         const rid = requestId(request);
-        const respond = tracedResponse(rid);
+        const respond = (body: any, status = 200) =>
+          tracedResponse(rid)(body, { status, headers: CORS });
+
         const denied = guardLocalIngest(request);
         if (denied) return respond({ error: denied }, denied === "unauthorized" ? 401 : 403);
 
