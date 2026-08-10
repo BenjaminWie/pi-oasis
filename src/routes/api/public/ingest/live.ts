@@ -1,22 +1,31 @@
-// Pi-local Node-RED fallback ingest. Events land in the 48h local time-series
-// store (~/.pi-hub/telemetry) plus a RAM buffer, and are pushed live to open
-// dashboard tabs. Requires PI_INGEST_TOKEN when set; otherwise LAN-only.
+// Local live-tick ingest (Pi-only). Mirrors /api/public/live/publish but keeps
+// everything on the Pi: 48h JSONL storage + instant SSE fanout to open tabs.
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { requestId, tracedResponse } from "@/lib/agent-api.server";
 import { guardLocalIngest } from "@/lib/local-ingest-guard.server";
 
-const Single = z.object({
-  component: z.string().min(1).max(64),
-  device: z.string().max(64).optional(),
-  status: z.string().min(1).max(32),
-  message: z.string().max(2048).optional(),
-  strategy_applied: z.string().max(64).optional(),
-  metrics: z.record(z.string(), z.unknown()).optional(),
-  ts: z.string().datetime().optional(),
-});
+const Tick = z
+  .object({
+    watts: z.number().finite().optional(),
+    pv_surplus_w: z.number().finite().optional(),
+    outside_temp_c: z.number().finite().optional(),
+    rain_next_24h_mm: z.number().finite().optional(),
+    pump_on: z.boolean().optional(),
+    strategy_applied: z.string().max(64).optional(),
+    reason: z.string().max(256).optional(),
+    cpu_pct: z.number().finite().optional(),
+    mem_pct: z.number().finite().optional(),
+    disk_pct: z.number().finite().optional(),
+    swap_pct: z.number().finite().optional(),
+    temp_c: z.number().finite().optional(),
+    uptime_s: z.number().finite().optional(),
+    mqtt_broker_up: z.boolean().optional(),
+    ts: z.string().datetime().optional(),
+  })
+  .passthrough();
 
-const Body = z.union([Single, z.array(Single).min(1).max(50)]);
+const Body = z.union([Tick, z.array(Tick).min(1).max(20)]);
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -25,7 +34,7 @@ const CORS = {
   "Access-Control-Expose-Headers": "x-request-id",
 };
 
-export const Route = createFileRoute("/api/public/ingest/event")({
+export const Route = createFileRoute("/api/public/ingest/live")({
   server: {
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
@@ -43,27 +52,22 @@ export const Route = createFileRoute("/api/public/ingest/event")({
         } catch (e: any) {
           return respond({ error: "invalid body", detail: String(e?.message ?? e) }, 400);
         }
-
         const now = new Date().toISOString();
-        const events = (Array.isArray(parsed) ? parsed : [parsed]).map((e) => ({
-          ...e,
-          ts: e.ts ?? now,
-          receivedAt: now,
-          metrics: e.metrics ?? {},
+        const ticks = (Array.isArray(parsed) ? parsed : [parsed]).map((t) => ({
+          ...t,
+          ts: t.ts ?? now,
         }));
 
-        const { pushLocalIngest } = await import("@/lib/local-ingest-buffer.server");
         const { appendLocalRows } = await import("@/lib/local-timeseries.server");
         const { publishLocalBus } = await import("@/lib/local-live-bus.server");
-        pushLocalIngest(events);
-        const stored = appendLocalRows("event", events);
-        for (const e of events) publishLocalBus("event", e);
+        const stored = appendLocalRows("tick", ticks);
+        for (const t of ticks) publishLocalBus("tick", t);
 
         return respond({
           ok: true,
-          received: events.length,
+          received: ticks.length,
           stored,
-          dropped: events.length - stored,
+          downsampled: ticks.length - stored,
           storage: "local-jsonl-48h",
         });
       },

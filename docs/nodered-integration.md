@@ -424,3 +424,39 @@ evt-m8fq2k-a13c -> POST /cloud-bridge/event | 2 item(s) | 200 | received=2, inse
 | Doppelte Events | `deduped=…` > 0 |
 | Cloud nicht erreichbar | `no-response | transport=…` (Catch-Node) |
 | `RID-MISMATCH` | Ein Proxy/HTTP-Node überschreibt Header — im HTTP-Node dürfen keine festen Header/Auth gesetzt sein |
+
+## 10. Dual-Sink: Cloud + lokale App (48h lokale Historie)
+
+Jeder Push geht jetzt optional **doppelt** raus: an die Cloud (wie bisher) und an die
+lokal auf dem Pi laufende Pi-Hub App. Die lokale App speichert Ticks, Events und Traces
+48 Stunden lang in JSONL-Dateien unter `~/.pi-hub/timeseries/` und zeigt sie unter
+**/pumpe** (Live-Gauges, 48h-Charts, Debug-/Trace-Panel) an — komplett ohne Datenbank
+und ohne Cloud-Wake.
+
+### Neue Tab-Env-Werte
+
+| Name | Default | Bedeutung |
+| --- | --- | --- |
+| `LOCAL_BASE_URL` | `http://127.0.0.1:8080` | Basis-URL der lokalen Pi-Hub App |
+| `LOCAL_SINK` | `on` | `off` schaltet den lokalen Zweig komplett ab |
+| `PI_INGEST_TOKEN` | leer | optional; ohne Token akzeptiert die App nur Aufrufe aus dem LAN/localhost |
+
+### Lokale Endpunkte
+
+| Endpunkt | Inhalt | Aufbewahrung |
+| --- | --- | --- |
+| `POST /api/public/ingest/live` | Live-Ticks (Watt, Systemwerte) | 48h, für die Persistenz heruntergesampelt |
+| `POST /api/public/ingest/event` | Events / Session-Summaries | 48h |
+| `POST /api/public/ingest/trace` | Trace-Zeilen inkl. Cloud-Antwort | 48h |
+
+### Was der Flow zusätzlich macht
+
+- `Build Local Sink Request` hängt an den drei Build-Nodes (Event, Live-Telemetrie,
+  Command-Result) und schickt dieselbe Nutzlast an den passenden lokalen Endpunkt.
+- `Mirror Trace → Local App` spiegelt **jede** Trace-Zeile lokal — unabhängig von
+  `TRACE_MODE`. `TRACE_MODE` steuert nur noch, was im Node-RED-Debug-Panel landet.
+- Ein `status`-Node am WebSocket meldet Verbindungs-/Trennereignisse ebenfalls als
+  lokalen Trace, damit man Wake-Ausfälle im Nachhinein sehen kann.
+
+So lässt sich jeder Fall lokal prüfen: Ist ein Event lokal da, aber in der Cloud nicht,
+zeigt der Trace mit derselben `rid` genau Statuscode und Grund.

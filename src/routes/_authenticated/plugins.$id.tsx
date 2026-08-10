@@ -77,12 +77,16 @@ function PluginDetailPage() {
 
   return (
     <div className="px-4 pt-6 pb-24">
-      <Link
-        to="/plugins"
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground mb-3"
-      >
-        <ArrowLeft size={14} /> zurück
-      </Link>
+      <div className="flex items-center justify-between mb-3">
+        <Link to="/plugins" className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <ArrowLeft size={14} /> zurück
+        </Link>
+        {plugin.kind === "smart_pump" && (
+          <Link to="/pumpe" className="text-xs text-primary">
+            Pump-Ansicht (live + debug) →
+          </Link>
+        )}
+      </div>
 
       <header className="mb-5">
         <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">
