@@ -26,6 +26,7 @@ import { Route as CloudPairCallbackRouteImport } from './routes/_cloud/pair-call
 import { Route as CloudPluginsRouteImport } from './routes/_cloud/plugins'
 import { Route as CloudPumpRouteImport } from './routes/_cloud/pump'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiLiveStreamRouteImport } from './routes/api/live-stream'
 import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
 import { Route as AuthenticatedPluginsIndexRouteImport } from './routes/_authenticated/plugins.index'
 import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
@@ -50,6 +51,7 @@ import { Route as ApiPublicHooksAggregateEventsRouteImport } from './routes/api/
 import { Route as ApiPublicHooksAnomalyScanRouteImport } from './routes/api/public/hooks/anomaly-scan'
 import { Route as ApiPublicIngestEventRouteImport } from './routes/api/public/ingest/event'
 import { Route as ApiPublicIngestLiveRouteImport } from './routes/api/public/ingest/live'
+import { Route as ApiPublicIngestTraceRouteImport } from './routes/api/public/ingest/trace'
 import { Route as ApiPublicLivePublishRouteImport } from './routes/api/public/live/publish'
 import { Route as ApiPublicOauthAuthorizeRouteImport } from './routes/api/public/oauth/authorize'
 import { Route as ApiPublicOauthAuthorizePostRouteImport } from './routes/api/public/oauth/authorize-post'
@@ -139,6 +141,11 @@ const CloudPumpRoute = CloudPumpRouteImport.update({
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLiveStreamRoute = ApiLiveStreamRouteImport.update({
+  id: '/api/live-stream',
+  path: '/api/live-stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedContainerIdRoute =
@@ -270,6 +277,11 @@ const ApiPublicIngestLiveRoute = ApiPublicIngestLiveRouteImport.update({
   path: '/api/public/ingest/live',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIngestTraceRoute = ApiPublicIngestTraceRouteImport.update({
+  id: '/api/public/ingest/trace',
+  path: '/api/public/ingest/trace',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicLivePublishRoute = ApiPublicLivePublishRouteImport.update({
   id: '/api/public/live/publish',
   path: '/api/public/live/publish',
@@ -318,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/pair-callback': typeof CloudPairCallbackRoute
   '/pump': typeof CloudPumpRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/live-stream': typeof ApiLiveStreamRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
@@ -342,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
+  '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
@@ -362,6 +376,7 @@ export interface FileRoutesByTo {
   '/plugins': typeof AuthenticatedPluginsIndexRoute
   '/pump': typeof CloudPumpRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/live-stream': typeof ApiLiveStreamRoute
   '/container/$id': typeof AuthenticatedContainerIdRoute
   '/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
@@ -385,6 +400,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
+  '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
@@ -411,6 +427,7 @@ export interface FileRoutesById {
   '/_cloud/plugins': typeof CloudPluginsRoute
   '/_cloud/pump': typeof CloudPumpRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/live-stream': typeof ApiLiveStreamRoute
   '/_authenticated/container/$id': typeof AuthenticatedContainerIdRoute
   '/_authenticated/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/_cloud/connections/alexa': typeof CloudConnectionsAlexaRoute
@@ -435,6 +452,7 @@ export interface FileRoutesById {
   '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
+  '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
@@ -459,6 +477,7 @@ export interface FileRouteTypes {
     | '/pair-callback'
     | '/pump'
     | '/api/chat'
+    | '/api/live-stream'
     | '/container/$id'
     | '/plugins/$id'
     | '/connections/alexa'
@@ -483,6 +502,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/anomaly-scan'
     | '/api/public/ingest/event'
     | '/api/public/ingest/live'
+    | '/api/public/ingest/trace'
     | '/api/public/live/publish'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
@@ -503,6 +523,7 @@ export interface FileRouteTypes {
     | '/plugins'
     | '/pump'
     | '/api/chat'
+    | '/api/live-stream'
     | '/container/$id'
     | '/plugins/$id'
     | '/connections/alexa'
@@ -526,6 +547,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/anomaly-scan'
     | '/api/public/ingest/event'
     | '/api/public/ingest/live'
+    | '/api/public/ingest/trace'
     | '/api/public/live/publish'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
@@ -551,6 +573,7 @@ export interface FileRouteTypes {
     | '/_cloud/plugins'
     | '/_cloud/pump'
     | '/api/chat'
+    | '/api/live-stream'
     | '/_authenticated/container/$id'
     | '/_authenticated/plugins/$id'
     | '/_cloud/connections/alexa'
@@ -575,6 +598,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/anomaly-scan'
     | '/api/public/ingest/event'
     | '/api/public/ingest/live'
+    | '/api/public/ingest/trace'
     | '/api/public/live/publish'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
@@ -590,6 +614,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   LoginRoute: typeof LoginRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiLiveStreamRoute: typeof ApiLiveStreamRoute
   ApiPublicMcpRoute: typeof ApiPublicMcpRoute
   ApiPublicAgentHeartbeatRoute: typeof ApiPublicAgentHeartbeatRoute
   ApiPublicAgentPollRoute: typeof ApiPublicAgentPollRoute
@@ -603,6 +628,7 @@ export interface RootRouteChildren {
   ApiPublicHooksAnomalyScanRoute: typeof ApiPublicHooksAnomalyScanRoute
   ApiPublicIngestEventRoute: typeof ApiPublicIngestEventRoute
   ApiPublicIngestLiveRoute: typeof ApiPublicIngestLiveRoute
+  ApiPublicIngestTraceRoute: typeof ApiPublicIngestTraceRoute
   ApiPublicLivePublishRoute: typeof ApiPublicLivePublishRoute
   ApiPublicOauthAuthorizeRoute: typeof ApiPublicOauthAuthorizeRoute
   ApiPublicOauthAuthorizePostRoute: typeof ApiPublicOauthAuthorizePostRoute
@@ -730,6 +756,13 @@ declare module '@tanstack/react-router' {
       path: '/api/chat'
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/live-stream': {
+      id: '/api/live-stream'
+      path: '/api/live-stream'
+      fullPath: '/api/live-stream'
+      preLoaderRoute: typeof ApiLiveStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/container/$id': {
@@ -900,6 +933,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIngestLiveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ingest/trace': {
+      id: '/api/public/ingest/trace'
+      path: '/api/public/ingest/trace'
+      fullPath: '/api/public/ingest/trace'
+      preLoaderRoute: typeof ApiPublicIngestTraceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/live/publish': {
       id: '/api/public/live/publish'
       path: '/api/public/live/publish'
@@ -1042,6 +1082,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   LoginRoute: LoginRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiLiveStreamRoute: ApiLiveStreamRoute,
   ApiPublicMcpRoute: ApiPublicMcpRoute,
   ApiPublicAgentHeartbeatRoute: ApiPublicAgentHeartbeatRoute,
   ApiPublicAgentPollRoute: ApiPublicAgentPollRoute,
@@ -1055,6 +1096,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksAnomalyScanRoute: ApiPublicHooksAnomalyScanRoute,
   ApiPublicIngestEventRoute: ApiPublicIngestEventRoute,
   ApiPublicIngestLiveRoute: ApiPublicIngestLiveRoute,
+  ApiPublicIngestTraceRoute: ApiPublicIngestTraceRoute,
   ApiPublicLivePublishRoute: ApiPublicLivePublishRoute,
   ApiPublicOauthAuthorizeRoute: ApiPublicOauthAuthorizeRoute,
   ApiPublicOauthAuthorizePostRoute: ApiPublicOauthAuthorizePostRoute,
