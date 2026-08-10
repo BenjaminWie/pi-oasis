@@ -16,13 +16,13 @@ export const getLocalPumpState = createServerFn({ method: "GET" })
       readRange("event", since, 200),
       lastSeenByComponent(sinceIso(48)),
     ]);
-    const lastTick = ticks.length ? ticks[ticks.length - 1] : null;
+    const lastTick = (ticks.length ? ticks[ticks.length - 1] : null) as any;
     const pumpEvents = events
       .filter((e: any) =>
         ["pump_control", "pump_guard", "eco_intelligence"].includes(String(e.component)),
       )
       .slice(-50)
-      .reverse();
+      .reverse() as any[];
     return { lastTick, pumpEvents, components };
   });
 
@@ -42,5 +42,5 @@ export const getLocalTraces = createServerFn({ method: "GET" })
     const rows = await readRange("trace", sinceIso(48), 2000);
     const filtered = data.onlyErrors ? rows.filter((r: any) => r.ok === false) : rows;
     const limit = Math.max(1, Math.min(200, data.limit ?? 60));
-    return { traces: filtered.slice(-limit).reverse() };
+    return { traces: filtered.slice(-limit).reverse() as any[] };
   });
