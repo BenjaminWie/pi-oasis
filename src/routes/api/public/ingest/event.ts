@@ -1,9 +1,10 @@
-// Pi-local Node-RED fallback ingest. Keeps events in RAM only so the SD card
-// is not used. In cloud deployments it requires PI_INGEST_TOKEN; without a
-// token it only accepts localhost/private-LAN requests by Host/IP headers.
+// Pi-local Node-RED fallback ingest. Events land in the 48h local time-series
+// store (~/.pi-hub/telemetry) plus a RAM buffer, and are pushed live to open
+// dashboard tabs. Requires PI_INGEST_TOKEN when set; otherwise LAN-only.
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { bearer, jsonResponse } from "@/lib/agent-api.server";
+import { requestId, tracedResponse } from "@/lib/agent-api.server";
+import { guardLocalIngest } from "@/lib/local-ingest-guard.server";
 
 const Single = z.object({
   component: z.string().min(1).max(64),
@@ -17,43 +18,30 @@ const Single = z.object({
 
 const Body = z.union([Single, z.array(Single).min(1).max(50)]);
 
-function isPrivateHost(host: string | null) {
-  const h = (host ?? "").split(":")[0];
-  return (
-    h === "localhost" ||
-    h === "127.0.0.1" ||
-    h.startsWith("192.168.") ||
-    h.startsWith("10.") ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(h)
-  );
-}
-
-function isPrivateCaller(request: Request) {
-  const host = request.headers.get("host");
-  const ip =
-    request.headers.get("cf-connecting-ip") ||
-    request.headers.get("x-real-ip") ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    null;
-  return isPrivateHost(host) || isPrivateHost(ip);
-}
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, content-type, x-request-id",
+  "Access-Control-Expose-Headers": "x-request-id",
+};
 
 export const Route = createFileRoute("/api/public/ingest/event")({
   server: {
     handlers: {
+      OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
       POST: async ({ request }) => {
-        const expected = process.env.PI_INGEST_TOKEN || process.env.PI_LOCAL_INGEST_TOKEN || "";
-        if (expected) {
-          if (bearer(request) !== expected) return jsonResponse({ error: "unauthorized" }, 401);
-        } else if (!isPrivateCaller(request)) {
-          return jsonResponse({ error: "local ingest only" }, 403);
-        }
+        const rid = requestId(request);
+        const respond = (body: any, status = 200) =>
+          tracedResponse(rid)(body, { status, headers: CORS });
+
+        const denied = guardLocalIngest(request);
+        if (denied) return respond({ error: denied }, denied === "unauthorized" ? 401 : 403);
 
         let parsed;
         try {
           parsed = Body.parse(await request.json());
         } catch (e: any) {
-          return jsonResponse({ error: "invalid body", detail: String(e?.message ?? e) }, 400);
+          return respond({ error: "invalid body", detail: String(e?.message ?? e) }, 400);
         }
 
         const now = new Date().toISOString();
@@ -63,9 +51,21 @@ export const Route = createFileRoute("/api/public/ingest/event")({
           receivedAt: now,
           metrics: e.metrics ?? {},
         }));
+
         const { pushLocalIngest } = await import("@/lib/local-ingest-buffer.server");
+        const { appendLocalRows } = await import("@/lib/local-timeseries.server");
+        const { publishLocalBus } = await import("@/lib/local-live-bus.server");
         pushLocalIngest(events);
-        return jsonResponse({ ok: true, buffered: events.length, storage: "ram" });
+        const stored = appendLocalRows("event", events);
+        for (const e of events) publishLocalBus("event", e);
+
+        return respond({
+          ok: true,
+          received: events.length,
+          stored,
+          dropped: events.length - stored,
+          storage: "local-jsonl-48h",
+        });
       },
     },
   },
