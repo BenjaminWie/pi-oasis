@@ -18,6 +18,7 @@ import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authent
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticated/plugins'
+import { Route as AuthenticatedPumpeRouteImport } from './routes/_authenticated/pumpe'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
 import { Route as CloudConnectionsRouteImport } from './routes/_cloud/connections'
@@ -101,6 +102,11 @@ const AuthenticatedOverviewRoute = AuthenticatedOverviewRouteImport.update({
 const AuthenticatedPluginsRoute = AuthenticatedPluginsRouteImport.update({
   id: '/plugins',
   path: '/plugins',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPumpeRoute = AuthenticatedPumpeRouteImport.update({
+  id: '/pumpe',
+  path: '/pumpe',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -323,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/plugins': typeof CloudPluginsRoute
+  '/pumpe': typeof AuthenticatedPumpeRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
   '/connections': typeof CloudConnectionsRouteWithChildren
@@ -370,6 +377,7 @@ export interface FileRoutesByTo {
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
+  '/pumpe': typeof AuthenticatedPumpeRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
   '/pair-callback': typeof CloudPairCallbackRoute
@@ -419,6 +427,7 @@ export interface FileRoutesById {
   '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
   '/_authenticated/plugins': typeof AuthenticatedPluginsRouteWithChildren
+  '/_authenticated/pumpe': typeof AuthenticatedPumpeRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
   '/_cloud/connections': typeof CloudConnectionsRouteWithChildren
@@ -470,6 +479,7 @@ export interface FileRouteTypes {
     | '/mqtt'
     | '/overview'
     | '/plugins'
+    | '/pumpe'
     | '/settings'
     | '/terminal'
     | '/connections'
@@ -517,6 +527,7 @@ export interface FileRouteTypes {
     | '/integrations'
     | '/mqtt'
     | '/overview'
+    | '/pumpe'
     | '/settings'
     | '/terminal'
     | '/pair-callback'
@@ -565,6 +576,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mqtt'
     | '/_authenticated/overview'
     | '/_authenticated/plugins'
+    | '/_authenticated/pumpe'
     | '/_authenticated/settings'
     | '/_authenticated/terminal'
     | '/_cloud/connections'
@@ -700,6 +712,13 @@ declare module '@tanstack/react-router' {
       path: '/plugins'
       fullPath: '/plugins'
       preLoaderRoute: typeof AuthenticatedPluginsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pumpe': {
+      id: '/_authenticated/pumpe'
+      path: '/pumpe'
+      fullPath: '/pumpe'
+      preLoaderRoute: typeof AuthenticatedPumpeRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/settings': {
@@ -1003,6 +1022,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMqttRoute: typeof AuthenticatedMqttRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
   AuthenticatedPluginsRoute: typeof AuthenticatedPluginsRouteWithChildren
+  AuthenticatedPumpeRoute: typeof AuthenticatedPumpeRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTerminalRoute: typeof AuthenticatedTerminalRoute
   AuthenticatedContainerIdRoute: typeof AuthenticatedContainerIdRoute
@@ -1013,6 +1033,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMqttRoute: AuthenticatedMqttRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
   AuthenticatedPluginsRoute: AuthenticatedPluginsRouteWithChildren,
+  AuthenticatedPumpeRoute: AuthenticatedPumpeRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTerminalRoute: AuthenticatedTerminalRoute,
   AuthenticatedContainerIdRoute: AuthenticatedContainerIdRoute,
