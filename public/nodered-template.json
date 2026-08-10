@@ -1,1177 +1,1341 @@
 [
-    {
-        "id": "pihub_cloud_bridge_tab",
-        "type": "tab",
-        "label": "Pi-Hub Cloud Bridge",
-        "disabled": false,
-        "info": "Working Pi-Hub bridge. Configure tab env values from the Pi UI /integrations. HTTP nodes intentionally use method=use, url empty, authType empty so msg.url/msg.headers are honored. Trace: set TRACE_MODE=off|errors|full to control the Trace/Debug branch; every request carries x-request-id and the cloud echoes it back as rid.",
-        "env": [
-            {
-                "name": "CLOUD_BRIDGE_URL",
-                "type": "str",
-                "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/event"
-            },
-            {
-                "name": "CLOUD_STRATEGY_URL",
-                "type": "str",
-                "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/strategy"
-            },
-            {
-                "name": "CLOUD_COMMAND_POLL_URL",
-                "type": "str",
-                "value": "https://pi-hub.benniwie.com/api/public/agent/poll?runner=nodered"
-            },
-            {
-                "name": "CLOUD_COMMAND_RESULT_URL",
-                "type": "str",
-                "value": "https://pi-hub.benniwie.com/api/public/agent/result"
-            },
-            {
-                "name": "CLOUD_LIVE_URL",
-                "type": "str",
-                "value": "https://pi-hub.benniwie.com/api/public/live/publish"
-            },
-            {
-                "name": "CLOUD_DEVICE_TOKEN",
-                "type": "str",
-                "value": ""
-            },
-            {
-                "name": "LOCAL_API_URL",
-                "type": "str",
-                "value": "http://127.0.0.1:3000/api/public/ingest/event"
-            },
-            {
-                "name": "PI_INGEST_TOKEN",
-                "type": "str",
-                "value": ""
-            },
-            {
-                "name": "DEFAULT_DEVICE_LABEL",
-                "type": "str",
-                "value": "drainpress"
-            },
-            {
-                "name": "MQTT_COMMAND_TOPIC",
-                "type": "str",
-                "value": "cmnd/zisterne/POWER"
-            },
-            {
-                "name": "MQTT_BROKER_HOST",
-                "type": "str",
-                "value": "mosquitto"
-            },
-            {
-                "name": "MQTT_BROKER_PORT",
-                "type": "num",
-                "value": "1883"
-            },
-            {
-                "name": "CLOUD_REALTIME_BOOTSTRAP_URL",
-                "type": "str",
-                "value": "https://pi-hub.benniwie.com/api/public/agent/realtime"
-            },
-            {
-                "name": "CLOUD_WS_URL",
-                "type": "str",
-                "value": ""
-            },
-            {
-                "name": "CLOUD_DEVICE_ID",
-                "type": "str",
-                "value": ""
-            },
-            {
-                "name": "TRACE_MODE",
-                "type": "str",
-                "value": "errors"
-            }
-        ]
+  {
+    "id": "pihub_cloud_bridge_tab",
+    "type": "tab",
+    "label": "Pi-Hub Cloud Bridge",
+    "disabled": false,
+    "info": "Working Pi-Hub bridge. Configure tab env values from the Pi UI /integrations. HTTP nodes intentionally use method=use, url empty, authType empty so msg.url/msg.headers are honored. Trace: set TRACE_MODE=off|errors|full to control the Trace/Debug branch; every request carries x-request-id and the cloud echoes it back as rid. Dual-Sink: mit LOCAL_SINK=on geht jeder Push zusaetzlich an die lokale Pi-Hub App (LOCAL_BASE_URL) \u2014 Events, Live-Ticks, Command-Results und Traces. Dort werden sie 48h gespeichert und im Pump-Debug-Panel angezeigt.",
+    "env": [
+      {
+        "name": "CLOUD_BRIDGE_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/event"
+      },
+      {
+        "name": "CLOUD_STRATEGY_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/cloud-bridge/strategy"
+      },
+      {
+        "name": "CLOUD_COMMAND_POLL_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/agent/poll?runner=nodered"
+      },
+      {
+        "name": "CLOUD_COMMAND_RESULT_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/agent/result"
+      },
+      {
+        "name": "CLOUD_LIVE_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/live/publish"
+      },
+      {
+        "name": "CLOUD_DEVICE_TOKEN",
+        "type": "str",
+        "value": ""
+      },
+      {
+        "name": "LOCAL_API_URL",
+        "type": "str",
+        "value": "http://127.0.0.1:3000/api/public/ingest/event"
+      },
+      {
+        "name": "PI_INGEST_TOKEN",
+        "type": "str",
+        "value": ""
+      },
+      {
+        "name": "DEFAULT_DEVICE_LABEL",
+        "type": "str",
+        "value": "drainpress"
+      },
+      {
+        "name": "MQTT_COMMAND_TOPIC",
+        "type": "str",
+        "value": "cmnd/zisterne/POWER"
+      },
+      {
+        "name": "MQTT_BROKER_HOST",
+        "type": "str",
+        "value": "mosquitto"
+      },
+      {
+        "name": "MQTT_BROKER_PORT",
+        "type": "num",
+        "value": "1883"
+      },
+      {
+        "name": "CLOUD_REALTIME_BOOTSTRAP_URL",
+        "type": "str",
+        "value": "https://pi-hub.benniwie.com/api/public/agent/realtime"
+      },
+      {
+        "name": "CLOUD_WS_URL",
+        "type": "str",
+        "value": ""
+      },
+      {
+        "name": "CLOUD_DEVICE_ID",
+        "type": "str",
+        "value": ""
+      },
+      {
+        "name": "TRACE_MODE",
+        "type": "str",
+        "value": "errors"
+      },
+      {
+        "name": "LOCAL_BASE_URL",
+        "type": "str",
+        "value": "http://127.0.0.1:8080"
+      },
+      {
+        "name": "LOCAL_SINK",
+        "type": "str",
+        "value": "on"
+      }
+    ]
+  },
+  {
+    "id": "pihub_cloud_bridge_tab_env",
+    "type": "group",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Set these environment values on the tab/group before deploy",
+    "style": {
+      "label": true,
+      "fill": "#e3f3d3",
+      "color": "#1b5e20"
     },
-    {
-        "id": "pihub_cloud_bridge_tab_env",
-        "type": "group",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Set these environment values on the tab/group before deploy",
-        "style": {
-            "label": true,
-            "fill": "#e3f3d3",
-            "color": "#1b5e20"
-        },
-        "nodes": [
-            "pihub_note_env"
-        ],
-        "x": 34,
-        "y": 19,
-        "w": 792,
-        "h": 82
-    },
-    {
-        "id": "pihub_note_env",
-        "type": "comment",
-        "z": "pihub_cloud_bridge_tab",
-        "g": "pihub_cloud_bridge_tab_env",
-        "name": "Use CLOUD_DEVICE_TOKEN from Pi-Hub /integrations — not factory/reset/revocation token",
-        "info": "Do not enable the HTTP node's built-in Bearer Auth. This flow sets Authorization in msg.headers. If token is empty it will stop locally instead of spamming 401.",
-        "x": 430,
-        "y": 60,
-        "wires": []
-    },
-    {
-        "id": "07e310f047811d0a",
-        "type": "link in",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Event In (Eco/Hardware/Tibber/Weather)",
-        "links": [
-            "50ceea70f2c807cf",
-            "614623755bd9d72d",
-            "fc48dff7e412e1cf",
-            "afe00ea21caaec89"
-        ],
-        "x": 95,
-        "y": 160,
-        "wires": [
-            [
-                "pihub_rate_limit"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_test_event",
-        "type": "inject",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Test Cloud Push",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "{\"component\":\"node_red_test\",\"device\":\"drainpress\",\"status\":\"info\",\"message\":\"Node-RED cloud bridge test\",\"metrics\":{\"watts\":0}}",
-        "payloadType": "json",
-        "x": 140,
-        "y": 220,
-        "wires": [
-            [
-                "pihub_rate_limit"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_rate_limit",
-        "type": "delay",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "RAM buffer / rate limit",
-        "pauseType": "rate",
-        "timeout": "5",
-        "timeoutUnits": "seconds",
-        "rate": "50",
-        "nbRateUnits": "30",
-        "rateUnits": "second",
-        "randomFirst": "1",
-        "randomLast": "5",
-        "randomUnits": "seconds",
-        "drop": false,
-        "allowrate": false,
-        "outputs": 1,
-        "x": 340,
-        "y": 180,
-        "wires": [
-            [
-                "pihub_build_cloud"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_build_cloud",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Build Cloud Event Request",
-        "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) {\n    node.status({fill:'red', shape:'ring', text:'CLOUD_DEVICE_TOKEN fehlt'});\n    node.error('CLOUD_DEVICE_TOKEN fehlt. In Pi-Hub /integrations anzeigen und in Node-RED Tab-Env eintragen.', msg);\n    return null;\n}\nvar payload = msg.payload || {};\nif (!payload.component) payload.component = 'node_red';\nif (!payload.status) payload.status = 'info';\nif (!payload.ts) payload.ts = new Date().toISOString();\nif (!payload.device) payload.device = env.get('DEFAULT_DEVICE_LABEL') || 'drainpress';\nmsg.payload = payload;\nmsg._pihubOriginalPayload = JSON.parse(JSON.stringify(payload));\nmsg.method = 'POST';\nmsg.url = env.get('CLOUD_BRIDGE_URL');\nmsg.headers = {\n    'Authorization': 'Bearer ' + token,\n    'Content-Type': 'application/json'\n};\nnode.status({fill:'blue', shape:'dot', text:'send cloud'});\nmsg.rid = 'evt-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);\nmsg.headers = msg.headers || {};\nmsg.headers['x-request-id'] = msg.rid;\nmsg.traceSent = { rid: msg.rid, route: 'POST /cloud-bridge/event', at: Date.now(), items: Array.isArray(msg.payload) ? msg.payload.length : 1, body: msg.payload };\nreturn msg;",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 600,
-        "y": 180,
-        "wires": [
-            [
-                "pihub_http_cloud"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_http_cloud",
-        "type": "http request",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "POST Cloud Event (dynamic)",
-        "method": "use",
-        "ret": "obj",
-        "paytoqs": "ignore",
-        "url": "",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "authType": "",
-        "senderr": true,
-        "headers": [],
-        "x": 850,
-        "y": 180,
-        "wires": [
-            [
-                "pihub_cloud_ok",
-                "pihub_trace_log"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_cloud_ok",
-        "type": "switch",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Cloud 2xx?",
-        "property": "statusCode",
-        "propertyType": "msg",
-        "rules": [
-            {
-                "t": "btwn",
-                "v": "200",
-                "vt": "num",
-                "v2": "299",
-                "v2t": "num"
-            },
-            {
-                "t": "else"
-            }
-        ],
-        "checkall": "false",
-        "repair": false,
-        "outputs": 2,
-        "x": 1060,
-        "y": 180,
-        "wires": [
-            [
-                "pihub_cloud_debug_ok"
-            ],
-            [
-                "pihub_build_local_fallback"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_cloud_debug_ok",
-        "type": "debug",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Cloud OK",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": true,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "statusCode",
-        "statusType": "msg",
-        "x": 1260,
-        "y": 140,
-        "wires": []
-    },
-    {
-        "id": "pihub_cloud_catch",
-        "type": "catch",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Catch Cloud Push Failed",
-        "scope": [
-            "pihub_http_cloud"
-        ],
-        "uncaught": false,
-        "x": 850,
-        "y": 260,
-        "wires": [
-            [
-                "pihub_build_local_fallback",
-                "pihub_trace_log"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_build_local_fallback",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Build Local Fallback Request",
-        "func": "var original = msg._pihubOriginalPayload || msg.payload || {};\nmsg.payload = original;\nif (!msg.payload.component) msg.payload.component = 'node_red_fallback';\nif (!msg.payload.status) msg.payload.status = 'warning';\nif (!msg.payload.ts) msg.payload.ts = new Date().toISOString();\nmsg.method = 'POST';\nmsg.url = env.get('LOCAL_API_URL') || 'http://127.0.0.1:3000/api/public/ingest/event';\nmsg.headers = { 'Content-Type': 'application/json' };\nvar localToken = env.get('PI_INGEST_TOKEN') || '';\nif (localToken) msg.headers.Authorization = 'Bearer ' + localToken;\nnode.status({fill:'yellow', shape:'ring', text:'cloud failed -> local RAM fallback'});\nnode.warn('Cloud-Bridge nicht erreichbar oder 401. Sende lokal als RAM-Fallback. Prüfe CLOUD_DEVICE_TOKEN, nicht Revocation/Factory Token.');\nreturn msg;",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1280,
-        "y": 220,
-        "wires": [
-            [
-                "pihub_http_local"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_http_local",
-        "type": "http request",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "POST Local RAM Fallback (dynamic)",
-        "method": "use",
-        "ret": "obj",
-        "paytoqs": "ignore",
-        "url": "",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "authType": "",
-        "senderr": false,
-        "headers": [],
-        "x": 1540,
-        "y": 220,
-        "wires": [
-            [
-                "pihub_local_debug"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_local_debug",
-        "type": "debug",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Local fallback result",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": true,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "statusCode",
-        "statusType": "msg",
-        "x": 1770,
-        "y": 220,
-        "wires": []
-    },
-    {
-        "id": "pihub_default_strategy_inject",
-        "type": "inject",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Default Strategy on Deploy",
-        "props": [],
-        "repeat": "",
-        "crontab": "",
-        "once": true,
-        "onceDelay": 0.3,
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 170,
-        "y": 380,
-        "wires": [
-            [
-                "pihub_default_strategy"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_default_strategy",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Set Default Strategy",
-        "func": "global.set('zisterne_strategy', {\n    pv_min_w: 300, tibber_max_ct: 30, heat_start_hour: 11, heat_end_hour: 16,\n    run_minutes: 10, max_minutes_per_day: 30, rain_veto_mm: 0.1\n});\nglobal.set('zisterne_eco_paused', false);\nreturn null;",
-        "outputs": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 430,
-        "y": 380,
-        "wires": []
-    },
-    {
-        "id": "pihub_strategy_tick",
-        "type": "inject",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Poll Cloud Strategy (10m)",
-        "props": [],
-        "repeat": "600",
-        "crontab": "",
-        "once": true,
-        "onceDelay": "5",
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 170,
-        "y": 460,
-        "wires": [
-            [
-                "pihub_build_strategy"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_build_strategy",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Build Strategy Request",
-        "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) {\n    node.status({fill:'red', shape:'ring', text:'CLOUD_DEVICE_TOKEN fehlt'});\n    return null;\n}\nmsg.method = 'GET';\nmsg.url = env.get('CLOUD_STRATEGY_URL');\nmsg.headers = { 'Authorization': 'Bearer ' + token };\nmsg.rid = 'str-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);\nmsg.headers = msg.headers || {};\nmsg.headers['x-request-id'] = msg.rid;\nmsg.traceSent = { rid: msg.rid, route: 'GET /cloud-bridge/strategy', at: Date.now(), items: 1, body: msg.payload };\nreturn msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 430,
-        "y": 460,
-        "wires": [
-            [
-                "pihub_http_strategy"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_http_strategy",
-        "type": "http request",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "GET Strategy (dynamic)",
-        "method": "use",
-        "ret": "obj",
-        "paytoqs": "ignore",
-        "url": "",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "authType": "",
-        "senderr": true,
-        "headers": [],
-        "x": 660,
-        "y": 460,
-        "wires": [
-            [
-                "pihub_store_strategy",
-                "pihub_trace_log"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_store_strategy",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Store Strategy",
-        "func": "if (msg.statusCode >= 200 && msg.statusCode < 300 && msg.payload && msg.payload.params) {\n    global.set('zisterne_strategy', msg.payload.params);\n    global.set('zisterne_eco_paused', msg.payload.eco_paused === true);\n    node.status({fill:'green', shape:'dot', text:'strategy updated'});\n} else {\n    node.status({fill:'yellow', shape:'ring', text:'strategy failed ' + msg.statusCode});\n    node.warn(msg.payload || msg.error || 'Strategy poll failed');\n}\nreturn null;",
-        "outputs": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 890,
-        "y": 460,
-        "wires": []
-    },
-    {
-        "id": "pihub_command_poll_tick",
-        "type": "inject",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Safety-net Command Poll (15m — wake channel is primary)",
-        "props": [],
-        "repeat": "900",
-        "crontab": "",
-        "once": true,
-        "onceDelay": "7",
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 200,
-        "y": 620,
-        "wires": [
-            [
-                "pihub_build_command_poll"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_build_command_poll",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Build Command Poll",
-        "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) { node.status({fill:'red', shape:'ring', text:'CLOUD_DEVICE_TOKEN fehlt'}); return null; }\nmsg.method = 'GET';\nmsg.url = env.get('CLOUD_COMMAND_POLL_URL');\nmsg.headers = { 'Authorization': 'Bearer ' + token };\nreturn msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 480,
-        "y": 620,
-        "wires": [
-            [
-                "pihub_http_command_poll"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_http_command_poll",
-        "type": "http request",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "GET Command (dynamic)",
-        "method": "use",
-        "ret": "obj",
-        "paytoqs": "ignore",
-        "url": "",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "authType": "",
-        "senderr": false,
-        "headers": [],
-        "x": 730,
-        "y": 620,
-        "wires": [
-            [
-                "pihub_command_switch"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_command_switch",
-        "type": "switch",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Command?",
-        "property": "statusCode",
-        "propertyType": "msg",
-        "rules": [
-            {
-                "t": "eq",
-                "v": "200",
-                "vt": "num"
-            },
-            {
-                "t": "eq",
-                "v": "204",
-                "vt": "num"
-            },
-            {
-                "t": "else"
-            }
-        ],
-        "checkall": "false",
-        "repair": false,
-        "outputs": 3,
-        "x": 950,
-        "y": 620,
-        "wires": [
-            [
-                "pihub_execute_command"
-            ],
-            [],
-            [
-                "pihub_command_error"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_command_error",
-        "type": "debug",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Command poll error",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": true,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "statusCode",
-        "statusType": "msg",
-        "x": 1170,
-        "y": 700,
-        "wires": []
-    },
-    {
-        "id": "pihub_execute_command",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Execute Pump/MQTT Command",
-        "func": "var cmd = msg.payload && msg.payload.command;\nif (!cmd || !cmd.id) return null;\nvar kind = cmd.kind;\nvar p = cmd.payload || {};\nvar result = { id: cmd.id, ok: true, result: { handled_by: 'nodered', kind: kind } };\n\nif (kind === 'plugin_manual') {\n    var action = (p.action === 'off') ? 'OFF' : 'ON';\n    var minutes = Math.max(1, Math.min(120, Number(p.minutes || 10)));\n    var topic = env.get('MQTT_COMMAND_TOPIC') || 'cmnd/zisterne/POWER';\n    var mqtt = {\n        topic: topic,\n        payload: action,\n        _pihubCommandId: cmd.id\n    };\n    if (action === 'ON') {\n        // Trigger node reads msg.delay (ms) for auto-OFF\n        mqtt.delay = minutes * 60 * 1000;\n    } else {\n        // Cancels any pending auto-OFF in the trigger node\n        mqtt.reset = true;\n    }\n    result.result.action = action;\n    result.result.minutes = minutes;\n    result.result.topic = topic;\n    result.result.auto_off_in_ms = (action === 'ON') ? mqtt.delay : 0;\n    node.status({ fill: action === 'ON' ? 'green' : 'grey', shape: 'dot', text: action + (action === 'ON' ? (' ' + minutes + 'm') : '') });\n    return [mqtt, { payload: result }];\n}\n\nif (kind === 'mqtt_publish') {\n    var t = String(p.topic || '');\n    if (!t) return [null, { payload: { id: cmd.id, ok: false, result: { error: 'missing topic' } } }];\n    var mqtt2 = { topic: t, payload: String(p.payload || ''), _pihubCommandId: cmd.id };\n    result.result.topic = t;\n    return [mqtt2, { payload: result }];\n}\n\nif (kind === 'status') {\n    // Cloud/Alexa 'test node-red' ping. Just ack.\n    result.result.pong = new Date().toISOString();\n    return [null, { payload: result }];\n}\n\nreturn [null, { payload: { id: cmd.id, ok: false, result: { error: 'unsupported command for Node-RED runner: ' + kind } } }];",
-        "outputs": 2,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1200,
-        "y": 620,
-        "wires": [
-            [
-                "pihub_pump_autooff"
-            ],
-            [
-                "pihub_build_result"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_pump_autooff",
-        "type": "trigger",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Pass ON, auto-OFF after msg.delay",
-        "op1": "",
-        "op1type": "pay",
-        "op2": "OFF",
-        "op2type": "str",
-        "duration": "-1",
-        "extend": true,
-        "overrideDelay": true,
-        "units": "ms",
-        "reset": "OFF",
-        "bytopic": "all",
-        "topic": "topic",
-        "outputs": 1,
-        "x": 1470,
-        "y": 540,
-        "wires": [
-            [
-                "pihub_mqtt_out"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_mqtt_out",
-        "type": "mqtt out",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Send Tasmota/MQTT Command",
-        "topic": "",
-        "qos": "1",
-        "retain": "false",
-        "respTopic": "",
-        "contentType": "",
-        "userProps": "",
-        "correl": "",
-        "expiry": "",
-        "broker": "pihub_mqtt_broker",
-        "x": 1780,
-        "y": 540,
-        "wires": []
-    },
-    {
-        "id": "pihub_build_result",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Build Command Result",
-        "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) { node.error('CLOUD_DEVICE_TOKEN fehlt; kann Command Result nicht senden.', msg); return null; }\nmsg.method = 'POST';\nmsg.url = env.get('CLOUD_COMMAND_RESULT_URL');\nmsg.headers = {\n    'Authorization': 'Bearer ' + token,\n    'Content-Type': 'application/json'\n};\nmsg.rid = 'res-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);\nmsg.headers = msg.headers || {};\nmsg.headers['x-request-id'] = msg.rid;\nmsg.traceSent = { rid: msg.rid, route: 'POST /agent/result', at: Date.now(), items: 1, body: msg.payload };\nreturn msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1490,
-        "y": 660,
-        "wires": [
-            [
-                "pihub_http_result"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_http_result",
-        "type": "http request",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "POST Command Result (dynamic)",
-        "method": "use",
-        "ret": "obj",
-        "paytoqs": "ignore",
-        "url": "",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "authType": "",
-        "senderr": true,
-        "headers": [],
-        "x": 1750,
-        "y": 660,
-        "wires": [
-            [
-                "pihub_result_debug",
-                "pihub_trace_log"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_result_debug",
-        "type": "debug",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Command result posted",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": true,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "statusCode",
-        "statusType": "msg",
-        "x": 1990,
-        "y": 660,
-        "wires": []
-    },
-    {
-        "id": "pihub_weather_example",
-        "type": "comment",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Analytics payloads: weather_dwd, tibber_pulse, pump_guard, pump_control, system_stats",
-        "info": "Wire your Tibber/Weather/Pump/System metric nodes into Event In. Use component names weather_dwd, tibber_pulse, pump_guard, pump_control, system_stats so cloud charts, voice-intents (pump.status/system.status/energy.price_now) and AI reasoning can find them. Read-only Telegram + Alexa intents read device_state_latest — make sure metrics flow into cloud events so those replies stay fresh without extra polling.",
-        "x": 340,
-        "y": 780,
-        "wires": []
-    },
-    {
-        "id": "pihub_mqtt_broker",
-        "type": "mqtt-broker",
-        "name": "Local Mosquitto",
-        "broker": "mosquitto",
-        "port": "1883",
-        "clientid": "",
-        "autoConnect": true,
-        "usetls": false,
-        "protocolVersion": "4",
-        "keepalive": "60",
-        "cleansession": true,
-        "autoUnsubscribe": true,
-        "birthTopic": "",
-        "birthQos": "0",
-        "birthPayload": "",
-        "birthMsg": {},
-        "closeTopic": "",
-        "closePayload": "",
-        "closeMsg": {},
-        "willTopic": "",
-        "willQos": "0",
-        "willPayload": "",
-        "willMsg": {},
-        "sessionExpiry": ""
-    },
-    {
-        "id": "pihub_ws_comment",
-        "type": "comment",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "WebSocket-Kommandokanal (primär) — Bootstrap: GET /api/public/agent/realtime",
-        "info": "Hole CLOUD_WS_URL und CLOUD_DEVICE_ID einmalig ueber den Bootstrap-Endpoint (Bearer CLOUD_DEVICE_TOKEN).\nCLOUD_WS_URL = wss://<supabase-url ohne https>/realtime/v1/websocket?apikey=<supabaseKey>&vsn=1.0.0\nKanal = commands:<deviceId>. Kommandos kommen als broadcast-Event 'wake' mit vollem Payload an.\nDer 15-Minuten-Poll bleibt nur als Safety-Net.",
-        "x": 420,
-        "y": 760,
-        "wires": []
-    },
-    {
-        "id": "pihub_ws_bootstrap_tick",
-        "type": "inject",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Bootstrap Realtime (beim Deploy)",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": true,
-        "onceDelay": "2",
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 220,
-        "y": 800,
-        "wires": [
-            [
-                "pihub_ws_build_bootstrap"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_ws_build_bootstrap",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Build Realtime Bootstrap",
-        "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) { node.status({fill:'red',shape:'ring',text:'CLOUD_DEVICE_TOKEN fehlt'}); return null; }\nmsg.method = 'GET';\nmsg.url = env.get('CLOUD_REALTIME_BOOTSTRAP_URL');\nmsg.headers = { 'Authorization': 'Bearer ' + token };\nreturn msg;",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 520,
-        "y": 800,
-        "wires": [
-            [
-                "pihub_ws_http_bootstrap"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_ws_http_bootstrap",
-        "type": "http request",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "GET Realtime Bootstrap (dynamic)",
-        "method": "use",
-        "ret": "obj",
-        "paytoqs": "ignore",
-        "url": "",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "insecureHTTPParser": false,
-        "authType": "",
-        "senderr": false,
-        "headers": [],
-        "x": 800,
-        "y": 800,
-        "wires": [
-            [
-                "pihub_ws_store_bootstrap"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_ws_store_bootstrap",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Store Realtime Info",
-        "func": "var b = msg.payload || {};\nif (!b.supabaseUrl || !b.deviceId) { node.status({fill:'red',shape:'ring',text:'bootstrap fehlgeschlagen'}); return null; }\nvar wss = b.supabaseUrl.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + b.supabaseKey + '&vsn=1.0.0';\nflow.set('pihub_ws_url', wss);\nflow.set('pihub_device_id', b.deviceId);\nflow.set('pihub_channel', b.channel || ('commands:' + b.deviceId));\nnode.status({fill:'green',shape:'dot',text:'channel ' + (b.channel || b.deviceId)});\nnode.warn('Trage in die Tab-Env ein → CLOUD_WS_URL: ' + wss + ' | CLOUD_DEVICE_ID: ' + b.deviceId);\nreturn null;",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1080,
-        "y": 800,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "pihub_ws_client",
-        "type": "websocket-client",
-        "path": "${CLOUD_WS_URL}",
-        "tls": "",
-        "wholemsg": "false",
-        "hb": "30",
-        "subprotocol": ""
-    },
-    {
-        "id": "pihub_ws_in",
-        "type": "websocket in",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Realtime Wake In",
-        "server": "",
-        "client": "pihub_ws_client",
-        "x": 200,
-        "y": 880,
-        "wires": [
-            [
-                "pihub_ws_parse"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_ws_out",
-        "type": "websocket out",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Realtime Out (join/heartbeat)",
-        "server": "",
-        "client": "pihub_ws_client",
-        "x": 800,
-        "y": 940,
-        "wires": []
-    },
-    {
-        "id": "pihub_ws_join_tick",
-        "type": "inject",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Join + Heartbeat (30s)",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "30",
-        "crontab": "",
-        "once": true,
-        "onceDelay": "5",
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 220,
-        "y": 940,
-        "wires": [
-            [
-                "pihub_ws_join"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_ws_join",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Build Phoenix Join/Heartbeat",
-        "func": "var deviceId = env.get('CLOUD_DEVICE_ID') || flow.get('pihub_device_id');\nif (!deviceId) { node.status({fill:'yellow',shape:'ring',text:'CLOUD_DEVICE_ID fehlt'}); return null; }\nvar ref = (context.get('ref') || 0) + 1;\ncontext.set('ref', ref);\nvar joined = context.get('joined') || 0;\nvar out;\nif (Date.now() - joined > 5 * 60 * 1000) {\n    context.set('joined', Date.now());\n    out = { topic: 'realtime:commands:' + deviceId, event: 'phx_join',\n            payload: { config: { broadcast: { self: false }, presence: { key: '' } } }, ref: String(ref) };\n    node.status({fill:'blue',shape:'dot',text:'join commands:' + deviceId});\n} else {\n    out = { topic: 'phoenix', event: 'heartbeat', payload: {}, ref: String(ref) };\n}\nreturn { payload: JSON.stringify(out) };",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 500,
-        "y": 940,
-        "wires": [
-            [
-                "pihub_ws_out"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_ws_parse",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Parse Wake → Command",
-        "func": "var raw = msg.payload;\nvar m;\ntry { m = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch (e) { return null; }\nif (!m || m.event !== 'broadcast') return null;\nvar inner = m.payload || {};\nif (inner.event !== 'wake') return null;\nvar body = inner.payload || {};\nvar cmd = body.command;\nif (!cmd || !cmd.id) {\n    // Bare wake without payload → fall back to the poll endpoint.\n    node.status({fill:'yellow',shape:'ring',text:'bare wake → poll'});\n    return [null, { payload: {} }];\n}\nnode.status({fill:'green',shape:'dot',text:cmd.kind + ' ' + new Date().toLocaleTimeString()});\nreturn [{ payload: { command: cmd } }, null];",
-        "outputs": 2,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 480,
-        "y": 880,
-        "wires": [
-            [
-                "pihub_execute_command"
-            ],
-            [
-                "pihub_build_command_poll"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_sys_comment",
-        "type": "comment",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "System-Telemetrie → /api/public/live/publish (kein device_events-Write)",
-        "info": "Sendet CPU/RAM/Disk/Temp/Uptime alle 60s an den Live-Relay. Die Cloud broadcastet sie sofort und spiegelt sie max. 1x/5min in device_state_latest — so bleiben die Gauges gefüllt, ohne die DB pro Tick zu wecken.",
-        "x": 260,
-        "y": 840,
-        "wires": []
-    },
-    {
-        "id": "pihub_sys_tick",
-        "type": "inject",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "System Stats (60s)",
-        "props": [],
-        "repeat": "60",
-        "crontab": "",
-        "once": true,
-        "onceDelay": "10",
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 160,
-        "y": 890,
-        "wires": [
-            [
-                "pihub_sys_exec"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_sys_exec",
-        "type": "exec",
-        "z": "pihub_cloud_bridge_tab",
-        "command": "read -r _c a b c pidle _r < /proc/stat; ptot=$((a+b+c+pidle)); sleep 1; read -r _c a b c idle _r < /proc/stat; tot=$((a+b+c+idle)); d=$((tot-ptot)); if [ \"$d\" -le 0 ]; then cpu=0; else cpu=$(( (100*(d-(idle-pidle)))/d )); fi; mem=$(free | awk '/Mem:/{printf \"%.1f\", $3/$2*100}'); swap=$(free | awk '/Swap:/{if($2>0) printf \"%.1f\", $3/$2*100; else printf \"0\"}'); disk=$(df -P / | awk 'NR==2{gsub(\"%\",\"\",$5); print $5}'); temp=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{printf \"%.1f\", $1/1000}'); [ -z \"$temp\" ] && temp=null; up=$(awk '{printf \"%d\", $1}' /proc/uptime); printf '{\"cpu_pct\":%s,\"mem_pct\":%s,\"swap_pct\":%s,\"disk_pct\":%s,\"temp_c\":%s,\"uptime_s\":%s}' \"$cpu\" \"$mem\" \"$swap\" \"$disk\" \"$temp\" \"$up\"",
-        "addpay": "",
-        "append": "",
-        "useSpawn": "false",
-        "timer": "20",
-        "winHide": false,
-        "oldrc": false,
-        "name": "Read CPU/RAM/Disk/Temp",
-        "x": 400,
-        "y": 890,
-        "wires": [
-            [
-                "pihub_sys_build"
-            ],
-            [],
-            []
-        ]
-    },
-    {
-        "id": "pihub_sys_build",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Build Live Telemetry Request",
-        "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) { node.status({fill:'red',shape:'ring',text:'CLOUD_DEVICE_TOKEN fehlt'}); return null; }\nvar s = msg.payload;\nif (typeof s === 'string') { try { s = JSON.parse(s); } catch (e) { node.error('sys stats parse: ' + e.message); return null; } }\nif (!s || typeof s !== 'object') return null;\nvar tick = { ts: new Date().toISOString() };\n['cpu_pct','mem_pct','disk_pct','swap_pct','temp_c','uptime_s'].forEach(function (k) {\n    var v = Number(s[k]);\n    if (isFinite(v)) tick[k] = v;\n});\nmsg.payload = tick;\nmsg.method = 'POST';\nmsg.url = env.get('CLOUD_LIVE_URL');\nmsg.headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };\nnode.status({fill:'blue',shape:'dot',text:'cpu ' + (tick.cpu_pct != null ? tick.cpu_pct : '?') + '%'});\nmsg.rid = 'sys-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);\nmsg.headers = msg.headers || {};\nmsg.headers['x-request-id'] = msg.rid;\nmsg.traceSent = { rid: msg.rid, route: 'POST /live/publish', at: Date.now(), items: 1, body: msg.payload };\nreturn msg;",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 680,
-        "y": 890,
-        "wires": [
-            [
-                "pihub_sys_http"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_sys_http",
-        "type": "http request",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "POST Live Telemetry (dynamic)",
-        "method": "use",
-        "ret": "obj",
-        "paytoqs": "ignore",
-        "url": "",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "authType": "",
-        "senderr": true,
-        "x": 960,
-        "y": 890,
-        "wires": [
-            [
-                "pihub_sys_debug",
-                "pihub_trace_log"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_sys_debug",
-        "type": "debug",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Live telemetry result",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 1220,
-        "y": 890,
-        "wires": []
-    },
-    {
-        "id": "pihub_trace_comment",
-        "type": "comment",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Trace / Debug — TRACE_MODE=off|errors|full; jede Anfrage traegt x-request-id, die Cloud spiegelt sie als rid zurueck",
-        "info": "",
-        "x": 620,
-        "y": 1010,
-        "wires": []
-    },
-    {
-        "id": "pihub_trace_log",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Trace Log (rid)",
-        "func": "var mode = (env.get('TRACE_MODE') || 'errors').toLowerCase();\nvar sent = msg.traceSent || {};\nvar res = msg.payload;\nvar code = (typeof msg.statusCode === 'number') ? msg.statusCode : null;\nvar rid = (res && res.rid) || sent.rid || msg.rid || '-';\nvar ms = sent.at ? (Date.now() - sent.at) : null;\nvar ok = code !== null && code >= 200 && code < 300 && !msg.error;\nvar detail = [];\nif (res && typeof res === 'object') {\n    ['received','inserted','deduped','dropped','throttled','retry_in_ms','broadcast','system_fields','system_mirrored','mirror_skipped','status','error','detail'].forEach(function (k) {\n        if (res[k] !== undefined && res[k] !== null) detail.push(k + '=' + res[k]);\n    });\n} else if (typeof res === 'string' && res) {\n    detail.push(res.slice(0, 120));\n}\nif (msg.error) detail.push('transport=' + (msg.error.message || msg.error));\nif (res && res.rid && sent.rid && res.rid !== sent.rid) detail.push('RID-MISMATCH sent=' + sent.rid);\nvar line = rid + ' -> ' + (sent.route || msg.url || '?')\n    + (sent.items != null ? ' | ' + sent.items + ' item(s)' : '')\n    + ' | ' + (code === null ? 'no-response' : code)\n    + ' | ' + (detail.join(', ') || (ok ? 'ok' : 'keine Details'))\n    + (ms !== null ? ' (' + ms + ' ms)' : '');\nvar entry = { at: new Date().toISOString(), rid: rid, route: sent.route || msg.url, status: code, ok: ok, line: line, sent: sent.body, response: res };\nvar buf = flow.get('pihub_trace') || [];\nbuf.push(entry);\nif (buf.length > 50) buf = buf.slice(-50);\nflow.set('pihub_trace', buf);\nnode.status({ fill: ok ? 'green' : 'red', shape: 'dot', text: line.slice(0, 48) });\nif (mode === 'off') return null;\nif (mode === 'errors' && ok) return null;\nif (mode === 'full') return { topic: 'pihub-trace', payload: entry };\nreturn { topic: 'pihub-trace', payload: line };",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 980,
-        "y": 1060,
-        "wires": [
-            [
-                "pihub_trace_debug"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_trace_debug",
-        "type": "debug",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Pi-Hub Trace",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": true,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "payload",
-        "statusType": "auto",
-        "x": 1220,
-        "y": 1060,
-        "wires": []
-    },
-    {
-        "id": "pihub_trace_report_tick",
-        "type": "inject",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Trace Report (letzte 50)",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 700,
-        "y": 1120,
-        "wires": [
-            [
-                "pihub_trace_report"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_trace_report",
-        "type": "function",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Build Trace Report",
-        "func": "var buf = flow.get('pihub_trace') || [];\nvar lines = buf.map(function (e) { return e.at + '  ' + e.line; });\nnode.status({ fill: 'blue', shape: 'dot', text: buf.length + ' traces' });\nreturn { topic: 'pihub-trace-report', payload: { count: buf.length, lines: lines, entries: buf } };",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 980,
-        "y": 1120,
-        "wires": [
-            [
-                "pihub_trace_report_debug"
-            ]
-        ]
-    },
-    {
-        "id": "pihub_trace_report_debug",
-        "type": "debug",
-        "z": "pihub_cloud_bridge_tab",
-        "name": "Trace Report",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 1220,
-        "y": 1120,
-        "wires": []
-    }
+    "nodes": [
+      "pihub_note_env"
+    ],
+    "x": 34,
+    "y": 19,
+    "w": 792,
+    "h": 82
+  },
+  {
+    "id": "pihub_note_env",
+    "type": "comment",
+    "z": "pihub_cloud_bridge_tab",
+    "g": "pihub_cloud_bridge_tab_env",
+    "name": "Use CLOUD_DEVICE_TOKEN from Pi-Hub /integrations \u2014 not factory/reset/revocation token",
+    "info": "Do not enable the HTTP node's built-in Bearer Auth. This flow sets Authorization in msg.headers. If token is empty it will stop locally instead of spamming 401.",
+    "x": 430,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "07e310f047811d0a",
+    "type": "link in",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Event In (Eco/Hardware/Tibber/Weather)",
+    "links": [
+      "50ceea70f2c807cf",
+      "614623755bd9d72d",
+      "fc48dff7e412e1cf",
+      "afe00ea21caaec89"
+    ],
+    "x": 95,
+    "y": 160,
+    "wires": [
+      [
+        "pihub_rate_limit"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_test_event",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Test Cloud Push",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "{\"component\":\"node_red_test\",\"device\":\"drainpress\",\"status\":\"info\",\"message\":\"Node-RED cloud bridge test\",\"metrics\":{\"watts\":0}}",
+    "payloadType": "json",
+    "x": 140,
+    "y": 220,
+    "wires": [
+      [
+        "pihub_rate_limit"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_rate_limit",
+    "type": "delay",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "RAM buffer / rate limit",
+    "pauseType": "rate",
+    "timeout": "5",
+    "timeoutUnits": "seconds",
+    "rate": "50",
+    "nbRateUnits": "30",
+    "rateUnits": "second",
+    "randomFirst": "1",
+    "randomLast": "5",
+    "randomUnits": "seconds",
+    "drop": false,
+    "allowrate": false,
+    "outputs": 1,
+    "x": 340,
+    "y": 180,
+    "wires": [
+      [
+        "pihub_build_cloud"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_build_cloud",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Cloud Event Request",
+    "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) {\n    node.status({fill:'red', shape:'ring', text:'CLOUD_DEVICE_TOKEN fehlt'});\n    node.error('CLOUD_DEVICE_TOKEN fehlt. In Pi-Hub /integrations anzeigen und in Node-RED Tab-Env eintragen.', msg);\n    return null;\n}\nvar payload = msg.payload || {};\nif (!payload.component) payload.component = 'node_red';\nif (!payload.status) payload.status = 'info';\nif (!payload.ts) payload.ts = new Date().toISOString();\nif (!payload.device) payload.device = env.get('DEFAULT_DEVICE_LABEL') || 'drainpress';\nmsg.payload = payload;\nmsg._pihubOriginalPayload = JSON.parse(JSON.stringify(payload));\nmsg.method = 'POST';\nmsg.url = env.get('CLOUD_BRIDGE_URL');\nmsg.headers = {\n    'Authorization': 'Bearer ' + token,\n    'Content-Type': 'application/json'\n};\nnode.status({fill:'blue', shape:'dot', text:'send cloud'});\nmsg.rid = 'evt-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);\nmsg.headers = msg.headers || {};\nmsg.headers['x-request-id'] = msg.rid;\nmsg.traceSent = { rid: msg.rid, route: 'POST /cloud-bridge/event', at: Date.now(), items: Array.isArray(msg.payload) ? msg.payload.length : 1, body: msg.payload };\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 600,
+    "y": 180,
+    "wires": [
+      [
+        "pihub_http_cloud",
+        "pihub_local_sink"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_http_cloud",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "POST Cloud Event (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": true,
+    "headers": [],
+    "x": 850,
+    "y": 180,
+    "wires": [
+      [
+        "pihub_cloud_ok",
+        "pihub_trace_log"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_cloud_ok",
+    "type": "switch",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Cloud 2xx?",
+    "property": "statusCode",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "btwn",
+        "v": "200",
+        "vt": "num",
+        "v2": "299",
+        "v2t": "num"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "checkall": "false",
+    "repair": false,
+    "outputs": 2,
+    "x": 1060,
+    "y": 180,
+    "wires": [
+      [
+        "pihub_cloud_debug_ok"
+      ],
+      [
+        "pihub_build_local_fallback"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_cloud_debug_ok",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Cloud OK",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "statusCode",
+    "statusType": "msg",
+    "x": 1260,
+    "y": 140,
+    "wires": []
+  },
+  {
+    "id": "pihub_cloud_catch",
+    "type": "catch",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Catch Cloud Push Failed",
+    "scope": [
+      "pihub_http_cloud"
+    ],
+    "uncaught": false,
+    "x": 850,
+    "y": 260,
+    "wires": [
+      [
+        "pihub_build_local_fallback",
+        "pihub_trace_log"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_build_local_fallback",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Local Fallback Request",
+    "func": "var original = msg._pihubOriginalPayload || msg.payload || {};\nmsg.payload = original;\nif (!msg.payload.component) msg.payload.component = 'node_red_fallback';\nif (!msg.payload.status) msg.payload.status = 'warning';\nif (!msg.payload.ts) msg.payload.ts = new Date().toISOString();\nmsg.method = 'POST';\nmsg.url = env.get('LOCAL_API_URL') || 'http://127.0.0.1:3000/api/public/ingest/event';\nmsg.headers = { 'Content-Type': 'application/json' };\nvar localToken = env.get('PI_INGEST_TOKEN') || '';\nif (localToken) msg.headers.Authorization = 'Bearer ' + localToken;\nnode.status({fill:'yellow', shape:'ring', text:'cloud failed -> local RAM fallback'});\nnode.warn('Cloud-Bridge nicht erreichbar oder 401. Sende lokal als RAM-Fallback. Pr\u00fcfe CLOUD_DEVICE_TOKEN, nicht Revocation/Factory Token.');\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1280,
+    "y": 220,
+    "wires": [
+      [
+        "pihub_http_local"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_http_local",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "POST Local RAM Fallback (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 1540,
+    "y": 220,
+    "wires": [
+      [
+        "pihub_local_debug"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_local_debug",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Local fallback result",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "statusCode",
+    "statusType": "msg",
+    "x": 1770,
+    "y": 220,
+    "wires": []
+  },
+  {
+    "id": "pihub_default_strategy_inject",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Default Strategy on Deploy",
+    "props": [],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 0.3,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 170,
+    "y": 380,
+    "wires": [
+      [
+        "pihub_default_strategy"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_default_strategy",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Set Default Strategy",
+    "func": "global.set('zisterne_strategy', {\n    pv_min_w: 300, tibber_max_ct: 30, heat_start_hour: 11, heat_end_hour: 16,\n    run_minutes: 10, max_minutes_per_day: 30, rain_veto_mm: 0.1\n});\nglobal.set('zisterne_eco_paused', false);\nreturn null;",
+    "outputs": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 380,
+    "wires": []
+  },
+  {
+    "id": "pihub_strategy_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Poll Cloud Strategy (10m)",
+    "props": [],
+    "repeat": "600",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "5",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 170,
+    "y": 460,
+    "wires": [
+      [
+        "pihub_build_strategy"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_build_strategy",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Strategy Request",
+    "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) {\n    node.status({fill:'red', shape:'ring', text:'CLOUD_DEVICE_TOKEN fehlt'});\n    return null;\n}\nmsg.method = 'GET';\nmsg.url = env.get('CLOUD_STRATEGY_URL');\nmsg.headers = { 'Authorization': 'Bearer ' + token };\nmsg.rid = 'str-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);\nmsg.headers = msg.headers || {};\nmsg.headers['x-request-id'] = msg.rid;\nmsg.traceSent = { rid: msg.rid, route: 'GET /cloud-bridge/strategy', at: Date.now(), items: 1, body: msg.payload };\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 460,
+    "wires": [
+      [
+        "pihub_http_strategy"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_http_strategy",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "GET Strategy (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": true,
+    "headers": [],
+    "x": 660,
+    "y": 460,
+    "wires": [
+      [
+        "pihub_store_strategy",
+        "pihub_trace_log"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_store_strategy",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Store Strategy",
+    "func": "if (msg.statusCode >= 200 && msg.statusCode < 300 && msg.payload && msg.payload.params) {\n    global.set('zisterne_strategy', msg.payload.params);\n    global.set('zisterne_eco_paused', msg.payload.eco_paused === true);\n    node.status({fill:'green', shape:'dot', text:'strategy updated'});\n} else {\n    node.status({fill:'yellow', shape:'ring', text:'strategy failed ' + msg.statusCode});\n    node.warn(msg.payload || msg.error || 'Strategy poll failed');\n}\nreturn null;",
+    "outputs": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 890,
+    "y": 460,
+    "wires": []
+  },
+  {
+    "id": "pihub_command_poll_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Safety-net Command Poll (15m \u2014 wake channel is primary)",
+    "props": [],
+    "repeat": "900",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "7",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 200,
+    "y": 620,
+    "wires": [
+      [
+        "pihub_build_command_poll"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_build_command_poll",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Command Poll",
+    "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) { node.status({fill:'red', shape:'ring', text:'CLOUD_DEVICE_TOKEN fehlt'}); return null; }\nmsg.method = 'GET';\nmsg.url = env.get('CLOUD_COMMAND_POLL_URL');\nmsg.headers = { 'Authorization': 'Bearer ' + token };\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 480,
+    "y": 620,
+    "wires": [
+      [
+        "pihub_http_command_poll"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_http_command_poll",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "GET Command (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 730,
+    "y": 620,
+    "wires": [
+      [
+        "pihub_command_switch"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_command_switch",
+    "type": "switch",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Command?",
+    "property": "statusCode",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "200",
+        "vt": "num"
+      },
+      {
+        "t": "eq",
+        "v": "204",
+        "vt": "num"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "checkall": "false",
+    "repair": false,
+    "outputs": 3,
+    "x": 950,
+    "y": 620,
+    "wires": [
+      [
+        "pihub_execute_command"
+      ],
+      [],
+      [
+        "pihub_command_error"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_command_error",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Command poll error",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "statusCode",
+    "statusType": "msg",
+    "x": 1170,
+    "y": 700,
+    "wires": []
+  },
+  {
+    "id": "pihub_execute_command",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Execute Pump/MQTT Command",
+    "func": "var cmd = msg.payload && msg.payload.command;\nif (!cmd || !cmd.id) return null;\nvar kind = cmd.kind;\nvar p = cmd.payload || {};\nvar result = { id: cmd.id, ok: true, result: { handled_by: 'nodered', kind: kind } };\n\nif (kind === 'plugin_manual') {\n    var action = (p.action === 'off') ? 'OFF' : 'ON';\n    var minutes = Math.max(1, Math.min(120, Number(p.minutes || 10)));\n    var topic = env.get('MQTT_COMMAND_TOPIC') || 'cmnd/zisterne/POWER';\n    var mqtt = {\n        topic: topic,\n        payload: action,\n        _pihubCommandId: cmd.id\n    };\n    if (action === 'ON') {\n        // Trigger node reads msg.delay (ms) for auto-OFF\n        mqtt.delay = minutes * 60 * 1000;\n    } else {\n        // Cancels any pending auto-OFF in the trigger node\n        mqtt.reset = true;\n    }\n    result.result.action = action;\n    result.result.minutes = minutes;\n    result.result.topic = topic;\n    result.result.auto_off_in_ms = (action === 'ON') ? mqtt.delay : 0;\n    node.status({ fill: action === 'ON' ? 'green' : 'grey', shape: 'dot', text: action + (action === 'ON' ? (' ' + minutes + 'm') : '') });\n    return [mqtt, { payload: result }];\n}\n\nif (kind === 'mqtt_publish') {\n    var t = String(p.topic || '');\n    if (!t) return [null, { payload: { id: cmd.id, ok: false, result: { error: 'missing topic' } } }];\n    var mqtt2 = { topic: t, payload: String(p.payload || ''), _pihubCommandId: cmd.id };\n    result.result.topic = t;\n    return [mqtt2, { payload: result }];\n}\n\nif (kind === 'status') {\n    // Cloud/Alexa 'test node-red' ping. Just ack.\n    result.result.pong = new Date().toISOString();\n    return [null, { payload: result }];\n}\n\nreturn [null, { payload: { id: cmd.id, ok: false, result: { error: 'unsupported command for Node-RED runner: ' + kind } } }];",
+    "outputs": 2,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1200,
+    "y": 620,
+    "wires": [
+      [
+        "pihub_pump_autooff"
+      ],
+      [
+        "pihub_build_result"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_pump_autooff",
+    "type": "trigger",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Pass ON, auto-OFF after msg.delay",
+    "op1": "",
+    "op1type": "pay",
+    "op2": "OFF",
+    "op2type": "str",
+    "duration": "-1",
+    "extend": true,
+    "overrideDelay": true,
+    "units": "ms",
+    "reset": "OFF",
+    "bytopic": "all",
+    "topic": "topic",
+    "outputs": 1,
+    "x": 1470,
+    "y": 540,
+    "wires": [
+      [
+        "pihub_mqtt_out"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_mqtt_out",
+    "type": "mqtt out",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Send Tasmota/MQTT Command",
+    "topic": "",
+    "qos": "1",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "pihub_mqtt_broker",
+    "x": 1780,
+    "y": 540,
+    "wires": []
+  },
+  {
+    "id": "pihub_build_result",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Command Result",
+    "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) { node.error('CLOUD_DEVICE_TOKEN fehlt; kann Command Result nicht senden.', msg); return null; }\nmsg.method = 'POST';\nmsg.url = env.get('CLOUD_COMMAND_RESULT_URL');\nmsg.headers = {\n    'Authorization': 'Bearer ' + token,\n    'Content-Type': 'application/json'\n};\nmsg.rid = 'res-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);\nmsg.headers = msg.headers || {};\nmsg.headers['x-request-id'] = msg.rid;\nmsg.traceSent = { rid: msg.rid, route: 'POST /agent/result', at: Date.now(), items: 1, body: msg.payload };\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1490,
+    "y": 660,
+    "wires": [
+      [
+        "pihub_http_result",
+        "pihub_local_sink"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_http_result",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "POST Command Result (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": true,
+    "headers": [],
+    "x": 1750,
+    "y": 660,
+    "wires": [
+      [
+        "pihub_result_debug",
+        "pihub_trace_log"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_result_debug",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Command result posted",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "statusCode",
+    "statusType": "msg",
+    "x": 1990,
+    "y": 660,
+    "wires": []
+  },
+  {
+    "id": "pihub_weather_example",
+    "type": "comment",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Analytics payloads: weather_dwd, tibber_pulse, pump_guard, pump_control, system_stats",
+    "info": "Wire your Tibber/Weather/Pump/System metric nodes into Event In. Use component names weather_dwd, tibber_pulse, pump_guard, pump_control, system_stats so cloud charts, voice-intents (pump.status/system.status/energy.price_now) and AI reasoning can find them. Read-only Telegram + Alexa intents read device_state_latest \u2014 make sure metrics flow into cloud events so those replies stay fresh without extra polling.",
+    "x": 340,
+    "y": 780,
+    "wires": []
+  },
+  {
+    "id": "pihub_mqtt_broker",
+    "type": "mqtt-broker",
+    "name": "Local Mosquitto",
+    "broker": "mosquitto",
+    "port": "1883",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": "",
+    "willMsg": {},
+    "sessionExpiry": ""
+  },
+  {
+    "id": "pihub_ws_comment",
+    "type": "comment",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "WebSocket-Kommandokanal (prim\u00e4r) \u2014 Bootstrap: GET /api/public/agent/realtime",
+    "info": "Hole CLOUD_WS_URL und CLOUD_DEVICE_ID einmalig ueber den Bootstrap-Endpoint (Bearer CLOUD_DEVICE_TOKEN).\nCLOUD_WS_URL = wss://<supabase-url ohne https>/realtime/v1/websocket?apikey=<supabaseKey>&vsn=1.0.0\nKanal = commands:<deviceId>. Kommandos kommen als broadcast-Event 'wake' mit vollem Payload an.\nDer 15-Minuten-Poll bleibt nur als Safety-Net.",
+    "x": 420,
+    "y": 760,
+    "wires": []
+  },
+  {
+    "id": "pihub_ws_bootstrap_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Bootstrap Realtime (beim Deploy)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "2",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 220,
+    "y": 800,
+    "wires": [
+      [
+        "pihub_ws_build_bootstrap"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_build_bootstrap",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Realtime Bootstrap",
+    "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) { node.status({fill:'red',shape:'ring',text:'CLOUD_DEVICE_TOKEN fehlt'}); return null; }\nmsg.method = 'GET';\nmsg.url = env.get('CLOUD_REALTIME_BOOTSTRAP_URL');\nmsg.headers = { 'Authorization': 'Bearer ' + token };\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 520,
+    "y": 800,
+    "wires": [
+      [
+        "pihub_ws_http_bootstrap"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_http_bootstrap",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "GET Realtime Bootstrap (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 800,
+    "y": 800,
+    "wires": [
+      [
+        "pihub_ws_store_bootstrap"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_store_bootstrap",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Store Realtime Info",
+    "func": "var b = msg.payload || {};\nif (!b.supabaseUrl || !b.deviceId) { node.status({fill:'red',shape:'ring',text:'bootstrap fehlgeschlagen'}); return null; }\nvar wss = b.supabaseUrl.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + b.supabaseKey + '&vsn=1.0.0';\nflow.set('pihub_ws_url', wss);\nflow.set('pihub_device_id', b.deviceId);\nflow.set('pihub_channel', b.channel || ('commands:' + b.deviceId));\nnode.status({fill:'green',shape:'dot',text:'channel ' + (b.channel || b.deviceId)});\nnode.warn('Trage in die Tab-Env ein \u2192 CLOUD_WS_URL: ' + wss + ' | CLOUD_DEVICE_ID: ' + b.deviceId);\nreturn null;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1080,
+    "y": 800,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "pihub_ws_client",
+    "type": "websocket-client",
+    "path": "${CLOUD_WS_URL}",
+    "tls": "",
+    "wholemsg": "false",
+    "hb": "30",
+    "subprotocol": ""
+  },
+  {
+    "id": "pihub_ws_in",
+    "type": "websocket in",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Realtime Wake In",
+    "server": "",
+    "client": "pihub_ws_client",
+    "x": 200,
+    "y": 880,
+    "wires": [
+      [
+        "pihub_ws_parse"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_out",
+    "type": "websocket out",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Realtime Out (join/heartbeat)",
+    "server": "",
+    "client": "pihub_ws_client",
+    "x": 800,
+    "y": 940,
+    "wires": []
+  },
+  {
+    "id": "pihub_ws_join_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Join + Heartbeat (30s)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "30",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "5",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 220,
+    "y": 940,
+    "wires": [
+      [
+        "pihub_ws_join"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_join",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Phoenix Join/Heartbeat",
+    "func": "var deviceId = env.get('CLOUD_DEVICE_ID') || flow.get('pihub_device_id');\nif (!deviceId) { node.status({fill:'yellow',shape:'ring',text:'CLOUD_DEVICE_ID fehlt'}); return null; }\nvar ref = (context.get('ref') || 0) + 1;\ncontext.set('ref', ref);\nvar joined = context.get('joined') || 0;\nvar out;\nif (Date.now() - joined > 5 * 60 * 1000) {\n    context.set('joined', Date.now());\n    out = { topic: 'realtime:commands:' + deviceId, event: 'phx_join',\n            payload: { config: { broadcast: { self: false }, presence: { key: '' } } }, ref: String(ref) };\n    node.status({fill:'blue',shape:'dot',text:'join commands:' + deviceId});\n} else {\n    out = { topic: 'phoenix', event: 'heartbeat', payload: {}, ref: String(ref) };\n}\nreturn { payload: JSON.stringify(out) };",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 500,
+    "y": 940,
+    "wires": [
+      [
+        "pihub_ws_out"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_parse",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Parse Wake \u2192 Command",
+    "func": "var raw = msg.payload;\nvar m;\ntry { m = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch (e) { return null; }\nif (!m || m.event !== 'broadcast') return null;\nvar inner = m.payload || {};\nif (inner.event !== 'wake') return null;\nvar body = inner.payload || {};\nvar cmd = body.command;\nif (!cmd || !cmd.id) {\n    // Bare wake without payload \u2192 fall back to the poll endpoint.\n    node.status({fill:'yellow',shape:'ring',text:'bare wake \u2192 poll'});\n    return [null, { payload: {} }];\n}\nnode.status({fill:'green',shape:'dot',text:cmd.kind + ' ' + new Date().toLocaleTimeString()});\nreturn [{ payload: { command: cmd } }, null];",
+    "outputs": 2,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 480,
+    "y": 880,
+    "wires": [
+      [
+        "pihub_execute_command"
+      ],
+      [
+        "pihub_build_command_poll"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_sys_comment",
+    "type": "comment",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "System-Telemetrie \u2192 /api/public/live/publish (kein device_events-Write)",
+    "info": "Sendet CPU/RAM/Disk/Temp/Uptime alle 60s an den Live-Relay. Die Cloud broadcastet sie sofort und spiegelt sie max. 1x/5min in device_state_latest \u2014 so bleiben die Gauges gef\u00fcllt, ohne die DB pro Tick zu wecken.",
+    "x": 260,
+    "y": 840,
+    "wires": []
+  },
+  {
+    "id": "pihub_sys_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "System Stats (60s)",
+    "props": [],
+    "repeat": "60",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "10",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 160,
+    "y": 890,
+    "wires": [
+      [
+        "pihub_sys_exec"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_sys_exec",
+    "type": "exec",
+    "z": "pihub_cloud_bridge_tab",
+    "command": "read -r _c a b c pidle _r < /proc/stat; ptot=$((a+b+c+pidle)); sleep 1; read -r _c a b c idle _r < /proc/stat; tot=$((a+b+c+idle)); d=$((tot-ptot)); if [ \"$d\" -le 0 ]; then cpu=0; else cpu=$(( (100*(d-(idle-pidle)))/d )); fi; mem=$(free | awk '/Mem:/{printf \"%.1f\", $3/$2*100}'); swap=$(free | awk '/Swap:/{if($2>0) printf \"%.1f\", $3/$2*100; else printf \"0\"}'); disk=$(df -P / | awk 'NR==2{gsub(\"%\",\"\",$5); print $5}'); temp=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{printf \"%.1f\", $1/1000}'); [ -z \"$temp\" ] && temp=null; up=$(awk '{printf \"%d\", $1}' /proc/uptime); printf '{\"cpu_pct\":%s,\"mem_pct\":%s,\"swap_pct\":%s,\"disk_pct\":%s,\"temp_c\":%s,\"uptime_s\":%s}' \"$cpu\" \"$mem\" \"$swap\" \"$disk\" \"$temp\" \"$up\"",
+    "addpay": "",
+    "append": "",
+    "useSpawn": "false",
+    "timer": "20",
+    "winHide": false,
+    "oldrc": false,
+    "name": "Read CPU/RAM/Disk/Temp",
+    "x": 400,
+    "y": 890,
+    "wires": [
+      [
+        "pihub_sys_build"
+      ],
+      [],
+      []
+    ]
+  },
+  {
+    "id": "pihub_sys_build",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Live Telemetry Request",
+    "func": "var token = env.get('CLOUD_DEVICE_TOKEN') || '';\nif (!token) { node.status({fill:'red',shape:'ring',text:'CLOUD_DEVICE_TOKEN fehlt'}); return null; }\nvar s = msg.payload;\nif (typeof s === 'string') { try { s = JSON.parse(s); } catch (e) { node.error('sys stats parse: ' + e.message); return null; } }\nif (!s || typeof s !== 'object') return null;\nvar tick = { ts: new Date().toISOString() };\n['cpu_pct','mem_pct','disk_pct','swap_pct','temp_c','uptime_s'].forEach(function (k) {\n    var v = Number(s[k]);\n    if (isFinite(v)) tick[k] = v;\n});\nmsg.payload = tick;\nmsg.method = 'POST';\nmsg.url = env.get('CLOUD_LIVE_URL');\nmsg.headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };\nnode.status({fill:'blue',shape:'dot',text:'cpu ' + (tick.cpu_pct != null ? tick.cpu_pct : '?') + '%'});\nmsg.rid = 'sys-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);\nmsg.headers = msg.headers || {};\nmsg.headers['x-request-id'] = msg.rid;\nmsg.traceSent = { rid: msg.rid, route: 'POST /live/publish', at: Date.now(), items: 1, body: msg.payload };\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 680,
+    "y": 890,
+    "wires": [
+      [
+        "pihub_sys_http",
+        "pihub_local_sink"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_sys_http",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "POST Live Telemetry (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": true,
+    "x": 960,
+    "y": 890,
+    "wires": [
+      [
+        "pihub_sys_debug",
+        "pihub_trace_log"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_sys_debug",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Live telemetry result",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1220,
+    "y": 890,
+    "wires": []
+  },
+  {
+    "id": "pihub_trace_comment",
+    "type": "comment",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Trace / Debug \u2014 TRACE_MODE=off|errors|full; jede Anfrage traegt x-request-id, die Cloud spiegelt sie als rid zurueck",
+    "info": "",
+    "x": 620,
+    "y": 1010,
+    "wires": []
+  },
+  {
+    "id": "pihub_trace_log",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Trace Log (rid)",
+    "func": "var mode = (env.get('TRACE_MODE') || 'errors').toLowerCase();\nvar sent = msg.traceSent || {};\nvar res = msg.payload;\nvar code = (typeof msg.statusCode === 'number') ? msg.statusCode : null;\nvar rid = (res && res.rid) || sent.rid || msg.rid || '-';\nvar ms = sent.at ? (Date.now() - sent.at) : null;\nvar ok = code !== null && code >= 200 && code < 300 && !msg.error;\nvar detail = [];\nif (res && typeof res === 'object') {\n    ['received','inserted','deduped','dropped','throttled','retry_in_ms','broadcast','system_fields','system_mirrored','mirror_skipped','status','error','detail'].forEach(function (k) {\n        if (res[k] !== undefined && res[k] !== null) detail.push(k + '=' + res[k]);\n    });\n} else if (typeof res === 'string' && res) {\n    detail.push(res.slice(0, 120));\n}\nif (msg.error) detail.push('transport=' + (msg.error.message || msg.error));\nif (res && res.rid && sent.rid && res.rid !== sent.rid) detail.push('RID-MISMATCH sent=' + sent.rid);\nvar line = rid + ' -> ' + (sent.route || msg.url || '?')\n    + (sent.items != null ? ' | ' + sent.items + ' item(s)' : '')\n    + ' | ' + (code === null ? 'no-response' : code)\n    + ' | ' + (detail.join(', ') || (ok ? 'ok' : 'keine Details'))\n    + (ms !== null ? ' (' + ms + ' ms)' : '');\nvar entry = { at: new Date().toISOString(), rid: rid, route: sent.route || msg.url, status: code, ok: ok, line: line, sent: sent.body, response: res };\nvar buf = flow.get('pihub_trace') || [];\nbuf.push(entry);\nif (buf.length > 50) buf = buf.slice(-50);\nflow.set('pihub_trace', buf);\nnode.status({ fill: ok ? 'green' : 'red', shape: 'dot', text: line.slice(0, 48) });\nvar mirror = { payload: entry };\nvar dbg = null;\nif (mode === 'full') dbg = { topic: 'pihub-trace', payload: entry };\nelse if (mode === 'errors' && !ok) dbg = { topic: 'pihub-trace', payload: line };\nelse if (mode !== 'off' && mode !== 'errors') dbg = { topic: 'pihub-trace', payload: line };\nreturn [dbg, mirror];",
+    "outputs": 2,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 980,
+    "y": 1060,
+    "wires": [
+      [
+        "pihub_trace_debug"
+      ],
+      [
+        "pihub_trace_to_local"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_trace_debug",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Pi-Hub Trace",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "payload",
+    "statusType": "auto",
+    "x": 1220,
+    "y": 1060,
+    "wires": []
+  },
+  {
+    "id": "pihub_trace_report_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Trace Report (letzte 50)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 700,
+    "y": 1120,
+    "wires": [
+      [
+        "pihub_trace_report"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_trace_report",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Trace Report",
+    "func": "var buf = flow.get('pihub_trace') || [];\nvar lines = buf.map(function (e) { return e.at + '  ' + e.line; });\nnode.status({ fill: 'blue', shape: 'dot', text: buf.length + ' traces' });\nreturn { topic: 'pihub-trace-report', payload: { count: buf.length, lines: lines, entries: buf } };",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 980,
+    "y": 1120,
+    "wires": [
+      [
+        "pihub_trace_report_debug"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_trace_report_debug",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Trace Report",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1220,
+    "y": 1120,
+    "wires": []
+  },
+  {
+    "id": "pihub_local_comment",
+    "type": "comment",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Dual-Sink: alles zusaetzlich an die lokale App (LOCAL_BASE_URL, LOCAL_SINK=on) \u2014 48h lokal + Debug-Panel",
+    "info": "",
+    "x": 420,
+    "y": 1240,
+    "wires": []
+  },
+  {
+    "id": "pihub_local_sink",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Local Sink Request",
+    "func": "var on = (env.get('LOCAL_SINK') || 'on').toLowerCase();\nif (on !== 'on' && on !== 'true' && on !== '1') return null;\nvar base = (env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:8080').replace(/\\/$/, '');\nvar route = (msg.traceSent && msg.traceSent.route) || '';\nvar path = '/api/public/ingest/event';\nif (route.indexOf('/live/publish') >= 0) path = '/api/public/ingest/live';\nif (route.indexOf('/agent/result') >= 0) path = '/api/public/ingest/trace';\nvar body = msg.payload;\nif (path === '/api/public/ingest/trace') {\n    body = { rid: msg.rid, route: route, target: 'local', ok: true, body: msg.payload };\n}\nvar out = { payload: body, method: 'POST', url: base + path,\n    headers: { 'Content-Type': 'application/json', 'x-request-id': msg.rid || '' },\n    rid: msg.rid,\n    traceSent: { rid: msg.rid, route: 'POST(local) ' + path, at: Date.now(), items: Array.isArray(body) ? body.length : 1, body: body } };\nvar tok = env.get('PI_INGEST_TOKEN') || '';\nif (tok) out.headers.Authorization = 'Bearer ' + tok;\nnode.status({fill:'grey', shape:'dot', text:'local ' + path});\nreturn out;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 660,
+    "y": 1280,
+    "wires": [
+      [
+        "pihub_http_local_sink"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_http_local_sink",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "POST Local Sink (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 940,
+    "y": 1280,
+    "wires": [
+      [
+        "pihub_local_sink_debug"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_local_sink_debug",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Local sink result",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "payload.storage",
+    "statusType": "auto",
+    "x": 1200,
+    "y": 1280,
+    "wires": []
+  },
+  {
+    "id": "pihub_trace_to_local",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Mirror Trace \u2192 Local App",
+    "func": "var on = (env.get('LOCAL_SINK') || 'on').toLowerCase();\nif (on !== 'on' && on !== 'true' && on !== '1') return null;\nvar base = (env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:8080').replace(/\\/$/, '');\nvar e = msg.payload || {};\nvar body = { rid: e.rid, route: e.route, target: 'cloud', status: e.status,\n    ok: e.ok, ms: e.ms || null, reason: e.ok ? null : (e.line || null),\n    body: e.sent, response: e.response, ts: e.at };\nvar out = { payload: body, method: 'POST', url: base + '/api/public/ingest/trace',\n    headers: { 'Content-Type': 'application/json' } };\nvar tok = env.get('PI_INGEST_TOKEN') || '';\nif (tok) out.headers.Authorization = 'Bearer ' + tok;\nreturn out;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 660,
+    "y": 1340,
+    "wires": [
+      [
+        "pihub_http_trace_local"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_http_trace_local",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "POST Local Trace (dynamic)",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 940,
+    "y": 1340,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "pihub_ws_status",
+    "type": "status",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "WS status",
+    "scope": [
+      "pihub_ws_in",
+      "pihub_ws_out"
+    ],
+    "x": 420,
+    "y": 1400,
+    "wires": [
+      [
+        "pihub_ws_status_fn"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_ws_status_fn",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "WS Status \u2192 Local Trace",
+    "func": "var on = (env.get('LOCAL_SINK') || 'on').toLowerCase();\nif (on !== 'on' && on !== 'true' && on !== '1') return null;\nvar base = (env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:8080').replace(/\\/$/, '');\nvar s = msg.status || {};\nvar txt = (s.text || '') + '';\nvar ok = /connect/i.test(txt) && !/disconnect|error/i.test(txt);\nvar out = { payload: { route: 'realtime websocket', target: 'ws', ok: ok,\n    status: null, reason: txt || null, ts: new Date().toISOString() },\n    method: 'POST', url: base + '/api/public/ingest/trace',\n    headers: { 'Content-Type': 'application/json' } };\nvar tok = env.get('PI_INGEST_TOKEN') || '';\nif (tok) out.headers.Authorization = 'Bearer ' + tok;\nreturn out;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 660,
+    "y": 1400,
+    "wires": [
+      [
+        "pihub_http_trace_local"
+      ]
+    ]
+  }
 ]
