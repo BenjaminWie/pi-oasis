@@ -931,7 +931,7 @@
     "type": "function",
     "z": "pihub_cloud_bridge_tab",
     "name": "Build Phoenix Join/Heartbeat",
-    "func": "var deviceId = env.get('CLOUD_DEVICE_ID') || flow.get('pihub_device_id');\nif (!deviceId) { node.status({fill:'yellow',shape:'ring',text:'CLOUD_DEVICE_ID fehlt'}); return null; }\nvar ref = (context.get('ref') || 0) + 1;\ncontext.set('ref', ref);\nvar joined = context.get('joined') || 0;\nvar out;\nif (Date.now() - joined > 5 * 60 * 1000) {\n    context.set('joined', Date.now());\n    out = { topic: 'realtime:commands:' + deviceId, event: 'phx_join',\n            payload: { config: { broadcast: { self: false }, presence: { key: '' } } }, ref: String(ref) };\n    node.status({fill:'blue',shape:'dot',text:'join commands:' + deviceId});\n} else {\n    out = { topic: 'phoenix', event: 'heartbeat', payload: {}, ref: String(ref) };\n}\nreturn { payload: JSON.stringify(out) };",
+    "func": "// --- Pi-Hub config (aus global.pihub, gefuellt von 'Pi-Hub Config laden') ---\nfunction pihubCfg() {\n    var c = global.get('pihub') || {};\n    var cloud = c.cloud || {};\n    var local = c.local || {};\n    return {\n        token: cloud.deviceToken || env.get('CLOUD_DEVICE_TOKEN') || '',\n        deviceId: cloud.deviceId || env.get('CLOUD_DEVICE_ID') || '',\n        channel: cloud.channel || (cloud.deviceId ? 'commands:' + cloud.deviceId : ''),\n        eventUrl: cloud.eventUrl || env.get('CLOUD_BRIDGE_URL') || '',\n        strategyUrl: cloud.strategyUrl || env.get('CLOUD_STRATEGY_URL') || '',\n        liveUrl: cloud.liveUrl || env.get('CLOUD_LIVE_URL') || '',\n        pollUrl: cloud.commandPollUrl || env.get('CLOUD_COMMAND_POLL_URL') || '',\n        resultUrl: cloud.commandResultUrl || env.get('CLOUD_COMMAND_RESULT_URL') || '',\n        localBase: local.baseUrl || env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000',\n        localEventUrl: local.eventUrl || ((local.baseUrl || env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000') + '/api/public/ingest/event'),\n        localLiveUrl: local.liveUrl || ((local.baseUrl || env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000') + '/api/public/ingest/live'),\n        localTraceUrl: local.traceUrl || ((local.baseUrl || env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000') + '/api/public/ingest/trace'),\n        localToken: local.token || env.get('PI_INGEST_TOKEN') || ''\n    };\n}\nvar deviceId = pihubCfg().deviceId;\nif (!deviceId) { node.status({fill:'yellow',shape:'ring',text:'CLOUD_DEVICE_ID fehlt'}); return null; }\nvar ref = (context.get('ref') || 0) + 1;\ncontext.set('ref', ref);\nvar joined = context.get('joined') || 0;\nvar out;\nif (Date.now() - joined > 5 * 60 * 1000) {\n    context.set('joined', Date.now());\n    out = { topic: 'realtime:commands:' + deviceId, event: 'phx_join',\n            payload: { config: { broadcast: { self: false }, presence: { key: '' } } }, ref: String(ref) };\n    node.status({fill:'blue',shape:'dot',text:'join commands:' + deviceId});\n} else {\n    out = { topic: 'phoenix', event: 'heartbeat', payload: {}, ref: String(ref) };\n}\nreturn { payload: JSON.stringify(out) };",
     "outputs": 1,
     "timeout": "",
     "noerr": 0,
@@ -1341,6 +1341,257 @@
       [
         "pihub_http_trace_local"
       ]
+    ]
+  },
+  {
+    "id": "pihub_cfg_comment",
+    "type": "comment",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Selbstkonfiguration: holt Token/URLs von der Pi-App (LOCAL_CONFIG_URL) — nichts von Hand eintragen",
+    "info": "",
+    "x": 460,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "pihub_cfg_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Pi-Hub Config laden (Deploy + 30m)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "1800",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "2",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 230,
+    "y": 80,
+    "wires": [
+      [
+        "pihub_cfg_build"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_cfg_build",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Build Config Request",
+    "func": "var url = env.get('LOCAL_CONFIG_URL') || ((env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000') + '/api/public/nodered/config');\nmsg.method = 'GET';\nmsg.url = url;\nmsg.headers = {};\nvar t = env.get('PI_INGEST_TOKEN') || '';\nif (t) msg.headers.Authorization = 'Bearer ' + t;\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 500,
+    "y": 80,
+    "wires": [
+      [
+        "pihub_cfg_http"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_cfg_http",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "GET Pi-Hub Config",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 740,
+    "y": 80,
+    "wires": [
+      [
+        "pihub_cfg_store"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_cfg_store",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Store Pi-Hub Config",
+    "func": "var b = msg.payload || {};\nif (msg.statusCode && msg.statusCode >= 400) {\n    node.status({fill:'red',shape:'ring',text:'config ' + msg.statusCode});\n    node.warn('Pi-Hub Config nicht erreichbar (' + msg.statusCode + '). LOCAL_CONFIG_URL pruefen, laeuft die Pi-App?');\n    return null;\n}\nif (!b.cloud) { node.status({fill:'red',shape:'ring',text:'config leer'}); return null; }\nglobal.set('pihub', b);\nif (!b.cloud.deviceToken) {\n    node.status({fill:'yellow',shape:'ring',text:'nicht gepaart'});\n    node.warn('Pi ist nicht mit der Cloud gepaart. In der Pi-UI: System -> Cloud verbinden.');\n} else {\n    node.status({fill:'green',shape:'dot',text:'config ok (' + (b.device && b.device.label) + ')'});\n}\nreturn null;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 960,
+    "y": 80,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "pihub_selftest_comment",
+    "type": "comment",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Selftest: prueft alle Routen und schreibt eine Klartext-Tabelle ins Debug + an die Pi-App",
+    "info": "",
+    "x": 440,
+    "y": 1420,
+    "wires": []
+  },
+  {
+    "id": "pihub_selftest_tick",
+    "type": "inject",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Pi-Hub Selftest",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "20",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 180,
+    "y": 1460,
+    "wires": [
+      [
+        "pihub_selftest_plan"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_selftest_plan",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Selftest Plan",
+    "func": "// --- Pi-Hub config (aus global.pihub, gefuellt von 'Pi-Hub Config laden') ---\nfunction pihubCfg() {\n    var c = global.get('pihub') || {};\n    var cloud = c.cloud || {};\n    var local = c.local || {};\n    return {\n        token: cloud.deviceToken || env.get('CLOUD_DEVICE_TOKEN') || '',\n        deviceId: cloud.deviceId || env.get('CLOUD_DEVICE_ID') || '',\n        channel: cloud.channel || (cloud.deviceId ? 'commands:' + cloud.deviceId : ''),\n        eventUrl: cloud.eventUrl || env.get('CLOUD_BRIDGE_URL') || '',\n        strategyUrl: cloud.strategyUrl || env.get('CLOUD_STRATEGY_URL') || '',\n        liveUrl: cloud.liveUrl || env.get('CLOUD_LIVE_URL') || '',\n        pollUrl: cloud.commandPollUrl || env.get('CLOUD_COMMAND_POLL_URL') || '',\n        resultUrl: cloud.commandResultUrl || env.get('CLOUD_COMMAND_RESULT_URL') || '',\n        localBase: local.baseUrl || env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000',\n        localEventUrl: local.eventUrl || ((local.baseUrl || env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000') + '/api/public/ingest/event'),\n        localLiveUrl: local.liveUrl || ((local.baseUrl || env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000') + '/api/public/ingest/live'),\n        localTraceUrl: local.traceUrl || ((local.baseUrl || env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000') + '/api/public/ingest/trace'),\n        localToken: local.token || env.get('PI_INGEST_TOKEN') || ''\n    };\n}\nvar c = pihubCfg();\nvar g = global.get('pihub') || {};\nflow.set('pihub_selftest', { started: Date.now(), rows: [] });\nvar out = [];\nfunction chk(name, method, url, body, auth) {\n    if (!url) { return; }\n    out.push({ _chk: name, method: method, url: url, payload: body || undefined,\n               headers: Object.assign({'Content-Type':'application/json'}, auth || {}) });\n}\nvar cloudAuth = c.token ? { Authorization: 'Bearer ' + c.token } : null;\nvar localAuth = c.localToken ? { Authorization: 'Bearer ' + c.localToken } : {};\nvar stamp = new Date().toISOString();\nif (!g.cloud) {\n    node.warn('Keine Config geladen — zuerst \"Pi-Hub Config laden\" ausloesen.');\n}\nif (!c.token) {\n    node.warn('Kein Device-Token — Cloud-Checks werden uebersprungen. Pi in der UI pairen.');\n} else {\n    chk('cloud/event', 'POST', c.eventUrl, { component:'selftest', device:(g.device&&g.device.label)||'drainpress', status:'info', metrics:{ selftest:1 }, ts: stamp }, cloudAuth);\n    chk('strategy', 'GET', c.strategyUrl, null, cloudAuth);\n    chk('live', 'POST', c.liveUrl, { device:(g.device&&g.device.label)||'drainpress', ts: stamp, selftest:true }, cloudAuth);\n}\nchk('local/config', 'GET', (g.local && g.local.configUrl) || (c.localBase + '/api/public/nodered/config'), null, localAuth);\nchk('local/event', 'POST', c.localEventUrl, { component:'selftest', status:'info', ts: stamp }, localAuth);\nchk('local/trace', 'POST', c.localTraceUrl, { rid:'selftest', route:'selftest', status:200, reason:'selftest ping', ts: stamp }, localAuth);\nflow.set('pihub_selftest_expected', out.length);\nnode.status({fill:'blue',shape:'dot',text:out.length + ' checks'});\nreturn [out];\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 380,
+    "y": 1460,
+    "wires": [
+      [
+        "pihub_selftest_http"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_selftest_http",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Selftest Request",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 580,
+    "y": 1460,
+    "wires": [
+      [
+        "pihub_selftest_collect"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_selftest_catch",
+    "type": "catch",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Selftest Fehler",
+    "scope": [
+      "pihub_selftest_http"
+    ],
+    "uncaught": false,
+    "x": 580,
+    "y": 1520,
+    "wires": [
+      [
+        "pihub_selftest_collect"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_selftest_collect",
+    "type": "function",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Selftest Collect",
+    "func": "// --- Pi-Hub config (aus global.pihub, gefuellt von 'Pi-Hub Config laden') ---\nfunction pihubCfg() {\n    var c = global.get('pihub') || {};\n    var cloud = c.cloud || {};\n    var local = c.local || {};\n    return {\n        token: cloud.deviceToken || env.get('CLOUD_DEVICE_TOKEN') || '',\n        deviceId: cloud.deviceId || env.get('CLOUD_DEVICE_ID') || '',\n        channel: cloud.channel || (cloud.deviceId ? 'commands:' + cloud.deviceId : ''),\n        eventUrl: cloud.eventUrl || env.get('CLOUD_BRIDGE_URL') || '',\n        strategyUrl: cloud.strategyUrl || env.get('CLOUD_STRATEGY_URL') || '',\n        liveUrl: cloud.liveUrl || env.get('CLOUD_LIVE_URL') || '',\n        pollUrl: cloud.commandPollUrl || env.get('CLOUD_COMMAND_POLL_URL') || '',\n        resultUrl: cloud.commandResultUrl || env.get('CLOUD_COMMAND_RESULT_URL') || '',\n        localBase: local.baseUrl || env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000',\n        localEventUrl: local.eventUrl || ((local.baseUrl || env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000') + '/api/public/ingest/event'),\n        localLiveUrl: local.liveUrl || ((local.baseUrl || env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000') + '/api/public/ingest/live'),\n        localTraceUrl: local.traceUrl || ((local.baseUrl || env.get('LOCAL_BASE_URL') || 'http://127.0.0.1:3000') + '/api/public/ingest/trace'),\n        localToken: local.token || env.get('PI_INGEST_TOKEN') || ''\n    };\n}\nvar st = flow.get('pihub_selftest') || { rows: [] };\nvar name = msg._chk || (msg.error && msg.error.source && msg.error.source.id) || 'unknown';\nvar code = msg.statusCode || 0;\nvar ok = code >= 200 && code < 300;\nvar reason = ok ? '' : (msg.error && msg.error.message) ||\n    (typeof msg.payload === 'string' ? msg.payload.slice(0,140) : JSON.stringify(msg.payload || {}).slice(0,140));\nvar hint = '';\nif (code === 401) hint = '-> Token ungueltig/abgelaufen: Pi-UI neu pairen, dann Config neu laden';\nelse if (code === 403) hint = '-> lokaler Guard: PI_INGEST_TOKEN setzen oder aus dem LAN aufrufen';\nelse if (code === 404) hint = '-> falsche URL / App-Version zu alt';\nelse if (!code) hint = '-> keine Verbindung (App laeuft nicht? falscher Port?)';\nst.rows.push({ name: name, status: code, ok: ok, reason: reason, hint: hint,\n               rid: (msg.payload && msg.payload.rid) || null });\nflow.set('pihub_selftest', st);\nvar expected = flow.get('pihub_selftest_expected') || 0;\nif (st.rows.length < expected) return null;\nvar lines = st.rows.map(function (r) {\n    return (r.name + '            ').slice(0,14) + (r.ok ? 'OK   ' : 'FAIL ') +\n           String(r.status || '---') + '  ' + (r.hint || r.reason || '');\n});\nvar failed = st.rows.filter(function (r) { return !r.ok; }).length;\nnode.status({ fill: failed ? 'red' : 'green', shape: 'dot',\n              text: (st.rows.length - failed) + '/' + st.rows.length + ' ok' });\nvar report = 'PI-HUB SELFTEST\\n' + lines.join('\\n');\nvar c = pihubCfg();\nvar mirror = { method: 'POST', url: c.localTraceUrl,\n    headers: Object.assign({'Content-Type':'application/json'}, c.localToken ? { Authorization: 'Bearer ' + c.localToken } : {}),\n    payload: { rid: 'selftest-' + Date.now().toString(36), route: 'selftest', status: failed ? 500 : 200,\n               reason: failed + ' failed', body: st.rows, ts: new Date().toISOString() } };\nreturn [{ payload: report, rows: st.rows }, mirror];\n",
+    "outputs": 2,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 800,
+    "y": 1460,
+    "wires": [
+      [
+        "pihub_selftest_debug"
+      ],
+      [
+        "pihub_selftest_mirror_http"
+      ]
+    ]
+  },
+  {
+    "id": "pihub_selftest_debug",
+    "type": "debug",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Selftest Report",
+    "active": true,
+    "tosidebar": true,
+    "console": true,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1030,
+    "y": 1440,
+    "wires": []
+  },
+  {
+    "id": "pihub_selftest_mirror_http",
+    "type": "http request",
+    "z": "pihub_cloud_bridge_tab",
+    "name": "Selftest -> Pi-App",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 1040,
+    "y": 1490,
+    "wires": [
+      []
     ]
   }
 ]
