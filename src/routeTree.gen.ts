@@ -54,6 +54,7 @@ import { Route as ApiPublicIngestEventRouteImport } from './routes/api/public/in
 import { Route as ApiPublicIngestLiveRouteImport } from './routes/api/public/ingest/live'
 import { Route as ApiPublicIngestTraceRouteImport } from './routes/api/public/ingest/trace'
 import { Route as ApiPublicLivePublishRouteImport } from './routes/api/public/live/publish'
+import { Route as ApiPublicNoderedConfigRouteImport } from './routes/api/public/nodered/config'
 import { Route as ApiPublicOauthAuthorizeRouteImport } from './routes/api/public/oauth/authorize'
 import { Route as ApiPublicOauthAuthorizePostRouteImport } from './routes/api/public/oauth/authorize-post'
 import { Route as ApiPublicOauthTokenRouteImport } from './routes/api/public/oauth/token'
@@ -293,6 +294,11 @@ const ApiPublicLivePublishRoute = ApiPublicLivePublishRouteImport.update({
   path: '/api/public/live/publish',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicNoderedConfigRoute = ApiPublicNoderedConfigRouteImport.update({
+  id: '/api/public/nodered/config',
+  path: '/api/public/nodered/config',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicOauthAuthorizeRoute = ApiPublicOauthAuthorizeRouteImport.update({
   id: '/api/public/oauth/authorize',
   path: '/api/public/oauth/authorize',
@@ -364,6 +370,7 @@ export interface FileRoutesByFullPath {
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
+  '/api/public/nodered/config': typeof ApiPublicNoderedConfigRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
@@ -410,6 +417,7 @@ export interface FileRoutesByTo {
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
+  '/api/public/nodered/config': typeof ApiPublicNoderedConfigRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
@@ -463,6 +471,7 @@ export interface FileRoutesById {
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
+  '/api/public/nodered/config': typeof ApiPublicNoderedConfigRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
@@ -514,6 +523,7 @@ export interface FileRouteTypes {
     | '/api/public/ingest/live'
     | '/api/public/ingest/trace'
     | '/api/public/live/publish'
+    | '/api/public/nodered/config'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
@@ -560,6 +570,7 @@ export interface FileRouteTypes {
     | '/api/public/ingest/live'
     | '/api/public/ingest/trace'
     | '/api/public/live/publish'
+    | '/api/public/nodered/config'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
@@ -612,6 +623,7 @@ export interface FileRouteTypes {
     | '/api/public/ingest/live'
     | '/api/public/ingest/trace'
     | '/api/public/live/publish'
+    | '/api/public/nodered/config'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
@@ -642,6 +654,7 @@ export interface RootRouteChildren {
   ApiPublicIngestLiveRoute: typeof ApiPublicIngestLiveRoute
   ApiPublicIngestTraceRoute: typeof ApiPublicIngestTraceRoute
   ApiPublicLivePublishRoute: typeof ApiPublicLivePublishRoute
+  ApiPublicNoderedConfigRoute: typeof ApiPublicNoderedConfigRoute
   ApiPublicOauthAuthorizeRoute: typeof ApiPublicOauthAuthorizeRoute
   ApiPublicOauthAuthorizePostRoute: typeof ApiPublicOauthAuthorizePostRoute
   ApiPublicOauthTokenRoute: typeof ApiPublicOauthTokenRoute
@@ -966,6 +979,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicLivePublishRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/nodered/config': {
+      id: '/api/public/nodered/config'
+      path: '/api/public/nodered/config'
+      fullPath: '/api/public/nodered/config'
+      preLoaderRoute: typeof ApiPublicNoderedConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/oauth/authorize': {
       id: '/api/public/oauth/authorize'
       path: '/api/public/oauth/authorize'
@@ -1119,6 +1139,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicIngestLiveRoute: ApiPublicIngestLiveRoute,
   ApiPublicIngestTraceRoute: ApiPublicIngestTraceRoute,
   ApiPublicLivePublishRoute: ApiPublicLivePublishRoute,
+  ApiPublicNoderedConfigRoute: ApiPublicNoderedConfigRoute,
   ApiPublicOauthAuthorizeRoute: ApiPublicOauthAuthorizeRoute,
   ApiPublicOauthAuthorizePostRoute: ApiPublicOauthAuthorizePostRoute,
   ApiPublicOauthTokenRoute: ApiPublicOauthTokenRoute,
@@ -1128,13 +1149,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
