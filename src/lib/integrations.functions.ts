@@ -146,3 +146,62 @@ export const getIntegrationSecrets = createServerFn({ method: "GET" })
       error: cfg?.deviceToken ? null : "not paired",
     };
   });
+
+/** Flow JSON with this Pi's tokens/URLs baked in — import & deploy, no env editing. */
+export const getPersonalizedFlow = createServerFn({ method: "GET" })
+  .middleware([requirePiAuth])
+  .handler(async () => {
+    const { buildNodeRedConfig } = await import("./nodered-config.server");
+    const cfg = await buildNodeRedConfig();
+    try {
+      const { renderPersonalizedFlow } = await import("./nodered-personalize.server");
+      const json = await renderPersonalizedFlow(cfg);
+      return {
+        json,
+        paired: cfg.device.paired,
+        wsReady: !!cfg.cloud.wsUrl,
+        localBaseUrl: cfg.local.baseUrl,
+        error: null as string | null,
+      };
+    } catch (e) {
+      return {
+        json: null as string | null,
+        paired: cfg.device.paired,
+        wsReady: !!cfg.cloud.wsUrl,
+        localBaseUrl: cfg.local.baseUrl,
+        error: e instanceof Error ? e.message : "render failed",
+      };
+    }
+  });
+
+/** Integration health from the local trace store: last contact + last error per route. */
+export const getIntegrationHealth = createServerFn({ method: "GET" })
+  .middleware([requirePiAuth])
+  .handler(async () => {
+    const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+    try {
+      const { readRange } = await import("./local-timeseries.server");
+      const rows = (await readRange("trace", since)) as unknown as Array<Record<string, unknown>>;
+      const byRoute = new Map<
+        string,
+        { route: string; at: string; status: number | null; ok: boolean; reason: string | null; count: number }
+      >();
+      for (const r of rows) {
+        const route = String(r["route"] ?? "unknown");
+        const status = r["status"] == null ? null : Number(r["status"]);
+        const ok = status != null && status >= 200 && status < 300;
+        const prev = byRoute.get(route);
+        byRoute.set(route, {
+          route,
+          at: String(r["ts"] ?? r["at"] ?? ""),
+          status,
+          ok,
+          reason: (r["reason"] as string | undefined) ?? null,
+          count: (prev?.count ?? 0) + 1,
+        });
+      }
+      return { routes: [...byRoute.values()].sort((a, b) => a.route.localeCompare(b.route)), error: null as string | null };
+    } catch (e) {
+      return { routes: [], error: e instanceof Error ? e.message : "unavailable" };
+    }
+  });
