@@ -18,8 +18,16 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  Wand2,
+  Activity,
+  Loader2,
 } from "lucide-react";
-import { getIntegrationSecrets, getIntegrationsInfo } from "@/lib/integrations.functions";
+import {
+  getIntegrationSecrets,
+  getIntegrationsInfo,
+  getPersonalizedFlow,
+  getIntegrationHealth,
+} from "@/lib/integrations.functions";
 
 export const Route = createFileRoute("/_authenticated/integrations")({
   component: IntegrationsPage,
@@ -28,6 +36,40 @@ export const Route = createFileRoute("/_authenticated/integrations")({
 function IntegrationsPage() {
   const fetchInfo = useServerFn(getIntegrationsInfo);
   const fetchSecrets = useServerFn(getIntegrationSecrets);
+  const fetchFlow = useServerFn(getPersonalizedFlow);
+  const fetchHealth = useServerFn(getIntegrationHealth);
+  const [flowBusy, setFlowBusy] = useState(false);
+  const [flowError, setFlowError] = useState<string | null>(null);
+  const { data: health } = useQuery({
+    queryKey: ["integration-health"],
+    queryFn: () => fetchHealth(),
+    refetchInterval: 60_000,
+  });
+
+  async function downloadPersonalizedFlow() {
+    setFlowBusy(true);
+    setFlowError(null);
+    try {
+      const res = await fetchFlow();
+      if (!res.json) {
+        setFlowError(res.error || "Flow konnte nicht erzeugt werden");
+        return;
+      }
+      const blob = new Blob([res.json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "pi-hub-flow-personalisiert.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      if (!res.paired) setFlowError("Achtung: Pi ist nicht gepaart — Cloud-Zweige bleiben inaktiv.");
+      else if (!res.wsReady) setFlowError("Hinweis: WebSocket-URL noch nicht aufgelöst — Flow nutzt den Safety-Net-Poll.");
+    } catch (e) {
+      setFlowError(e instanceof Error ? e.message : "Download fehlgeschlagen");
+    } finally {
+      setFlowBusy(false);
+    }
+  }
   const { data: info } = useQuery({
     queryKey: ["integrations-info"],
     queryFn: () => fetchInfo(),
@@ -214,6 +256,58 @@ function IntegrationsPage() {
           {info?.local.lanIp ? ` (${info.local.lanIp})` : ""}. Bei Cloud-Ausfall pushst du auf die
           lokale Ingest-Route. Wenn kein PI_INGEST_TOKEN gesetzt ist, akzeptiert sie nur LAN-Clients.
         </p>
+      </section>
+
+      {/* Personalized flow */}
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Wand2 size={14} className="text-primary" />
+          <h2 className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            3. Flow ohne Copy-Paste
+          </h2>
+        </div>
+        <button
+          onClick={downloadPersonalizedFlow}
+          disabled={flowBusy}
+          className="w-full rounded-xl border border-primary/40 bg-primary/10 py-3 text-[11px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {flowBusy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+          Flow personalisiert herunterladen
+        </button>
+        <p className="text-[10px] text-muted-foreground">
+          Enthält Device-Token, Device-ID, WebSocket-URL und alle lokalen URLs bereits eingetragen.
+          In Node-RED importieren → Deploy → der Selftest meldet nach 20 s, was funktioniert.
+          Die Datei enthält Geheimnisse im Klartext — nicht weitergeben.
+        </p>
+        {flowError && <p className="text-[10px] text-amber-500">{flowError}</p>}
+      </section>
+
+      {/* Health */}
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Activity size={14} className="text-primary" />
+          <h2 className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Integration-Health (24 h)
+          </h2>
+        </div>
+        <div className="rounded-xl border border-border bg-background p-3 space-y-2">
+          {health?.routes?.length ? (
+            health.routes.map((r) => (
+              <div key={r.route} className="flex items-center gap-2 text-[10px]">
+                <span className={r.ok ? "text-primary" : "text-destructive"}>
+                  {r.ok ? <CheckCircle2 size={11} /> : <AlertTriangle size={11} />}
+                </span>
+                <code className="font-mono flex-1 truncate">{r.route}</code>
+                <span className="text-muted-foreground">{r.status ?? "—"}</span>
+                <span className="text-muted-foreground">×{r.count}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-[10px] text-muted-foreground">
+              Noch keine Traces empfangen. Starte in Node-RED „Pi-Hub Selftest“.
+            </p>
+          )}
+        </div>
       </section>
 
       {/* Quick actions */}
