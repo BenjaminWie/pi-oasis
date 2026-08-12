@@ -1,4 +1,54 @@
-# Node-RED ↔ Pi-Hub Cloud Integration
+# Node-RED ↔ Pi-Hub Integration
+
+## Kurzweg (5 Schritte, ohne Token-Copy-Paste)
+
+1. **Pairen** — in der Pi-UI: `System → Cloud verbinden`. Danach kennt der Pi
+   Device-Token, Device-ID und die Realtime-URL.
+2. **Personalisierten Flow laden** — Pi-UI `→ Node-RED & Integrationen →
+   „Flow personalisiert herunterladen"`. Die Datei enthält alle Tokens, URLs
+   und die WebSocket-URL bereits eingetragen (Geheimnisse im Klartext — nicht
+   weitergeben).
+3. **Importieren** — Node-RED `Menü → Import → Datei auswählen`.
+4. **Deploy** — der Node „Pi-Hub Config laden" holt beim Deploy und danach alle
+   30 min `/api/public/nodered/config` vom Pi und legt alles unter
+   `global.pihub` ab. Neu gepairt? Kein Deploy nötig, der Flow zieht den neuen
+   Token selbst.
+5. **Selftest** — läuft 20 s nach Deploy automatisch, manuell über den Inject
+   „Pi-Hub Selftest". Ergebnis als Tabelle im Debug-Fenster **und** in der Pi-UI
+   unter „Integration-Health".
+
+```text
+PI-HUB SELFTEST
+cloud/event   OK   201
+strategy      OK   200
+live          OK   200
+local/config  OK   200
+local/event   OK   200
+local/trace   OK   200
+```
+
+## Troubleshooting
+
+| Meldung im Selftest | Ursache | Fix |
+| --- | --- | --- |
+| `config ---` / „keine Verbindung" | Pi-App läuft nicht oder falscher Port | `LOCAL_CONFIG_URL` prüfen (Default `http://127.0.0.1:3000/api/public/nodered/config`) |
+| `config leer` / „nicht gepaart" | Kein Device-Token auf dem Pi | Pi-UI → System → Cloud verbinden |
+| `cloud/*  FAIL 401` | Token ungültig/abgelaufen oder falscher Token (Factory statt Device) | Neu pairen, dann „Pi-Hub Config laden" auslösen |
+| `local/* FAIL 403` | Lokaler Guard blockt (nicht aus dem LAN) | `PI_INGEST_TOKEN` in `.env` setzen und Flow neu laden |
+| `* FAIL 404` | App-Version zu alt / falsche URL | Pi-App aktualisieren |
+| `msg properties can no longer override set node properties` | HTTP-Node hat feste URL oder eingebaute Bearer-Auth | Methode `use msg.method`, URL leer, Auth aus |
+
+## Konfiguration: eine Quelle
+
+Alle Function-Nodes lesen über `pihubCfg()` aus `global.pihub` (gefüllt vom
+Config-Loader) und fallen nur ersatzweise auf Tab-Env zurück. Es gibt kein
+`global.get('CLOUD_...')`-Muster mehr.
+
+---
+
+# Referenz
+
+## Cloud-Integration
 
 The Pi keeps its Node-RED brain, but mirrors decisions and metrics into the
 cloud so dashboards, analytics and the LLM can see what's happening — without
