@@ -184,20 +184,38 @@ export const getIntegrationHealth = createServerFn({ method: "GET" })
       const rows = (await readRange("trace", since)) as unknown as Array<Record<string, unknown>>;
       const byRoute = new Map<
         string,
-        { route: string; at: string; status: number | null; ok: boolean; reason: string | null; count: number }
+        {
+          route: string;
+          target: string;
+          at: string;
+          status: number | null;
+          ok: boolean;
+          reason: string | null;
+          count: number;
+          successes: number;
+          failures: number;
+        }
       >();
       for (const r of rows) {
         const route = String(r["route"] ?? "unknown");
+        const target = String(r["target"] ?? (route.includes("(local)") ? "local" : "cloud"));
         const status = r["status"] == null ? null : Number(r["status"]);
-        const ok = status != null && status >= 200 && status < 300;
-        const prev = byRoute.get(route);
+        const ok =
+          typeof r["ok"] === "boolean"
+            ? Boolean(r["ok"])
+            : status != null && status >= 200 && status < 300;
+        const key = `${target}:${route}`;
+        const prev = byRoute.get(key);
         byRoute.set(route, {
           route,
+          target,
           at: String(r["ts"] ?? r["at"] ?? ""),
           status,
           ok,
           reason: (r["reason"] as string | undefined) ?? null,
           count: (prev?.count ?? 0) + 1,
+          successes: (prev?.successes ?? 0) + (ok ? 1 : 0),
+          failures: (prev?.failures ?? 0) + (ok ? 0 : 1),
         });
       }
       return { routes: [...byRoute.values()].sort((a, b) => a.route.localeCompare(b.route)), error: null as string | null };
