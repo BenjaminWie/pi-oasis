@@ -297,8 +297,14 @@ function IntegrationsPage() {
                 <span className={r.ok ? "text-primary" : "text-destructive"}>
                   {r.ok ? <CheckCircle2 size={11} /> : <AlertTriangle size={11} />}
                 </span>
-                <code className="font-mono flex-1 truncate">{r.route}</code>
-                <span className="text-muted-foreground">{r.status ?? "—"}</span>
+                <div className="min-w-0 flex-1">
+                  <code className="block truncate font-mono">{r.route}</code>
+                  <span className="text-[9px] text-muted-foreground">
+                    {r.target === "local" ? "Lokal" : r.target === "ws" ? "WebSocket" : "Cloud"}
+                    {r.failures ? ` · ${r.failures} Fehler` : " · erreichbar"}
+                  </span>
+                </div>
+                <span className="text-muted-foreground">{r.status ?? (r.ok ? "OK" : "—")}</span>
                 <span className="text-muted-foreground">×{r.count}</span>
               </div>
             ))

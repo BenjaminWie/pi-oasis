@@ -34,6 +34,8 @@ local/trace   OK   200
 | `config ---` / „keine Verbindung" | Pi-App läuft nicht oder falscher Port | `LOCAL_CONFIG_URL` prüfen (Default `http://127.0.0.1:3000/api/public/nodered/config`) |
 | `config leer` / „nicht gepaart" | Kein Device-Token auf dem Pi | Pi-UI → System → Cloud verbinden |
 | `cloud/*  FAIL 401` | Token ungültig/abgelaufen oder falscher Token (Factory statt Device) | Neu pairen, dann „Pi-Hub Config laden" auslösen |
+| Alle `cloud/*`-Checks scheitern, lokal ist `OK` | Gehostete Cloud ist pausiert/nicht erreichbar oder Token wurde dort entfernt | Lokaler Betrieb läuft weiter. Cloud reaktivieren, danach neu pairen und Config laden |
+| `realtime websocket —` sehr häufig | Wiederholte Reconnect-Statusmeldungen; kein lokaler Datenverlust | Neuer Flow dedupliziert identische Zustände für 5 Minuten |
 | `local/* FAIL 403` | Lokaler Guard blockt (nicht aus dem LAN) | `PI_INGEST_TOKEN` in `.env` setzen und Flow neu laden |
 | `* FAIL 404` | App-Version zu alt / falsche URL | Pi-App aktualisieren |
 | `msg properties can no longer override set node properties` | HTTP-Node hat feste URL oder eingebaute Bearer-Auth | Methode `use msg.method`, URL leer, Auth aus |
