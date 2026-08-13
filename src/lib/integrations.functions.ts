@@ -206,7 +206,7 @@ export const getIntegrationHealth = createServerFn({ method: "GET" })
             : status != null && status >= 200 && status < 300;
         const key = `${target}:${route}`;
         const prev = byRoute.get(key);
-        byRoute.set(route, {
+        byRoute.set(key, {
           route,
           target,
           at: String(r["ts"] ?? r["at"] ?? ""),
