@@ -35,7 +35,7 @@ local/trace   OK   200
 | `config leer` / „nicht gepaart" | Kein Device-Token auf dem Pi | Pi-UI → System → Cloud verbinden |
 | `cloud/*  FAIL 401` | Token ungültig/abgelaufen oder falscher Token (Factory statt Device) | Neu pairen, dann „Pi-Hub Config laden" auslösen |
 | Alle `cloud/*`-Checks scheitern, lokal ist `OK` | Gehostete Cloud ist pausiert/nicht erreichbar oder Token wurde dort entfernt | Lokaler Betrieb läuft weiter. Cloud reaktivieren, danach neu pairen und Config laden |
-| `realtime websocket —` sehr häufig | Wiederholte Reconnect-Statusmeldungen; kein lokaler Datenverlust | Neuer Flow dedupliziert identische Zustände für 5 Minuten |
+| `realtime websocket —` sehr häufig | Wiederholte Reconnect-Statusmeldungen; kein lokaler Datenverlust | Neuer Flow fasst `error` und `disconnected` als einen Ausfall zusammen und meldet ihn höchstens alle 6 Stunden |
 | `Unexpected token ')'` in `Build Live Telemetry Request` | Veralteter Flow mit defektem Telemetrie-Builder | Aktuellen personalisierten Flow herunterladen und den bisherigen Pi-Hub-Tab ersetzen |
 | WebSocket-URL beim Download nicht verfügbar | Cloud-Bootstrap war nicht erreichbar | Der Export lässt den Socket bewusst weg; lokal und Safety-Poll laufen weiter. Nach Cloud-Wiederherstellung erneut herunterladen |
 | `cloud aus — lokal aktiv` | Cloud-Token fehlt oder wurde nach 401 per Circuit-Breaker deaktiviert | Kein lokaler Fehler. Lokal weiterarbeiten; für Cloud neu pairen und Config neu laden |
