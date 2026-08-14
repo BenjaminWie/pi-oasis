@@ -63,7 +63,11 @@ function IntegrationsPage() {
       a.click();
       URL.revokeObjectURL(url);
       if (!res.paired) setFlowError("Achtung: Pi ist nicht gepaart — Cloud-Zweige bleiben inaktiv.");
-      else if (!res.wsReady) setFlowError("Hinweis: WebSocket-URL noch nicht aufgelöst — Flow nutzt den Safety-Net-Poll.");
+      else if (!res.wsReady) {
+        setFlowError(
+          "Cloud-WebSocket nicht verfügbar: Der Export läuft lokal und nutzt den 15-Minuten-Safety-Poll. Nach Wiederherstellung der Cloud den Flow erneut herunterladen.",
+        );
+      }
     } catch (e) {
       setFlowError(e instanceof Error ? e.message : "Download fehlgeschlagen");
     } finally {
@@ -293,7 +297,7 @@ function IntegrationsPage() {
         <div className="rounded-xl border border-border bg-background p-3 space-y-2">
           {health?.routes?.length ? (
             health.routes.map((r) => (
-              <div key={r.route} className="flex items-center gap-2 text-[10px]">
+              <div key={`${r.target}:${r.route}`} className="flex items-center gap-2 text-[10px]">
                 <span className={r.ok ? "text-primary" : "text-destructive"}>
                   {r.ok ? <CheckCircle2 size={11} /> : <AlertTriangle size={11} />}
                 </span>

@@ -36,6 +36,9 @@ local/trace   OK   200
 | `cloud/*  FAIL 401` | Token ungültig/abgelaufen oder falscher Token (Factory statt Device) | Neu pairen, dann „Pi-Hub Config laden" auslösen |
 | Alle `cloud/*`-Checks scheitern, lokal ist `OK` | Gehostete Cloud ist pausiert/nicht erreichbar oder Token wurde dort entfernt | Lokaler Betrieb läuft weiter. Cloud reaktivieren, danach neu pairen und Config laden |
 | `realtime websocket —` sehr häufig | Wiederholte Reconnect-Statusmeldungen; kein lokaler Datenverlust | Neuer Flow dedupliziert identische Zustände für 5 Minuten |
+| `Unexpected token ')'` in `Build Live Telemetry Request` | Veralteter Flow mit defektem Telemetrie-Builder | Aktuellen personalisierten Flow herunterladen und den bisherigen Pi-Hub-Tab ersetzen |
+| WebSocket-URL beim Download nicht verfügbar | Cloud-Bootstrap war nicht erreichbar | Der Export lässt den Socket bewusst weg; lokal und Safety-Poll laufen weiter. Nach Cloud-Wiederherstellung erneut herunterladen |
+| `cloud aus — lokal aktiv` | Cloud-Token fehlt oder wurde nach 401 per Circuit-Breaker deaktiviert | Kein lokaler Fehler. Lokal weiterarbeiten; für Cloud neu pairen und Config neu laden |
 | `local/* FAIL 403` | Lokaler Guard blockt (nicht aus dem LAN) | `PI_INGEST_TOKEN` in `.env` setzen und Flow neu laden |
 | `* FAIL 404` | App-Version zu alt / falsche URL | Pi-App aktualisieren |
 | `msg properties can no longer override set node properties` | HTTP-Node hat feste URL oder eingebaute Bearer-Auth | Methode `use msg.method`, URL leer, Auth aus |
