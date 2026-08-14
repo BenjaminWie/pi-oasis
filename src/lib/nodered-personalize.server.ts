@@ -26,7 +26,7 @@ async function loadTemplate(localBase: string): Promise<Node[]> {
 }
 
 export async function renderPersonalizedFlow(cfg: NodeRedConfig): Promise<string> {
-  const nodes = await loadTemplate(cfg.local.baseUrl);
+  let nodes = await loadTemplate(cfg.local.baseUrl);
 
   const envMap: Record<string, string> = {
     CLOUD_BRIDGE_URL: cfg.cloud.eventUrl,
@@ -66,6 +66,42 @@ export async function renderPersonalizedFlow(cfg: NodeRedConfig): Promise<string
       n["broker"] = cfg.mqtt.brokerHost;
       n["port"] = String(cfg.mqtt.brokerPort);
     }
+  }
+
+  // A websocket-client with an empty path reconnects forever in Node-RED. If
+  // cloud bootstrap is unavailable, export a deliberately local-first flow
+  // and leave the 15-minute HTTP safety poll in place.
+  if (!cfg.cloud.wsUrl) {
+    const websocketNodeIds = new Set([
+      "pihub_ws_comment",
+      "pihub_ws_bootstrap_tick",
+      "pihub_ws_build_bootstrap",
+      "pihub_ws_http_bootstrap",
+      "pihub_ws_store_bootstrap",
+      "pihub_ws_client",
+      "pihub_ws_in",
+      "pihub_ws_out",
+      "pihub_ws_join_tick",
+      "pihub_ws_join",
+      "pihub_ws_parse",
+      "pihub_ws_status",
+      "pihub_ws_status_fn",
+    ]);
+    nodes = nodes
+      .filter((node) => !websocketNodeIds.has(String(node["id"] ?? "")))
+      .map((node) => {
+        const wires = node["wires"];
+        if (Array.isArray(wires)) {
+          node["wires"] = wires.map((port) =>
+            Array.isArray(port) ? port.filter((id) => !websocketNodeIds.has(String(id))) : port,
+          );
+        }
+        const scope = node["scope"];
+        if (Array.isArray(scope)) {
+          node["scope"] = scope.filter((id) => !websocketNodeIds.has(String(id)));
+        }
+        return node;
+      });
   }
 
   return JSON.stringify(nodes, null, 2);

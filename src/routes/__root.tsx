@@ -132,9 +132,10 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
+              const serviceWorkerHosts = ['localhost', '127.0.0.1', 'pi-hub.benniwie.com'];
+              if ('serviceWorker' in navigator && serviceWorkerHosts.includes(window.location.hostname)) {
                 window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js');
+                  navigator.serviceWorker.register('/sw.js').catch(() => {});
                 });
               }
             `,
