@@ -66,9 +66,12 @@ function fileFor(kind: TsKind, day: string) {
 // ---------------------------------------------------------------- write side
 
 const pending: TsRow[] = [];
-// in-memory mirror so reads are instant and survive an unflushed buffer
+// In-memory mirror so reads are instant and cover everything that has not been
+// flushed to the card yet (with a 15 min flush window this is the primary read
+// path — the JSONL files only matter after a restart).
 const recent: Record<TsKind, TsRow[]> = { event: [], tick: [], decision: [], trace: [] };
-const RECENT_MAX = 500;
+const RECENT_MAX = Math.max(500, Number(process.env.PI_HUB_RECENT_MAX ?? 3_000));
+
 let timer: ReturnType<typeof setTimeout> | null = null;
 let lastTickPersist = 0;
 
