@@ -35,6 +35,7 @@ import { Route as CloudConnectionsIndexRouteImport } from './routes/_cloud/conne
 import { Route as CloudConnectionsAlexaRouteImport } from './routes/_cloud/connections.alexa'
 import { Route as CloudConnectionsAssistantRouteImport } from './routes/_cloud/connections.assistant'
 import { Route as CloudConnectionsMcpRouteImport } from './routes/_cloud/connections.mcp'
+import { Route as CloudConnectionsSetupRouteImport } from './routes/_cloud/connections.setup'
 import { Route as CloudConnectionsTelegramRouteImport } from './routes/_cloud/connections.telegram'
 import { Route as CloudConnectionsUsageRouteImport } from './routes/_cloud/connections.usage'
 import { Route as CloudDevicesIndexRouteImport } from './routes/_cloud/devices.index'
@@ -61,8 +62,8 @@ import { Route as ApiPublicOauthTokenRouteImport } from './routes/api/public/oau
 import { Route as ApiPublicPiCommandRouteImport } from './routes/api/public/pi/command'
 import { Route as ApiPublicPiHistoryRouteImport } from './routes/api/public/pi/history'
 import { Route as ApiPublicPiStateRouteImport } from './routes/api/public/pi/state'
+import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
-import { Route as ApiPublicTelegramWebhookUserIdRouteImport } from './routes/api/public/telegram/webhook.$userId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -194,6 +195,11 @@ const CloudConnectionsAssistantRoute =
 const CloudConnectionsMcpRoute = CloudConnectionsMcpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
+  getParentRoute: () => CloudConnectionsRoute,
+} as any)
+const CloudConnectionsSetupRoute = CloudConnectionsSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => CloudConnectionsRoute,
 } as any)
 const CloudConnectionsTelegramRoute =
@@ -333,17 +339,17 @@ const ApiPublicPiStateRoute = ApiPublicPiStateRouteImport.update({
   path: '/api/public/pi/state',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTelegramWebhookRoute =
+  ApiPublicTelegramWebhookRouteImport.update({
+    id: '/api/public/telegram/webhook',
+    path: '/api/public/telegram/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
   id: '/api/public/voice/alexa',
   path: '/api/public/voice/alexa',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicTelegramWebhookUserIdRoute =
-  ApiPublicTelegramWebhookUserIdRouteImport.update({
-    id: '/api/public/telegram/webhook/$userId',
-    path: '/api/public/telegram/webhook/$userId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -367,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
   '/connections/assistant': typeof CloudConnectionsAssistantRoute
   '/connections/mcp': typeof CloudConnectionsMcpRoute
+  '/connections/setup': typeof CloudConnectionsSetupRoute
   '/connections/telegram': typeof CloudConnectionsTelegramRoute
   '/connections/usage': typeof CloudConnectionsUsageRoute
   '/devices/$id': typeof CloudDevicesIdRoute
@@ -395,8 +402,8 @@ export interface FileRoutesByFullPath {
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
-  '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -418,6 +425,7 @@ export interface FileRoutesByTo {
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
   '/connections/assistant': typeof CloudConnectionsAssistantRoute
   '/connections/mcp': typeof CloudConnectionsMcpRoute
+  '/connections/setup': typeof CloudConnectionsSetupRoute
   '/connections/telegram': typeof CloudConnectionsTelegramRoute
   '/connections/usage': typeof CloudConnectionsUsageRoute
   '/devices/$id': typeof CloudDevicesIdRoute
@@ -445,8 +453,8 @@ export interface FileRoutesByTo {
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
-  '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -474,6 +482,7 @@ export interface FileRoutesById {
   '/_cloud/connections/alexa': typeof CloudConnectionsAlexaRoute
   '/_cloud/connections/assistant': typeof CloudConnectionsAssistantRoute
   '/_cloud/connections/mcp': typeof CloudConnectionsMcpRoute
+  '/_cloud/connections/setup': typeof CloudConnectionsSetupRoute
   '/_cloud/connections/telegram': typeof CloudConnectionsTelegramRoute
   '/_cloud/connections/usage': typeof CloudConnectionsUsageRoute
   '/_cloud/devices/$id': typeof CloudDevicesIdRoute
@@ -502,8 +511,8 @@ export interface FileRoutesById {
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
-  '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -529,6 +538,7 @@ export interface FileRouteTypes {
     | '/connections/alexa'
     | '/connections/assistant'
     | '/connections/mcp'
+    | '/connections/setup'
     | '/connections/telegram'
     | '/connections/usage'
     | '/devices/$id'
@@ -557,8 +567,8 @@ export interface FileRouteTypes {
     | '/api/public/pi/command'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
+    | '/api/public/telegram/webhook'
     | '/api/public/voice/alexa'
-    | '/api/public/telegram/webhook/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -580,6 +590,7 @@ export interface FileRouteTypes {
     | '/connections/alexa'
     | '/connections/assistant'
     | '/connections/mcp'
+    | '/connections/setup'
     | '/connections/telegram'
     | '/connections/usage'
     | '/devices/$id'
@@ -607,8 +618,8 @@ export interface FileRouteTypes {
     | '/api/public/pi/command'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
+    | '/api/public/telegram/webhook'
     | '/api/public/voice/alexa'
-    | '/api/public/telegram/webhook/$userId'
   id:
     | '__root__'
     | '/'
@@ -635,6 +646,7 @@ export interface FileRouteTypes {
     | '/_cloud/connections/alexa'
     | '/_cloud/connections/assistant'
     | '/_cloud/connections/mcp'
+    | '/_cloud/connections/setup'
     | '/_cloud/connections/telegram'
     | '/_cloud/connections/usage'
     | '/_cloud/devices/$id'
@@ -663,8 +675,8 @@ export interface FileRouteTypes {
     | '/api/public/pi/command'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
+    | '/api/public/telegram/webhook'
     | '/api/public/voice/alexa'
-    | '/api/public/telegram/webhook/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -697,8 +709,8 @@ export interface RootRouteChildren {
   ApiPublicPiCommandRoute: typeof ApiPublicPiCommandRoute
   ApiPublicPiHistoryRoute: typeof ApiPublicPiHistoryRoute
   ApiPublicPiStateRoute: typeof ApiPublicPiStateRoute
+  ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
   ApiPublicVoiceAlexaRoute: typeof ApiPublicVoiceAlexaRoute
-  ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -885,6 +897,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CloudConnectionsMcpRouteImport
       parentRoute: typeof CloudConnectionsRoute
     }
+    '/_cloud/connections/setup': {
+      id: '/_cloud/connections/setup'
+      path: '/setup'
+      fullPath: '/connections/setup'
+      preLoaderRoute: typeof CloudConnectionsSetupRouteImport
+      parentRoute: typeof CloudConnectionsRoute
+    }
     '/_cloud/connections/telegram': {
       id: '/_cloud/connections/telegram'
       path: '/telegram'
@@ -1067,18 +1086,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPiStateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/telegram/webhook': {
+      id: '/api/public/telegram/webhook'
+      path: '/api/public/telegram/webhook'
+      fullPath: '/api/public/telegram/webhook'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/voice/alexa': {
       id: '/api/public/voice/alexa'
       path: '/api/public/voice/alexa'
       fullPath: '/api/public/voice/alexa'
       preLoaderRoute: typeof ApiPublicVoiceAlexaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/telegram/webhook/$userId': {
-      id: '/api/public/telegram/webhook/$userId'
-      path: '/api/public/telegram/webhook/$userId'
-      fullPath: '/api/public/telegram/webhook/$userId'
-      preLoaderRoute: typeof ApiPublicTelegramWebhookUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -1127,6 +1146,7 @@ interface CloudConnectionsRouteChildren {
   CloudConnectionsAlexaRoute: typeof CloudConnectionsAlexaRoute
   CloudConnectionsAssistantRoute: typeof CloudConnectionsAssistantRoute
   CloudConnectionsMcpRoute: typeof CloudConnectionsMcpRoute
+  CloudConnectionsSetupRoute: typeof CloudConnectionsSetupRoute
   CloudConnectionsTelegramRoute: typeof CloudConnectionsTelegramRoute
   CloudConnectionsUsageRoute: typeof CloudConnectionsUsageRoute
   CloudConnectionsIndexRoute: typeof CloudConnectionsIndexRoute
@@ -1136,6 +1156,7 @@ const CloudConnectionsRouteChildren: CloudConnectionsRouteChildren = {
   CloudConnectionsAlexaRoute: CloudConnectionsAlexaRoute,
   CloudConnectionsAssistantRoute: CloudConnectionsAssistantRoute,
   CloudConnectionsMcpRoute: CloudConnectionsMcpRoute,
+  CloudConnectionsSetupRoute: CloudConnectionsSetupRoute,
   CloudConnectionsTelegramRoute: CloudConnectionsTelegramRoute,
   CloudConnectionsUsageRoute: CloudConnectionsUsageRoute,
   CloudConnectionsIndexRoute: CloudConnectionsIndexRoute,
@@ -1206,8 +1227,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPiCommandRoute: ApiPublicPiCommandRoute,
   ApiPublicPiHistoryRoute: ApiPublicPiHistoryRoute,
   ApiPublicPiStateRoute: ApiPublicPiStateRoute,
+  ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
   ApiPublicVoiceAlexaRoute: ApiPublicVoiceAlexaRoute,
-  ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

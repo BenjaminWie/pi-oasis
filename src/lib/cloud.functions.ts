@@ -11,13 +11,8 @@ function randomCode(len: number): string {
   return out;
 }
 
-async function sha256Hex(input: string): Promise<string> {
-  const buf = new TextEncoder().encode(input);
-  const hash = await crypto.subtle.digest("SHA-256", buf);
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
+
+
 
 // === Devices =================================================================
 
@@ -249,81 +244,10 @@ export const getProfile = createServerFn({ method: "GET" })
     return data;
   });
 
-export const linkTelegramBot = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ token: z.string().regex(/^\d+:[A-Za-z0-9_-]{20,}$/) }).parse)
-  .handler(async ({ data, context }) => {
-    // Verify token + fetch bot info
-    const meRes = await fetch(`https://api.telegram.org/bot${data.token}/getMe`);
-    const me = await meRes.json();
-    if (!meRes.ok || !me.ok)
-      throw new Error("Telegram-Token ungültig: " + (me.description || meRes.status));
+// Telegram linking moved to the database-free flow in src/lib/wiring.functions.ts
+// (env secrets + /api/public/telegram/webhook). The old profile-backed
+// linkTelegramBot/unlinkTelegramBot pair was removed with the $userId webhook.
 
-    const webhookSecret = await sha256Hex(`tg:${context.userId}:${data.token}`);
-    const linkCode = randomCode(6);
-
-    // Build webhook URL: prefer header host
-    const reqUrl = new URL((await import("@tanstack/react-start/server")).getRequest().url);
-    const webhookUrl = `${reqUrl.origin}/api/public/telegram/webhook/${context.userId}`;
-
-    const setRes = await fetch(`https://api.telegram.org/bot${data.token}/setWebhook`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        url: webhookUrl,
-        secret_token: webhookSecret,
-        allowed_updates: ["message"],
-      }),
-    });
-    const setBody = await setRes.json();
-    if (!setRes.ok || !setBody.ok) {
-      throw new Error("setWebhook fehlgeschlagen: " + (setBody.description || setRes.status));
-    }
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
-      .from("profiles")
-      .update({
-        telegram_bot_token: data.token,
-        telegram_bot_username: me.result.username,
-        telegram_webhook_secret: webhookSecret,
-        telegram_link_code: linkCode,
-        telegram_chat_id: null,
-        telegram_linked_at: null,
-      })
-      .eq("id", context.userId);
-    if (error) throw new Error(error.message);
-
-    return { username: me.result.username, linkCode, webhookUrl };
-  });
-
-export const unlinkTelegramBot = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: prof } = await supabaseAdmin
-      .from("profiles")
-      .select("telegram_bot_token")
-      .eq("id", context.userId)
-      .single();
-    if (prof?.telegram_bot_token) {
-      await fetch(`https://api.telegram.org/bot${prof.telegram_bot_token}/deleteWebhook`, {
-        method: "POST",
-      }).catch(() => {});
-    }
-    await supabaseAdmin
-      .from("profiles")
-      .update({
-        telegram_bot_token: null,
-        telegram_bot_username: null,
-        telegram_webhook_secret: null,
-        telegram_chat_id: null,
-        telegram_link_code: null,
-        telegram_linked_at: null,
-      })
-      .eq("id", context.userId);
-    return { ok: true };
-  });
 
 export const listAudit = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

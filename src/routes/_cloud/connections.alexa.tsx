@@ -1,444 +1,121 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Copy, Check, ExternalLink, Mic, ArrowLeft, KeyRound, Trash2, Plus, X } from "lucide-react";
-import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  listAlexaClients,
-  createAlexaClient,
-  deleteAlexaClient,
-  updateAlexaClientRedirectUris,
-  listAlexaTokenLog,
-} from "@/lib/alexa-oauth.functions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, CheckCircle2, XCircle, Copy } from "lucide-react";
+import { getWiringStatus } from "@/lib/wiring.functions";
 
 export const Route = createFileRoute("/_cloud/connections/alexa")({
+  ssr: false,
+  head: () => ({
+    meta: [
+      { title: "Alexa Skill verknüpfen — Pi Hub" },
+      {
+        name: "description",
+        content:
+          "Account Linking ohne Datenbank: signierte Tokens, Link-Secret als Nachweis, fertige URLs zum Kopieren.",
+      },
+      { property: "og:title", content: "Alexa Skill — Pi Hub" },
+      { property: "og:description", content: "Zisterne per Sprache steuern, Account Linking in 5 Schritten." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: AlexaPage,
 });
 
-const INTENT_SCHEMA = `{
-  "interactionModel": {
-    "languageModel": {
-      "invocationName": "pi hub",
-      "intents": [
-        { "name": "AMAZON.StopIntent" },
-        { "name": "AMAZON.HelpIntent" },
-        { "name": "AMAZON.CancelIntent" },
-        { "name": "StatusIntent",
-          "samples": ["wie ist der status", "status", "system status"] },
-        { "name": "PumpOnIntent",
-          "slots": [{ "name": "Minutes", "type": "AMAZON.NUMBER" }],
-          "samples": [
-            "Pumpe an", "Zisterne an", "Wasser an",
-            "Pumpe an für {Minutes} Minuten",
-            "Zisterne an für {Minutes} Minuten"
-          ] },
-        { "name": "PumpOffIntent",
-          "samples": ["Pumpe aus", "Zisterne aus", "Wasser aus"] },
-        { "name": "LaundryDoneIntent",
-          "slots": [{ "name": "Appliance", "type": "AMAZON.SearchQuery" }],
-          "samples": ["ist die Wäsche fertig", "ist meine Wäsche schon fertig",
-                      "läuft die Waschmaschine noch", "ist {Appliance} fertig"] },
-        { "name": "EnergyAskIntent",
-          "samples": ["wie teuer ist Strom", "wie teuer ist Strom gerade",
-                      "Strompreis", "aktueller Strompreis"] }
-      ]
-    }
-  }
-}`;
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="flex items-center gap-2">
+        <code className="flex-1 rounded-lg bg-background border border-border px-2 py-1.5 text-[10px] font-mono break-all">
+          {value}
+        </code>
+        <button
+          onClick={() => navigator.clipboard?.writeText(value)}
+          aria-label={`${label} kopieren`}
+          className="text-muted-foreground"
+        >
+          <Copy size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function AlexaPage() {
-  const [copied, setCopied] = useState<string | null>(null);
-  const [freshSecret, setFreshSecret] = useState<{ client_id: string; client_secret: string } | null>(null);
+  const fn = useServerFn(getWiringStatus);
+  const { data } = useQuery({ queryKey: ["wiring-status"], queryFn: () => fn() });
+  const a = data?.alexa;
 
-  const list = useServerFn(listAlexaClients);
-  const create = useServerFn(createAlexaClient);
-  const del = useServerFn(deleteAlexaClient);
-  const qc = useQueryClient();
-
-  const clients = useQuery({
-    queryKey: ["alexa-clients"],
-    queryFn: () => list(),
-  });
-
-  const createMut = useMutation({
-    mutationFn: () => create({ data: { name: "Alexa Skill" } }),
-    onSuccess: (data) => {
-      setFreshSecret(data);
-      qc.invalidateQueries({ queryKey: ["alexa-clients"] });
-      toast.success("Credentials erzeugt — Secret nur JETZT sichtbar!");
-    },
-    onError: (e: any) => toast.error(String(e?.message ?? e)),
-  });
-
-  const deleteMut = useMutation({
-    mutationFn: (id: string) => del({ data: { id } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["alexa-clients"] });
-      toast.success("Client widerrufen");
-    },
-  });
-
-  const updateUris = useServerFn(updateAlexaClientRedirectUris);
-  const updateUrisMut = useMutation({
-    mutationFn: (v: { id: string; redirect_uris: string[] }) =>
-      updateUris({ data: v }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["alexa-clients"] });
-      toast.success("Redirect-URIs gespeichert");
-    },
-    onError: (e: any) => toast.error(String(e?.message ?? e)),
-  });
-
-  // Prefill from ?suggest= (deep-link from consent error page)
-  const suggested =
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("suggest") ?? ""
-      : "";
-  const highlightId =
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("highlight") ?? ""
-      : "";
-
-  const origin =
-    typeof window !== "undefined" ? window.location.origin : "https://pi-hub.benniwie.com";
-  const authUrl = `${origin}/api/public/oauth/authorize`;
-  const tokenUrl = `${origin}/api/public/oauth/token`;
-  const skillEndpoint = `${origin}/api/public/voice/alexa`;
-
-  function copy(label: string, text: string) {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(label);
-      setTimeout(() => setCopied(null), 1500);
-    });
-  }
-
-  function CopyRow({ label, value }: { label: string; value: string }) {
-    return (
-      <div className="rounded-xl border border-border bg-background p-3">
-        <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">
-          {label}
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <code className="font-mono text-[11px] break-all">{value}</code>
-          <button onClick={() => copy(label, value)} className="text-primary shrink-0">
-            {copied === label ? <Check size={14} /> : <Copy size={14} />}
-          </button>
-        </div>
-      </div>
+  const Flag = ({ ok }: { ok: boolean | undefined }) =>
+    ok ? (
+      <CheckCircle2 size={14} className="text-primary" />
+    ) : (
+      <XCircle size={14} className="text-destructive" />
     );
-  }
 
   return (
-    <div className="px-5 space-y-5 pb-8">
-      <Link
-        to="/connections"
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground mb-2"
-      >
+    <div className="px-5 space-y-4">
+      <Link to="/connections" className="inline-flex items-center gap-1 text-xs text-muted-foreground">
         <ArrowLeft size={14} /> zurück
       </Link>
-      <div>
-        <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1.5">
-          <Mic size={14} className="text-primary" /> Alexa Skill (OAuth 2.0)
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          Sprich mit deiner Pumpe — über jedes Alexa-Gerät. Echtes Account Linking mit Authorization Code Grant.
+
+      <h2 className="text-xs uppercase tracking-widest text-muted-foreground">Alexa Skill</h2>
+
+      <div className="rounded-2xl border border-border bg-card p-4 space-y-2 text-xs">
+        <div className="flex items-center gap-2">
+          <Flag ok={a?.clientConfigured} /> OAuth-Client (PIHUB_OAUTH_CLIENT_ID / _SECRET)
+        </div>
+        <div className="flex items-center gap-2">
+          <Flag ok={a?.linkSecretSet} /> Link-Secret (PIHUB_LINK_SECRET)
+        </div>
+        <div className="flex items-center gap-2">
+          <Flag ok={a?.tokenSecretSet} /> Token-Signatur (PIHUB_TOKEN_SECRET)
+        </div>
+        <p className="text-[10px] text-muted-foreground leading-relaxed pt-1">
+          Es wird nichts gespeichert: Codes und Tokens sind HMAC-signiert. Zurückziehen = Secret
+          rotieren.
         </p>
       </div>
 
-      <ol className="space-y-3">
-        <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">1</span>
-            <span className="text-xs font-bold">Custom Skill anlegen</span>
-          </div>
-          <a
-            href="https://developer.amazon.com/alexa/console/ask"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-primary"
-          >
-            Alexa Developer Console öffnen <ExternalLink size={11} />
-          </a>
-          <p className="text-[11px] text-muted-foreground">
-            Sprache <strong>Deutsch (DE)</strong>, Modell <strong>Custom</strong>, Hosting{" "}
-            <strong>Provision your own</strong>. Invocation-Name: <code>pi hub</code> (muss exakt zum Skill passen).
-          </p>
-        </li>
-
-        <li className="rounded-2xl border border-border bg-card p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">2</span>
-            <span className="text-xs font-bold">Client-Credentials erzeugen</span>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Jeder Skill bekommt eigene Zugangsdaten. Das <strong>Client Secret</strong> wird nur EINMAL angezeigt.
-          </p>
-          <Button
-            onClick={() => createMut.mutate()}
-            disabled={createMut.isPending}
-            className="w-full"
-            size="sm"
-          >
-            <KeyRound size={14} className="mr-1.5" />
-            {createMut.isPending ? "erzeuge…" : "Neue Credentials erzeugen"}
-          </Button>
-
-          {freshSecret && (
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2">
-              <div className="text-[10px] text-primary uppercase tracking-widest font-bold">
-                Jetzt kopieren – wird nicht wieder angezeigt!
-              </div>
-              <CopyRow label="client_id" value={freshSecret.client_id} />
-              <CopyRow label="client_secret" value={freshSecret.client_secret} />
-            </div>
+      {a && (
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+          <h3 className="text-xs uppercase tracking-widest text-muted-foreground">
+            Werte für die Alexa Developer Console
+          </h3>
+          <Field label="Web Authorization URI" value={a.authorizeUrl} />
+          <Field label="Access Token URI" value={a.tokenUrl} />
+          <Field label="Client ID" value={a.clientConfigured ? "= PIHUB_OAUTH_CLIENT_ID" : "noch nicht gesetzt"} />
+          <Field label="Client Secret" value={a.clientConfigured ? "= PIHUB_OAUTH_CLIENT_SECRET" : "noch nicht gesetzt"} />
+          <Field label="Scope" value="read control" />
+          <Field label="Skill Endpoint (HTTPS)" value={a.skillEndpoint} />
+          {a.extraRedirectUris.length > 0 && (
+            <Field label="Zusätzliche Redirect-URIs" value={a.extraRedirectUris.join(", ")} />
           )}
-
-          {clients.data && clients.data.length > 0 && (
-            <div className="space-y-3 pt-2 border-t border-border">
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                Aktive Clients
-              </div>
-              {clients.data.map((c: any) => (
-                <ClientRow
-                  key={c.id}
-                  client={c}
-                  highlighted={c.id === highlightId}
-                  suggested={c.id === highlightId ? suggested : ""}
-                  onDelete={() => deleteMut.mutate(c.id)}
-                  onSave={(uris: string[]) => updateUrisMut.mutate({ id: c.id, redirect_uris: uris })}
-                  saving={updateUrisMut.isPending}
-                />
-              ))}
-            </div>
-          )}
-        </li>
-
-        <li className="rounded-2xl border border-border bg-card p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">3</span>
-            <span className="text-xs font-bold">Account Linking konfigurieren</span>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Im Skill → <em>Account Linking</em> → <strong>Auth Code Grant</strong> wählen und diese Werte eintragen:
-          </p>
-          <CopyRow label="Authorization URI" value={authUrl} />
-          <CopyRow label="Access Token URI" value={tokenUrl} />
-          <CopyRow label="Client ID" value={freshSecret?.client_id ?? "(aus Schritt 2)"} />
-          <CopyRow label="Client Secret" value={freshSecret?.client_secret ?? "(aus Schritt 2)"} />
-          <CopyRow label="Client Authentication Scheme" value="HTTP Basic (Recommended)" />
-          <CopyRow label="Scope" value="control" />
-          <p className="text-[10px] text-muted-foreground">
-            Die drei Alexa Redirect URLs (layla.amazon.com / alexa.amazon.co.jp / pitangui.amazon.com)
-            werden von Alexa selbst angezeigt und sind bereits in unserer Allowlist eingetragen.
-          </p>
-        </li>
-
-        <li className="rounded-2xl border border-border bg-card p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">4</span>
-            <span className="text-xs font-bold">Endpoint & Intent Schema</span>
-          </div>
-          <CopyRow label="HTTPS Endpoint" value={skillEndpoint} />
-          <div className="relative">
-            <pre className="rounded-xl border border-border bg-background p-3 text-[10px] font-mono overflow-x-auto max-h-60">
-{INTENT_SCHEMA}
-            </pre>
-            <button
-              onClick={() => copy("schema", INTENT_SCHEMA)}
-              className="absolute top-2 right-2 text-primary bg-card border border-border rounded p-1.5"
-            >
-              {copied === "schema" ? <Check size={12} /> : <Copy size={12} />}
-            </button>
-          </div>
-        </li>
-
-        <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">5</span>
-            <span className="text-xs font-bold">Verlinken & testen</span>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            In der Alexa-App: Skills → dein Skill → <strong>Zum Aktivieren tippen</strong>.
-            Du landest auf Pi-Hub, meldest dich mit Google an und stimmst zu — fertig.
-          </p>
-          <ul className="text-[11px] font-mono text-muted-foreground space-y-1 pt-2">
-            <li>"Alexa, frage Pi Hub nach dem Status."</li>
-            <li>"Alexa, sage Pi Hub: Pumpe an für zehn Minuten."</li>
-            <li>"Alexa, sage Pi Hub: Pumpe aus."</li>
-          </ul>
-        </li>
-
-        <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5 flex items-center justify-center">6</span>
-            <span className="text-xs font-bold">Token-Exchange Log</span>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Zeigt die letzten 30 Aufrufe an <code>/oauth/token</code>. Sag Bescheid, wenn Alexa
-            "Konto konnte nicht verknüpft werden" bringt — hier steht der Grund (z.B. redirect_uri mismatch).
-          </p>
-          <AlexaTokenLog />
-        </li>
-      </ol>
-    </div>
-  );
-}
-
-function AlexaTokenLog() {
-  const fn = useServerFn(listAlexaTokenLog);
-  const { data, isLoading } = useQuery({
-    queryKey: ["alexa-token-log"],
-    queryFn: () => fn(),
-    refetchInterval: 15_000,
-    refetchIntervalInBackground: false,
-    staleTime: 10_000,
-  });
-  if (isLoading) return <div className="text-[10px] text-muted-foreground">Lade…</div>;
-  if (!data || data.length === 0)
-    return <div className="text-[10px] text-muted-foreground">Noch keine Aufrufe.</div>;
-  return (
-    <div className="rounded-xl border border-border bg-background overflow-hidden">
-      <table className="w-full text-[10px] font-mono">
-        <thead className="text-muted-foreground bg-card">
-          <tr className="text-left">
-            <th className="px-2 py-1">Zeit</th>
-            <th className="px-2 py-1">Grant</th>
-            <th className="px-2 py-1">OK</th>
-            <th className="px-2 py-1">Fehler / Note</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(data as any[]).map((r) => (
-            <tr key={r.id} className="border-t border-border">
-              <td className="px-2 py-1 whitespace-nowrap">{new Date(r.created_at).toLocaleTimeString()}</td>
-              <td className="px-2 py-1">{r.grant_type ?? "—"}</td>
-              <td className={`px-2 py-1 ${r.ok ? "text-primary" : "text-destructive"}`}>{r.ok ? "✓" : "✗"}</td>
-              <td className="px-2 py-1 truncate max-w-[280px]" title={`${r.error_code ?? ""} ${r.note ?? ""}`}>
-                {r.error_code ? <span className="text-destructive mr-1">{r.error_code}</span> : null}
-                {r.note ?? "—"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function ClientRow({
-  client,
-  highlighted,
-  suggested,
-  onDelete,
-  onSave,
-  saving,
-}: {
-  client: { id: string; client_id: string; redirect_uris: string[] | null };
-  highlighted: boolean;
-  suggested: string;
-  onDelete: () => void;
-  onSave: (uris: string[]) => void;
-  saving: boolean;
-}) {
-  const initial = client.redirect_uris ?? [];
-  const [uris, setUris] = useState<string[]>(initial);
-  const [draft, setDraft] = useState(suggested);
-  const dirty = uris.join("|") !== initial.join("|");
-
-  function add(uri: string) {
-    const v = uri.trim();
-    if (!v) return;
-    try {
-      new URL(v);
-    } catch {
-      toast.error("Ungültige URL");
-      return;
-    }
-    if (uris.includes(v)) return;
-    setUris([...uris, v]);
-    setDraft("");
-  }
-  function remove(i: number) {
-    setUris(uris.filter((_, idx) => idx !== i));
-  }
-  function addAmazonDefaults() {
-    const defaults = [
-      "https://layla.amazon.com/api/skill/link/",
-      "https://pitangui.amazon.com/api/skill/link/",
-      "https://alexa.amazon.co.jp/api/skill/link/",
-    ];
-    const next = [...uris];
-    for (const d of defaults) if (!next.includes(d)) next.push(d);
-    setUris(next);
-  }
-
-  return (
-    <div
-      className={`rounded-xl border p-3 space-y-2 ${
-        highlighted ? "border-primary/60 bg-primary/5" : "border-border bg-background"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <code className="text-[11px] font-mono truncate">{client.client_id}</code>
-        <button onClick={onDelete} className="text-destructive p-1" aria-label="widerrufen">
-          <Trash2 size={12} />
-        </button>
-      </div>
-      <div className="space-y-1">
-        <div className="text-[9px] uppercase tracking-widest text-muted-foreground">
-          Erlaubte Redirect-URIs (Einträge mit „/" am Ende matchen jeden Vendor-ID-Suffix)
         </div>
-        {uris.length === 0 && (
-          <div className="text-[10px] text-muted-foreground italic">keine — Alexa-Linking wird fehlschlagen</div>
-        )}
-        {uris.map((u, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-between gap-2 text-[10px] font-mono bg-card border border-border rounded px-2 py-1"
-          >
-            <span className="truncate">{u}</span>
-            <button onClick={() => remove(i)} className="text-muted-foreground shrink-0" aria-label="entfernen">
-              <X size={11} />
-            </button>
-          </div>
-        ))}
-        <div className="flex gap-1 pt-1">
-          <Input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="https://layla.amazon.com/api/skill/link/AAAA…"
-            className="h-7 text-[10px] font-mono"
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 px-2"
-            onClick={() => add(draft)}
-            aria-label="hinzufügen"
-          >
-            <Plus size={12} />
-          </Button>
-        </div>
-        <button
-          onClick={addAmazonDefaults}
-          className="text-[10px] text-primary underline underline-offset-2"
-        >
-          Alexa-Standard-Prefixes hinzufügen
-        </button>
-      </div>
-      {dirty && (
-        <Button
-          onClick={() => onSave(uris)}
-          disabled={saving}
-          size="sm"
-          className="w-full h-7 text-[10px]"
-        >
-          {saving ? "speichere…" : "Änderungen speichern"}
-        </Button>
       )}
+
+      <div className="rounded-2xl border border-border bg-card/60 p-4 text-[11px] text-muted-foreground leading-relaxed space-y-2">
+        <p className="font-bold text-foreground">So verknüpfst du</p>
+        <ol className="space-y-1 list-decimal list-inside">
+          <li>Secrets setzen: Client-ID, Client-Secret, Link-Secret, Token-Secret.</li>
+          <li>In der Alexa Console „Account Linking" → Auth Code Grant, obige URLs eintragen.</li>
+          <li>
+            Alexa zeigt dir Redirect-URIs (amazon.com / amazonalexa.com). Diese sind erlaubt; andere
+            Hosts über <code>PIHUB_OAUTH_REDIRECT_URIS</code> ergänzen.
+          </li>
+          <li>In der Alexa-App den Skill aktivieren → Consent-Seite fragt nach dem Link-Secret.</li>
+          <li>„Alexa, sage Pi Hub: Zisterne an für 10 Minuten."</li>
+        </ol>
+        <p>
+          Fehler beim Verknüpfen? Prüfe auf der{" "}
+          <Link to="/connections/setup" className="text-primary">
+            Verkabelungs-Seite
+          </Link>
+          , ob Relay und Secrets grün sind.
+        </p>
+      </div>
     </div>
   );
 }

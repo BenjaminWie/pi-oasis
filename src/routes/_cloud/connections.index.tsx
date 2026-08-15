@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bot, MessageCircle, Mic, ChevronRight, Sparkles, Activity } from "lucide-react";
+import { Bot, MessageCircle, Mic, ChevronRight, Sparkles, Activity, Cable } from "lucide-react";
 
 export const Route = createFileRoute("/_cloud/connections/")({
   component: ConnectionsIndexPage,
@@ -18,6 +18,23 @@ function ConnectionsIndexPage() {
       </div>
 
       <div className="relative z-10 space-y-3">
+        <Link
+          to="/connections/setup"
+          className="relative z-10 flex items-center gap-4 rounded-2xl border border-border bg-card p-4 hover:bg-muted/40 active:scale-[0.98] transition-all cursor-pointer"
+        >
+          <div className="rounded-xl bg-primary/10 p-3 text-primary">
+            <Cable size={24} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-sm">Verkabelung & Status</div>
+            <div className="text-[11px] text-muted-foreground leading-tight">
+              Relay, Telegram, Alexa, Node-RED — was läuft, was fehlt.
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-muted-foreground" />
+        </Link>
+
+
         <Link
           to="/connections/assistant"
           className="relative z-10 flex items-center gap-4 rounded-2xl border border-primary/40 bg-primary/5 p-4 hover:bg-primary/10 active:scale-[0.98] transition-all cursor-pointer"
