@@ -13,10 +13,14 @@ export const Route = createFileRoute("/api/live-stream")({
 
         const { verifyPiToken } = await import("@/lib/pi-auth.server");
         const { hasProcStats } = await import("@/lib/pi-runtime.server");
+        const { isPubliclyExposed } = await import("@/lib/local-ingest-guard.server");
         const isDev = process.env.NODE_ENV === "development";
-        if (hasProcStats() && !isDev && !verifyPiToken(token)) {
+        // A tunnel makes this stream internet-reachable → always require a token.
+        const mustAuth = isPubliclyExposed() || (hasProcStats() && !isDev);
+        if (mustAuth && !verifyPiToken(token)) {
           return new Response("Unauthorized", { status: 401 });
         }
+
 
         const { subscribeLocalBus } = await import("@/lib/local-live-bus.server");
         const encoder = new TextEncoder();

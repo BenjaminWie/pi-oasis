@@ -1,27 +1,13 @@
-// OAuth 2.0 Authorization Code endpoint for Alexa Account Linking.
+// OAuth 2.0 Authorization endpoint for Alexa Account Linking — DATABASE-FREE.
 //
-// GET: verifies Supabase session, renders a small consent page.
-// POST: on "Approve", mints a single-use code, stores its SHA-256 hash,
-//       and 302-redirects back to Alexa's redirect_uri with ?code=&state=.
-//
-// The code is opaque; the client_id is validated against alexa_oauth_clients
-// and the redirect_uri must be on the client's allowlist.
+// The consent page asks for the Pi link secret instead of a cloud account:
+// whoever knows the Pi's token owns the Pi. Approving mints an HMAC-signed
+// single-use code and redirects back to Alexa with ?code=&state=.
 
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { getAlexaConsent } from "@/lib/alexa-oauth.functions";
-
-type LoaderData = {
-  clientName: string;
-  clientId: string;
-  redirectUri: string;
-  scope: string;
-  state: string;
-  userEmail: string | null;
-  deviceName: string | null;
-};
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/api/public/oauth/authorize")({
   ssr: false,
@@ -32,80 +18,12 @@ export const Route = createFileRoute("/api/public/oauth/authorize")({
     scope: (s.scope as string) ?? "control",
     response_type: (s.response_type as string) ?? "code",
   }),
-  beforeLoad: async ({ location }) => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
-      const next = location.pathname + location.searchStr;
-      throw redirect({ to: "/auth", search: { next } as any });
-    }
-  },
-  loader: async ({ location }) => {
-    const params = new URLSearchParams(location.search);
-    const result = await getAlexaConsent({
-      data: {
-        client_id: params.get("client_id") ?? "",
-        redirect_uri: params.get("redirect_uri") ?? "",
-        scope: params.get("scope") ?? "control",
-        response_type: params.get("response_type") ?? "code",
-      },
-    });
-    return { ...result, state: params.get("state") ?? "" } as LoaderData;
-  },
   component: Consent,
-  errorComponent: ({ error }) => {
-    const e = error as any;
-    const isMismatch = e?.code === "redirect_uri_mismatch";
-    const received: string | undefined = e?.received;
-    const clientId: string | undefined = e?.clientId;
-    const allowed: string[] = e?.allowed ?? [];
-    const fixHref =
-      isMismatch && received
-        ? `/connections/alexa?highlight=${encodeURIComponent(clientId ?? "")}&suggest=${encodeURIComponent(received)}`
-        : "/connections/alexa";
-    return (
-      <main className="max-w-md mx-auto p-6 space-y-3">
-        <h1 className="text-lg font-semibold">Verknüpfung fehlgeschlagen</h1>
-        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-          {String(e?.message ?? error)}
-        </p>
-        {isMismatch && (
-          <div className="rounded-xl border border-border bg-card p-3 text-xs space-y-2">
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">empfangen</div>
-              <code className="font-mono text-[11px] break-all">{received}</code>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">aktuell erlaubt</div>
-              {allowed.length === 0 ? (
-                <em className="text-muted-foreground">(leer)</em>
-              ) : (
-                <ul className="font-mono text-[11px] space-y-0.5">
-                  {allowed.map((u, i) => (
-                    <li key={i} className="break-all">{u}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <a
-              href={fixHref}
-              className="inline-block mt-1 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs"
-            >
-              In Allowlist eintragen →
-            </a>
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Prüfe in der Alexa Skill Konsole, dass Authorization URI, Client ID
-          und Redirect URIs exakt so hinterlegt sind wie unter /connections/alexa gezeigt.
-        </p>
-      </main>
-    );
-  },
 });
 
 function Consent() {
-  const data = Route.useLoaderData() as LoaderData;
   const search = Route.useSearch();
+  const [secret, setSecret] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,22 +31,16 @@ function Consent() {
     setBusy(true);
     setError(null);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) throw new Error("Bitte erneut anmelden.");
       const res = await fetch("/api/public/oauth/authorize-post", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           approve: approved,
           client_id: search.client_id,
           redirect_uri: search.redirect_uri,
           state: search.state,
           scope: search.scope,
+          link_secret: secret,
         }),
       });
       const j = await res.json();
@@ -145,28 +57,40 @@ function Consent() {
       <div>
         <h1 className="text-lg font-semibold">Alexa mit Pi-Hub verknüpfen</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          <strong>{data.clientName}</strong> möchte deinen Pi-Hub steuern.
+          Alexa möchte deinen Pi-Hub steuern.
         </p>
       </div>
-      <div className="rounded-xl border border-border bg-card p-4 text-sm space-y-2">
+
+      <div className="rounded-xl border border-border bg-card p-4 text-sm space-y-3">
         <div>
-          Gerät: <strong>{data.deviceName ?? "—"}</strong>
+          Rechte: <code className="text-primary">{search.scope}</code>
         </div>
-        <div>
-          Rechte: <code className="text-primary">{data.scope}</code>
-        </div>
-        <div className="text-xs text-muted-foreground pt-2 border-t border-border/50">
+        <label className="block space-y-1">
+          <span className="text-xs uppercase tracking-widest text-muted-foreground">
+            Link-Secret des Pi
+          </span>
+          <Input
+            type="password"
+            value={secret}
+            autoComplete="off"
+            onChange={(e) => setSecret(e.target.value)}
+            placeholder="PIHUB_LINK_SECRET"
+          />
+        </label>
+        <p className="text-xs text-muted-foreground pt-2 border-t border-border/50">
           Alexa kann damit Pumpe an/aus schalten, Status abfragen und MQTT-Kommandos
-          im <code>cmnd/*</code>-Whitelist senden. Deine App-Rechte bleiben unverändert.
-        </div>
+          im <code>cmnd/*</code>-Whitelist senden.
+        </p>
       </div>
+
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}
+
       <div className="flex gap-3">
-        <Button onClick={() => approve(true)} disabled={busy} className="flex-1">
+        <Button onClick={() => approve(true)} disabled={busy || !secret} className="flex-1">
           {busy ? "…" : "Zustimmen"}
         </Button>
         <Button onClick={() => approve(false)} disabled={busy} variant="outline" className="flex-1">

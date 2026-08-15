@@ -6,7 +6,7 @@
 let started = false;
 let stopRequested = false;
 
-async function snapshot() {
+export async function snapshot() {
   try {
     const { readRealSystemStats, listRealContainers } = await import("./system.server");
     const [stats, containers] = await Promise.all([
@@ -47,7 +47,7 @@ async function snapshot() {
   }
 }
 
-async function execCommand(cmd: any) {
+export async function execCommand(cmd: any) {
   try {
     if (cmd.kind === "status") {
       const snap = await snapshot();
