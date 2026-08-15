@@ -6,7 +6,7 @@
 let started = false;
 let stopRequested = false;
 
-async function snapshot() {
+export async function snapshot() {
   try {
     const { readRealSystemStats, listRealContainers } = await import("./system.server");
     const [stats, containers] = await Promise.all([
