@@ -47,7 +47,7 @@ export async function snapshot() {
   }
 }
 
-async function execCommand(cmd: any) {
+export async function execCommand(cmd: any) {
   try {
     if (cmd.kind === "status") {
       const snap = await snapshot();
