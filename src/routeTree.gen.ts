@@ -35,6 +35,7 @@ import { Route as CloudConnectionsIndexRouteImport } from './routes/_cloud/conne
 import { Route as CloudConnectionsAlexaRouteImport } from './routes/_cloud/connections.alexa'
 import { Route as CloudConnectionsAssistantRouteImport } from './routes/_cloud/connections.assistant'
 import { Route as CloudConnectionsMcpRouteImport } from './routes/_cloud/connections.mcp'
+import { Route as CloudConnectionsSetupRouteImport } from './routes/_cloud/connections.setup'
 import { Route as CloudConnectionsTelegramRouteImport } from './routes/_cloud/connections.telegram'
 import { Route as CloudConnectionsUsageRouteImport } from './routes/_cloud/connections.usage'
 import { Route as CloudDevicesIndexRouteImport } from './routes/_cloud/devices.index'
@@ -194,6 +195,11 @@ const CloudConnectionsAssistantRoute =
 const CloudConnectionsMcpRoute = CloudConnectionsMcpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
+  getParentRoute: () => CloudConnectionsRoute,
+} as any)
+const CloudConnectionsSetupRoute = CloudConnectionsSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => CloudConnectionsRoute,
 } as any)
 const CloudConnectionsTelegramRoute =
@@ -367,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
   '/connections/assistant': typeof CloudConnectionsAssistantRoute
   '/connections/mcp': typeof CloudConnectionsMcpRoute
+  '/connections/setup': typeof CloudConnectionsSetupRoute
   '/connections/telegram': typeof CloudConnectionsTelegramRoute
   '/connections/usage': typeof CloudConnectionsUsageRoute
   '/devices/$id': typeof CloudDevicesIdRoute
@@ -418,6 +425,7 @@ export interface FileRoutesByTo {
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
   '/connections/assistant': typeof CloudConnectionsAssistantRoute
   '/connections/mcp': typeof CloudConnectionsMcpRoute
+  '/connections/setup': typeof CloudConnectionsSetupRoute
   '/connections/telegram': typeof CloudConnectionsTelegramRoute
   '/connections/usage': typeof CloudConnectionsUsageRoute
   '/devices/$id': typeof CloudDevicesIdRoute
@@ -474,6 +482,7 @@ export interface FileRoutesById {
   '/_cloud/connections/alexa': typeof CloudConnectionsAlexaRoute
   '/_cloud/connections/assistant': typeof CloudConnectionsAssistantRoute
   '/_cloud/connections/mcp': typeof CloudConnectionsMcpRoute
+  '/_cloud/connections/setup': typeof CloudConnectionsSetupRoute
   '/_cloud/connections/telegram': typeof CloudConnectionsTelegramRoute
   '/_cloud/connections/usage': typeof CloudConnectionsUsageRoute
   '/_cloud/devices/$id': typeof CloudDevicesIdRoute
@@ -529,6 +538,7 @@ export interface FileRouteTypes {
     | '/connections/alexa'
     | '/connections/assistant'
     | '/connections/mcp'
+    | '/connections/setup'
     | '/connections/telegram'
     | '/connections/usage'
     | '/devices/$id'
@@ -580,6 +590,7 @@ export interface FileRouteTypes {
     | '/connections/alexa'
     | '/connections/assistant'
     | '/connections/mcp'
+    | '/connections/setup'
     | '/connections/telegram'
     | '/connections/usage'
     | '/devices/$id'
@@ -635,6 +646,7 @@ export interface FileRouteTypes {
     | '/_cloud/connections/alexa'
     | '/_cloud/connections/assistant'
     | '/_cloud/connections/mcp'
+    | '/_cloud/connections/setup'
     | '/_cloud/connections/telegram'
     | '/_cloud/connections/usage'
     | '/_cloud/devices/$id'
@@ -885,6 +897,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CloudConnectionsMcpRouteImport
       parentRoute: typeof CloudConnectionsRoute
     }
+    '/_cloud/connections/setup': {
+      id: '/_cloud/connections/setup'
+      path: '/setup'
+      fullPath: '/connections/setup'
+      preLoaderRoute: typeof CloudConnectionsSetupRouteImport
+      parentRoute: typeof CloudConnectionsRoute
+    }
     '/_cloud/connections/telegram': {
       id: '/_cloud/connections/telegram'
       path: '/telegram'
@@ -1127,6 +1146,7 @@ interface CloudConnectionsRouteChildren {
   CloudConnectionsAlexaRoute: typeof CloudConnectionsAlexaRoute
   CloudConnectionsAssistantRoute: typeof CloudConnectionsAssistantRoute
   CloudConnectionsMcpRoute: typeof CloudConnectionsMcpRoute
+  CloudConnectionsSetupRoute: typeof CloudConnectionsSetupRoute
   CloudConnectionsTelegramRoute: typeof CloudConnectionsTelegramRoute
   CloudConnectionsUsageRoute: typeof CloudConnectionsUsageRoute
   CloudConnectionsIndexRoute: typeof CloudConnectionsIndexRoute
@@ -1136,6 +1156,7 @@ const CloudConnectionsRouteChildren: CloudConnectionsRouteChildren = {
   CloudConnectionsAlexaRoute: CloudConnectionsAlexaRoute,
   CloudConnectionsAssistantRoute: CloudConnectionsAssistantRoute,
   CloudConnectionsMcpRoute: CloudConnectionsMcpRoute,
+  CloudConnectionsSetupRoute: CloudConnectionsSetupRoute,
   CloudConnectionsTelegramRoute: CloudConnectionsTelegramRoute,
   CloudConnectionsUsageRoute: CloudConnectionsUsageRoute,
   CloudConnectionsIndexRoute: CloudConnectionsIndexRoute,
