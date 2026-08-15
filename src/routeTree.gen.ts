@@ -61,6 +61,7 @@ import { Route as ApiPublicOauthTokenRouteImport } from './routes/api/public/oau
 import { Route as ApiPublicPiCommandRouteImport } from './routes/api/public/pi/command'
 import { Route as ApiPublicPiHistoryRouteImport } from './routes/api/public/pi/history'
 import { Route as ApiPublicPiStateRouteImport } from './routes/api/public/pi/state'
+import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
 import { Route as ApiPublicTelegramWebhookUserIdRouteImport } from './routes/api/public/telegram/webhook.$userId'
 
@@ -333,6 +334,12 @@ const ApiPublicPiStateRoute = ApiPublicPiStateRouteImport.update({
   path: '/api/public/pi/state',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTelegramWebhookRoute =
+  ApiPublicTelegramWebhookRouteImport.update({
+    id: '/api/public/telegram/webhook',
+    path: '/api/public/telegram/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
   id: '/api/public/voice/alexa',
   path: '/api/public/voice/alexa',
@@ -340,9 +347,9 @@ const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
 } as any)
 const ApiPublicTelegramWebhookUserIdRoute =
   ApiPublicTelegramWebhookUserIdRouteImport.update({
-    id: '/api/public/telegram/webhook/$userId',
-    path: '/api/public/telegram/webhook/$userId',
-    getParentRoute: () => rootRouteImport,
+    id: '/$userId',
+    path: '/$userId',
+    getParentRoute: () => ApiPublicTelegramWebhookRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -395,6 +402,7 @@ export interface FileRoutesByFullPath {
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRouteWithChildren
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -445,6 +453,7 @@ export interface FileRoutesByTo {
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRouteWithChildren
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -502,6 +511,7 @@ export interface FileRoutesById {
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRouteWithChildren
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
 }
@@ -557,6 +567,7 @@ export interface FileRouteTypes {
     | '/api/public/pi/command'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
+    | '/api/public/telegram/webhook'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesByTo: FileRoutesByTo
@@ -607,6 +618,7 @@ export interface FileRouteTypes {
     | '/api/public/pi/command'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
+    | '/api/public/telegram/webhook'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   id:
@@ -663,6 +675,7 @@ export interface FileRouteTypes {
     | '/api/public/pi/command'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
+    | '/api/public/telegram/webhook'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
   fileRoutesById: FileRoutesById
@@ -697,8 +710,8 @@ export interface RootRouteChildren {
   ApiPublicPiCommandRoute: typeof ApiPublicPiCommandRoute
   ApiPublicPiHistoryRoute: typeof ApiPublicPiHistoryRoute
   ApiPublicPiStateRoute: typeof ApiPublicPiStateRoute
+  ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRouteWithChildren
   ApiPublicVoiceAlexaRoute: typeof ApiPublicVoiceAlexaRoute
-  ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1067,6 +1080,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPiStateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/telegram/webhook': {
+      id: '/api/public/telegram/webhook'
+      path: '/api/public/telegram/webhook'
+      fullPath: '/api/public/telegram/webhook'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/voice/alexa': {
       id: '/api/public/voice/alexa'
       path: '/api/public/voice/alexa'
@@ -1076,10 +1096,10 @@ declare module '@tanstack/react-router' {
     }
     '/api/public/telegram/webhook/$userId': {
       id: '/api/public/telegram/webhook/$userId'
-      path: '/api/public/telegram/webhook/$userId'
+      path: '/$userId'
       fullPath: '/api/public/telegram/webhook/$userId'
       preLoaderRoute: typeof ApiPublicTelegramWebhookUserIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ApiPublicTelegramWebhookRoute
     }
   }
 }
@@ -1176,6 +1196,20 @@ const CloudRouteChildren: CloudRouteChildren = {
 
 const CloudRouteWithChildren = CloudRoute._addFileChildren(CloudRouteChildren)
 
+interface ApiPublicTelegramWebhookRouteChildren {
+  ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
+}
+
+const ApiPublicTelegramWebhookRouteChildren: ApiPublicTelegramWebhookRouteChildren =
+  {
+    ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
+  }
+
+const ApiPublicTelegramWebhookRouteWithChildren =
+  ApiPublicTelegramWebhookRoute._addFileChildren(
+    ApiPublicTelegramWebhookRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
@@ -1206,8 +1240,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPiCommandRoute: ApiPublicPiCommandRoute,
   ApiPublicPiHistoryRoute: ApiPublicPiHistoryRoute,
   ApiPublicPiStateRoute: ApiPublicPiStateRoute,
+  ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRouteWithChildren,
   ApiPublicVoiceAlexaRoute: ApiPublicVoiceAlexaRoute,
-  ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
