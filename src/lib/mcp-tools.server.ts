@@ -1,12 +1,20 @@
-// MCP tool registry + executor. Each tool either reads from Supabase
-// (cheap, sync) or enqueues an agent_command and waits for the Pi to
-// post a result via /api/public/agent/result (up to ~25s).
+// MCP tool registry + executor — DATABASE-FREE.
 //
-// Server-only: imports supabaseAdmin. Never load from a route or
-// component module-scope — always inside a handler.
+// Every tool talks to the Pi through the relay (src/lib/pi-relay.server.ts):
+// reads hit the Pi's local 48h store, controls are executed synchronously on
+// the device. No Supabase, no command queue, no audit table.
+//
+// Server-only. Load from inside a handler, never at route module scope.
 
 import { z } from "zod";
-import { createHash } from "node:crypto";
+import {
+  describeAge,
+  getPiState,
+  relayCommand,
+  relayGet,
+  piConfig,
+} from "@/lib/pi-relay.server";
+import { verifyToken } from "@/lib/stateless-token.server";
 
 export type Scope = "read" | "control";
 
@@ -27,61 +35,38 @@ export interface ToolDef {
 
 // ---- helpers ---------------------------------------------------------------
 
-async function enqueueAndWait(
-  ctx: ToolCtx,
-  kind: string,
-  payload: Record<string, unknown>,
-  timeoutMs = 25_000,
-): Promise<{ ok: boolean; result: unknown; error?: string }> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const { data: cmd, error } = await supabaseAdmin
-    .from("agent_commands")
-    .insert({
-      device_id: ctx.deviceId,
-      user_id: ctx.userId,
-      kind,
-      payload: payload as any,
-      source: "mcp",
-      status: "pending",
-    })
-    .select("id")
-    .single();
-  if (error || !cmd) return { ok: false, result: null, error: error?.message || "enqueue failed" };
-  // Zero-Wake: push the whole command over the Realtime socket — the Pi runs it
-  // immediately, without an HTTP poll.
-  try {
-    const { broadcastCommandWake } = await import("@/lib/broadcast.server");
-    void broadcastCommandWake(ctx.deviceId, { id: cmd.id, kind, payload });
-  } catch { /* best-effort */ }
-
-  const deadline = Date.now() + timeoutMs;
-  let lastStatus = "pending";
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 800));
-    const { data: row } = await supabaseAdmin
-      .from("agent_commands")
-      .select("status, result")
-      .eq("id", cmd.id)
-      .maybeSingle();
-    if (!row) continue;
-    lastStatus = row.status;
-    if (row.status === "done") return { ok: true, result: row.result };
-    if (row.status === "failed") {
-      return { ok: false, result: row.result, error: "command failed" };
-    }
-  }
-  return { ok: false, result: null, error: `pi_offline (status=${lastStatus})` };
+async function run(kind: string, payload: Record<string, unknown> = {}) {
+  const out = await relayCommand(kind, payload);
+  if (!out.ok) return { ok: false, result: null, error: out.error ?? "pi_offline" };
+  return { ok: true, result: out.result };
 }
 
-async function getSnapshot(ctx: ToolCtx) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin
-    .from("devices")
-    .select("last_snapshot, last_seen_at, name")
-    .eq("id", ctx.deviceId)
-    .maybeSingle();
-  return data;
+interface TsRow {
+  ts?: string;
+  component?: string;
+  status?: string;
+  metrics?: Record<string, any>;
+  [k: string]: unknown;
+}
+
+async function history(
+  kind: "tick" | "event",
+  minutes: number,
+  component?: string,
+): Promise<TsRow[]> {
+  const q = new URLSearchParams({ kind, minutes: String(minutes) });
+  if (component) q.set("component", component);
+  const r = await relayGet<{ rows: TsRow[] }>(
+    `/api/public/pi/history?${q.toString()}`,
+    `hist:${kind}:${minutes}:${component ?? ""}`,
+  );
+  return r.data?.rows ?? [];
+}
+
+function wattsOf(row: TsRow): number | null {
+  const v = row.metrics?.watts ?? (row as any).watts ?? row.metrics?.watt;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
 // ---- tool defs -------------------------------------------------------------
@@ -90,26 +75,32 @@ export const TOOLS: ToolDef[] = [
   {
     name: "get_device_info",
     description:
-      "Get the Pi device name, last-seen timestamp, and last known system snapshot (CPU, RAM, temperature, disk). Cheap — reads cached snapshot, does not contact the Pi.",
+      "Get the Pi's last known state (pump, energy, CPU, RAM, temperature, disk) plus how fresh that reading is. Cheap — no round-trip when the cached value is fresh.",
     scope: "read",
     inputSchema: z.object({}),
-    async execute(_args, ctx) {
-      const d = await getSnapshot(ctx);
+    async execute() {
+      const r = await getPiState();
       return {
-        name: d?.name ?? null,
-        lastSeenAt: d?.last_seen_at ?? null,
-        snapshot: d?.last_snapshot ?? null,
+        available: Boolean(r.data),
+        stale: r.stale,
+        age: describeAge(r.ageSec),
+        state: r.data,
+        error: r.error,
       };
     },
   },
   {
     name: "get_status",
     description:
-      "Fetch a fresh system status from the Pi (CPU, RAM, temperature, disk, uptime, container list, MQTT brokers). Round-trips to the device; may take a few seconds.",
+      "Fetch a fresh system status from the Pi (CPU, RAM, temperature, disk, uptime, container list, MQTT brokers).",
     scope: "read",
     inputSchema: z.object({}),
-    async execute(_args, ctx) {
-      return await enqueueAndWait(ctx, "status", {});
+    async execute() {
+      const r = await run("status");
+      if (r.ok) return r;
+      // Fall back to the cached state so voice channels still say something useful.
+      const s = await getPiState();
+      return { ok: Boolean(s.data), result: s.data, stale: s.stale, error: r.error };
     },
   },
   {
@@ -117,8 +108,8 @@ export const TOOLS: ToolDef[] = [
     description: "List Docker containers currently running on the Pi.",
     scope: "read",
     inputSchema: z.object({}),
-    async execute(_args, ctx) {
-      const r = await enqueueAndWait(ctx, "status", {});
+    async execute() {
+      const r = await run("status");
       const snap: any = r.result;
       return { containers: snap?.containers ?? [] };
     },
@@ -132,8 +123,8 @@ export const TOOLS: ToolDef[] = [
       name: z.string().min(1).max(128).regex(/^[a-zA-Z0-9_.\-]+$/),
       action: z.enum(["start", "stop", "restart"]),
     }),
-    async execute(args, ctx) {
-      return await enqueueAndWait(ctx, "container_action", args);
+    async execute(args) {
+      return await run("container_action", args);
     },
   },
   {
@@ -142,42 +133,42 @@ export const TOOLS: ToolDef[] = [
       "List all plugins installed on the Pi (e.g. smart_pump). Returns id, name, enabled state, kind, and config.",
     scope: "read",
     inputSchema: z.object({}),
-    async execute(_args, ctx) {
-      return await enqueueAndWait(ctx, "plugin_list", {});
+    async execute() {
+      return await run("plugin_list");
     },
   },
   {
     name: "get_plugin",
     description:
-      "Get one plugin with its current AI watering plan, recent decisions (last 50), and simulated pump state.",
+      "Get one plugin with its current AI watering plan, recent decisions, and pump state.",
     scope: "read",
     inputSchema: z.object({ id: z.string().min(1).max(64) }),
-    async execute(args, ctx) {
-      return await enqueueAndWait(ctx, "plugin_get", args);
+    async execute(args) {
+      return await run("plugin_get", args);
     },
   },
   {
     name: "run_planner_now",
     description:
-      "Force the AI planner to rebuild the watering plan for a plugin right now (pulls fresh weather forecast and calls the AI gateway). Returns the new plan + rationale.",
+      "Force the AI planner to rebuild the watering plan for a plugin right now. Returns the new plan + rationale.",
     scope: "control",
     inputSchema: z.object({ id: z.string().min(1).max(64) }),
-    async execute(args, ctx) {
-      return await enqueueAndWait(ctx, "plugin_run_planner", args, 35_000);
+    async execute(args) {
+      return await run("plugin_run_planner", args);
     },
   },
   {
     name: "pump_set",
     description:
-      "Manually turn the pump ON or OFF for a plugin, with a duration in minutes (1-120, default 10). The Pi's safety caps (max minutes/day, min hours between runs) still apply.",
+      "Manually turn the pump ON or OFF for a plugin, with a duration in minutes (1-120, default 10). The Pi's safety caps still apply.",
     scope: "control",
     inputSchema: z.object({
       id: z.string().min(1).max(64),
       action: z.enum(["on", "off"]),
       minutes: z.number().int().min(1).max(120).optional(),
     }),
-    async execute(args, ctx) {
-      return await enqueueAndWait(ctx, "plugin_manual", { ...args, runner: "nodered" });
+    async execute(args) {
+      return await run("plugin_manual", { ...args, runner: "nodered" });
     },
   },
   {
@@ -191,134 +182,90 @@ export const TOOLS: ToolDef[] = [
       broker: z.string().regex(/^[a-zA-Z0-9_.\-:]{1,253}$/).optional(),
       port: z.number().int().min(1).max(65535).optional(),
     }),
-    async execute(args, ctx) {
-      return await enqueueAndWait(ctx, "mqtt_publish", args);
+    async execute(args) {
+      return await run("mqtt_publish", args);
     },
   },
   {
     name: "list_recent_events",
     description:
-      "List the most recent events the Pi has forwarded to the cloud (e.g. Node-RED sensor events with status healthy / warning / critical).",
+      "List the most recent events stored on the Pi (Node-RED sensor events with status healthy / warning / critical). Covers the last 48 hours.",
     scope: "read",
     inputSchema: z.object({ limit: z.number().int().min(1).max(200).default(50) }),
-    async execute(args, ctx) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data, error } = await supabaseAdmin
-        .from("device_events")
-        .select("id, component, device_label, status, metrics, occurred_at, created_at")
-        .eq("device_id", ctx.deviceId)
-        .order("occurred_at", { ascending: false })
-        .limit(args.limit ?? 50);
-      if (error) throw new Error(error.message);
-      return { events: data ?? [] };
+    async execute(args) {
+      const rows = await history("event", 48 * 60);
+      return { events: rows.slice(-(args.limit ?? 50)).reverse() };
     },
   },
   {
     name: "get_power_history",
     description:
-      "Return the recent watt timeseries the Pi has pushed to the cloud (Tibber Pulse / Tasmota). Use this to reason about household electricity usage, appliance behavior or PV surplus. No Pi round-trip.",
+      "Return the recent watt timeseries recorded on the Pi (Tibber Pulse / Tasmota). Use this to reason about household electricity usage, appliance behavior or PV surplus.",
     scope: "read",
     inputSchema: z.object({
       window_minutes: z.number().int().min(1).max(720).default(60),
       component: z.string().min(1).max(64).optional(),
     }),
-    async execute(args, ctx) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const since = new Date(Date.now() - (args.window_minutes ?? 60) * 60_000).toISOString();
-      let q = supabaseAdmin
-        .from("device_events")
-        .select("component, status, metrics, occurred_at")
-        .eq("device_id", ctx.deviceId)
-        .gte("occurred_at", since)
-        .order("occurred_at", { ascending: true })
-        .limit(1000);
-      if (args.component) q = q.eq("component", args.component);
-      const { data, error } = await q;
-      if (error) throw new Error(error.message);
-      const series = (data ?? [])
-        .map((r: any) => ({
-          ts: r.occurred_at,
-          watts:
-            r.metrics?.watts != null ? Number(r.metrics.watts) : null,
-          component: r.component,
-        }))
+    async execute(args) {
+      const rows = await history("tick", args.window_minutes ?? 60, args.component);
+      const series = rows
+        .map((r) => ({ ts: r.ts, watts: wattsOf(r), component: r.component }))
         .filter((p) => p.watts != null);
-      return { series, count: series.length, since };
+      return { series, count: series.length };
     },
   },
   {
     name: "get_tibber_price_now",
     description:
-      "Return the most recent Tibber spot price the Pi has reported (ct/kWh) plus the timestamp it was observed. Useful for 'is electricity cheap right now?'.",
+      "Return the most recent electricity spot price the Pi has reported (ct/kWh) plus when it was observed.",
     scope: "read",
     inputSchema: z.object({}),
-    async execute(_args, ctx) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data } = await supabaseAdmin
-        .from("device_events")
-        .select("metrics, occurred_at, component")
-        .eq("device_id", ctx.deviceId)
-        .order("occurred_at", { ascending: false })
-        .limit(200);
-      const row = (data ?? []).find(
-        (r: any) => r?.metrics?.tibber_ct != null || r?.metrics?.tibber != null,
-      );
+    async execute() {
+      const s = await getPiState();
+      const direct =
+        (s.data as any)?.tibber_ct_per_kwh ?? (s.data as any)?.price_ct_per_kwh ?? null;
+      if (direct != null) {
+        return {
+          available: true,
+          tibber_ct_per_kwh: Number(direct),
+          observed_at: s.data?.ts ?? null,
+          stale: s.stale,
+        };
+      }
+      const rows = await history("tick", 180);
+      const row = [...rows]
+        .reverse()
+        .find((r) => r.metrics?.tibber_ct != null || r.metrics?.tibber != null);
       if (!row) return { available: false };
-      const ct =
-        (row as any).metrics?.tibber_ct ?? (row as any).metrics?.tibber ?? null;
       return {
         available: true,
-        tibber_ct_per_kwh: Number(ct),
-        observed_at: (row as any).occurred_at,
-        component: (row as any).component,
+        tibber_ct_per_kwh: Number(row.metrics?.tibber_ct ?? row.metrics?.tibber),
+        observed_at: row.ts ?? null,
+        component: row.component,
       };
     },
   },
   {
     name: "infer_appliance_state",
     description:
-      "Reason about whether a household appliance (washing machine, dishwasher, …) is currently running or finished, based on the watt timeseries and the appliance profile thresholds. Returns running/finished state, runtime so far, and a confidence score. Use this for questions like 'ist meine Wäsche fertig?'.",
+      "Reason about whether a household appliance (washing machine, dishwasher, …) is currently running or finished, based on the watt timeseries stored on the Pi. Use this for questions like 'ist meine Wäsche fertig?'.",
     scope: "read",
     inputSchema: z.object({
-      appliance: z.string().min(1).max(64).describe("Profile name, e.g. 'Waschmaschine'"),
+      appliance: z.string().min(1).max(64).describe("Appliance name, e.g. 'Waschmaschine'"),
       window_minutes: z.number().int().min(10).max(360).default(120),
     }),
-    async execute(args, ctx) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: profiles } = await supabaseAdmin
-        .from("appliance_profiles")
-        .select("*")
-        .eq("device_id", ctx.deviceId);
-      const profile =
-        (profiles ?? []).find(
-          (p: any) => p.name.toLowerCase() === args.appliance.toLowerCase(),
-        ) ?? {
-          name: args.appliance,
-          min_watts: 150,
-          min_runtime_min: 10,
-          idle_watts: 5,
-          idle_after_min: 3,
-          match_component: null,
-        };
-
-      const since = new Date(
-        Date.now() - (args.window_minutes ?? 120) * 60_000,
-      ).toISOString();
-      let q = supabaseAdmin
-        .from("device_events")
-        .select("metrics, occurred_at, component")
-        .eq("device_id", ctx.deviceId)
-        .gte("occurred_at", since)
-        .order("occurred_at", { ascending: true })
-        .limit(2000);
-      if ((profile as any).match_component)
-        q = q.eq("component", (profile as any).match_component);
-      const { data } = await q;
-      const series = (data ?? [])
-        .map((r: any) => ({
-          t: new Date(r.occurred_at).getTime(),
-          w: r.metrics?.watts != null ? Number(r.metrics.watts) : null,
-        }))
+    async execute(args) {
+      // Thresholds are generic now that profiles no longer live in a database.
+      const profile = {
+        name: args.appliance,
+        min_watts: 150,
+        min_runtime_min: 10,
+        idle_watts: 5,
+        idle_after_min: 3,
+      };
+      const rows = await history("tick", args.window_minutes ?? 120);
+      const series = rows
+        .map((r) => ({ t: new Date(String(r.ts ?? Date.now())).getTime(), w: wattsOf(r) }))
         .filter((p) => p.w != null) as Array<{ t: number; w: number }>;
 
       if (series.length === 0) {
@@ -330,16 +277,13 @@ export const TOOLS: ToolDef[] = [
       }
 
       const now = Date.now();
-      // find most recent active run: last continuous block where w >= min_watts
       let runEnd = -1;
       let runStart = -1;
       for (let i = series.length - 1; i >= 0; i--) {
         if (series[i].w >= profile.min_watts) {
           if (runEnd === -1) runEnd = i;
           runStart = i;
-        } else if (runEnd !== -1) {
-          break;
-        }
+        } else if (runEnd !== -1) break;
       }
       if (runEnd === -1) {
         const last = series[series.length - 1];
@@ -356,12 +300,9 @@ export const TOOLS: ToolDef[] = [
       const lastIdx = series.length - 1;
       const idleAfterEnd = (now - series[runEnd].t) / 60_000;
       const tail = series.slice(runEnd + 1);
-      const tailAllIdle =
-        tail.length > 0 && tail.every((p) => p.w < profile.idle_watts);
-      const finished =
-        validRun && tailAllIdle && idleAfterEnd >= profile.idle_after_min;
+      const tailAllIdle = tail.length > 0 && tail.every((p) => p.w < profile.idle_watts);
+      const finished = validRun && tailAllIdle && idleAfterEnd >= profile.idle_after_min;
       const running = !finished && series[lastIdx].w >= profile.min_watts;
-      const confidence = validRun ? (finished ? 0.85 : running ? 0.8 : 0.5) : 0.4;
 
       return {
         appliance: profile.name,
@@ -370,55 +311,56 @@ export const TOOLS: ToolDef[] = [
         runtime_min: Math.round(runMinutes),
         last_watts: series[lastIdx].w,
         idle_since_min: finished ? Math.round(idleAfterEnd) : null,
-        confidence,
-        profile_used: {
-          min_watts: profile.min_watts,
-          min_runtime_min: profile.min_runtime_min,
-          idle_watts: profile.idle_watts,
-          idle_after_min: profile.idle_after_min,
-        },
+        confidence: validRun ? (finished ? 0.85 : running ? 0.8 : 0.5) : 0.4,
+        profile_used: profile,
       };
     },
   },
 ];
 
-export async function getToolsForDevice(ctx: ToolCtx): Promise<ToolDef[]> {
-  const d = await getSnapshot(ctx);
-  const snap = (d?.last_snapshot as any) || {};
-  const plugins = snap.plugins || [];
+/** Dynamic per-plugin tools, discovered live from the Pi (cached by the relay). */
+export async function getToolsForDevice(_ctx: ToolCtx): Promise<ToolDef[]> {
+  let plugins: any[] = [];
+  try {
+    const r = await relayCommand("plugin_list", {});
+    const res: any = r.result;
+    plugins = res?.plugins ?? res?.result?.plugins ?? [];
+  } catch {
+    plugins = [];
+  }
 
   const dynamicTools: ToolDef[] = [];
-
   for (const p of plugins) {
-    if (!p.commands) continue;
+    if (!p?.commands) continue;
     for (const c of p.commands) {
-      const toolName = `${p.name.toLowerCase().replace(/\s+/g, "_")}_${c.name.toLowerCase()}`;
       dynamicTools.push({
-        name: toolName,
+        name: `${String(p.name).toLowerCase().replace(/\s+/g, "_")}_${String(c.name).toLowerCase()}`,
         description: `${c.description || c.label} (Plugin: ${p.name})`,
         scope: c.type === "control" ? "control" : "read",
         inputSchema: z.object({
-          minutes: z.number().int().min(1).max(120).optional().describe("Duration in minutes (if applicable)"),
+          minutes: z
+            .number()
+            .int()
+            .min(1)
+            .max(120)
+            .optional()
+            .describe("Duration in minutes (if applicable)"),
         }),
-        async execute(args, ctx) {
+        async execute(args) {
           if (c.type === "control") {
-            // For now, we reuse the plugin_manual action which is geared towards pump-like behavior.
-            // If the command is generic, we might need a more generic plugin_cmd later.
-            return await enqueueAndWait(ctx, "plugin_manual", {
+            return await run("plugin_manual", {
               id: p.id,
               runner: "nodered",
-              action: c.name.includes("off") ? "off" : "on",
+              action: String(c.name).includes("off") ? "off" : "on",
               minutes: args.minutes,
-              command: c.name
+              command: c.name,
             });
-          } else {
-            return await enqueueAndWait(ctx, "plugin_get", { id: p.id });
           }
+          return await run("plugin_get", { id: p.id });
         },
       });
     }
   }
-
   return [...TOOLS, ...dynamicTools];
 }
 
@@ -429,75 +371,68 @@ export async function findTool(name: string, ctx?: ToolCtx): Promise<ToolDef | n
 
 // ---- token verification + audit -------------------------------------------
 
-
-function sha256Hex(s: string): string {
-  return createHash("sha256").update(s).digest("hex");
-}
-
-export async function resolveToken(rawToken: string): Promise<{
-  ok: true;
-  ctx: ToolCtx;
-} | { ok: false; error: string }> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const hash = sha256Hex(rawToken);
-  const { data: tok } = await supabaseAdmin
-    .from("mcp_tokens")
-    .select("id, user_id, device_id, scopes, expires_at")
-    .eq("token_hash", hash)
-    .maybeSingle();
-  if (!tok) return { ok: false, error: "invalid token" };
-  if (tok.expires_at && new Date(tok.expires_at).getTime() < Date.now()) {
-    return { ok: false, error: "token expired" };
+/**
+ * Verify a bearer token. Accepts:
+ *  - stateless HMAC access tokens (Alexa OAuth, MCP tokens issued by this app)
+ *  - the raw device token, so a personal setup can call MCP without OAuth
+ */
+export async function resolveToken(
+  rawToken: string,
+): Promise<{ ok: true; ctx: ToolCtx } | { ok: false; error: string }> {
+  const { token: deviceToken } = piConfig();
+  if (deviceToken && rawToken === deviceToken) {
+    return {
+      ok: true,
+      ctx: { userId: "owner", deviceId: "pi", scopes: ["read", "control"], tokenId: "device" },
+    };
   }
-  // Account-scoped tokens (e.g. Alexa) may not be bound to a device — fall
-  // back to the user's first paired device so tools still resolve.
-  let deviceId: string | null = tok.device_id;
-  if (!deviceId) {
-    const { data: dev } = await supabaseAdmin
-      .from("devices")
-      .select("id")
-      .eq("user_id", tok.user_id)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    deviceId = dev?.id ?? null;
-  }
-  if (!deviceId) return { ok: false, error: "no paired device" };
 
-  // touch last_used (fire-and-forget)
-  void supabaseAdmin
-    .from("mcp_tokens")
-    .update({ last_used_at: new Date().toISOString() })
-    .eq("id", tok.id);
+  const payload = verifyToken(rawToken, "access");
+  if (!payload) return { ok: false, error: "invalid or expired token" };
+  const scopes = ((payload.sc as string[] | undefined) ?? ["read"]).filter(
+    (s): s is Scope => s === "read" || s === "control",
+  );
   return {
     ok: true,
     ctx: {
-      userId: tok.user_id,
-      deviceId,
-      scopes: (tok.scopes ?? ["read"]) as Scope[],
-      tokenId: tok.id,
+      userId: payload.sub,
+      deviceId: "pi",
+      scopes: scopes.length ? scopes : ["read"],
+      tokenId: String(payload.iat),
     },
   };
 }
 
+// In-memory audit ring (volatile, free). Nothing is persisted any more.
+export interface AuditEntry {
+  at: string;
+  tool: string;
+  status: "ok" | "error" | "denied";
+  latencyMs: number;
+  error?: string;
+}
+const AUDIT_MAX = 200;
+const auditRing: AuditEntry[] = [];
+
 export async function writeAudit(
-  ctx: ToolCtx | null,
+  _ctx: ToolCtx | null,
   tool: string,
   status: "ok" | "error" | "denied",
   latencyMs: number,
   error?: string,
 ) {
-  if (!ctx) return;
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  await supabaseAdmin.from("mcp_audit").insert({
-    user_id: ctx.userId,
-    device_id: ctx.deviceId,
-    token_id: ctx.tokenId,
+  auditRing.push({
+    at: new Date().toISOString(),
     tool,
     status,
-    latency_ms: latencyMs,
-    error: error ? error.slice(0, 500) : null,
+    latencyMs,
+    ...(error ? { error: error.slice(0, 500) } : {}),
   });
+  if (auditRing.length > AUDIT_MAX) auditRing.splice(0, auditRing.length - AUDIT_MAX);
+}
+
+export function recentAudit(limit = 50): AuditEntry[] {
+  return auditRing.slice(-limit).reverse();
 }
 
 // Convert Zod → MCP-style JSON Schema (minimal — sufficient for tool params).
@@ -533,15 +468,10 @@ export function zodToJsonSchema(schema: z.ZodTypeAny): any {
     }
     return out;
   }
-  if (t._def?.typeName === "ZodEnum") {
-    return { type: "string", enum: t._def.values };
-  }
-  if (t._def?.typeName === "ZodArray") {
-    return { type: "array", items: zodToJsonSchema(t._def.type) };
-  }
-  if (t._def?.typeName === "ZodOptional" || t._def?.typeName === "ZodDefault") {
+  if (t._def?.typeName === "ZodEnum") return { type: "string", enum: t._def.values };
+  if (t._def?.typeName === "ZodArray") return { type: "array", items: zodToJsonSchema(t._def.type) };
+  if (t._def?.typeName === "ZodOptional" || t._def?.typeName === "ZodDefault")
     return zodToJsonSchema(t._def.innerType);
-  }
   if (t._def?.typeName === "ZodBoolean") return { type: "boolean" };
   return {};
 }
