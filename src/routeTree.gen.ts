@@ -59,6 +59,7 @@ import { Route as ApiPublicOauthAuthorizeRouteImport } from './routes/api/public
 import { Route as ApiPublicOauthAuthorizePostRouteImport } from './routes/api/public/oauth/authorize-post'
 import { Route as ApiPublicOauthTokenRouteImport } from './routes/api/public/oauth/token'
 import { Route as ApiPublicPiCommandRouteImport } from './routes/api/public/pi/command'
+import { Route as ApiPublicPiHistoryRouteImport } from './routes/api/public/pi/history'
 import { Route as ApiPublicPiStateRouteImport } from './routes/api/public/pi/state'
 import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
 import { Route as ApiPublicTelegramWebhookUserIdRouteImport } from './routes/api/public/telegram/webhook.$userId'
@@ -322,6 +323,11 @@ const ApiPublicPiCommandRoute = ApiPublicPiCommandRouteImport.update({
   path: '/api/public/pi/command',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPiHistoryRoute = ApiPublicPiHistoryRouteImport.update({
+  id: '/api/public/pi/history',
+  path: '/api/public/pi/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPiStateRoute = ApiPublicPiStateRouteImport.update({
   id: '/api/public/pi/state',
   path: '/api/public/pi/state',
@@ -387,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
+  '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
@@ -436,6 +443,7 @@ export interface FileRoutesByTo {
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
+  '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
@@ -492,6 +500,7 @@ export interface FileRoutesById {
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
+  '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
   '/api/public/telegram/webhook/$userId': typeof ApiPublicTelegramWebhookUserIdRoute
@@ -546,6 +555,7 @@ export interface FileRouteTypes {
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
     | '/api/public/pi/command'
+    | '/api/public/pi/history'
     | '/api/public/pi/state'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
@@ -595,6 +605,7 @@ export interface FileRouteTypes {
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
     | '/api/public/pi/command'
+    | '/api/public/pi/history'
     | '/api/public/pi/state'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
@@ -650,6 +661,7 @@ export interface FileRouteTypes {
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
     | '/api/public/pi/command'
+    | '/api/public/pi/history'
     | '/api/public/pi/state'
     | '/api/public/voice/alexa'
     | '/api/public/telegram/webhook/$userId'
@@ -683,6 +695,7 @@ export interface RootRouteChildren {
   ApiPublicOauthAuthorizePostRoute: typeof ApiPublicOauthAuthorizePostRoute
   ApiPublicOauthTokenRoute: typeof ApiPublicOauthTokenRoute
   ApiPublicPiCommandRoute: typeof ApiPublicPiCommandRoute
+  ApiPublicPiHistoryRoute: typeof ApiPublicPiHistoryRoute
   ApiPublicPiStateRoute: typeof ApiPublicPiStateRoute
   ApiPublicVoiceAlexaRoute: typeof ApiPublicVoiceAlexaRoute
   ApiPublicTelegramWebhookUserIdRoute: typeof ApiPublicTelegramWebhookUserIdRoute
@@ -1040,6 +1053,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPiCommandRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/pi/history': {
+      id: '/api/public/pi/history'
+      path: '/api/public/pi/history'
+      fullPath: '/api/public/pi/history'
+      preLoaderRoute: typeof ApiPublicPiHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/pi/state': {
       id: '/api/public/pi/state'
       path: '/api/public/pi/state'
@@ -1184,6 +1204,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicOauthAuthorizePostRoute: ApiPublicOauthAuthorizePostRoute,
   ApiPublicOauthTokenRoute: ApiPublicOauthTokenRoute,
   ApiPublicPiCommandRoute: ApiPublicPiCommandRoute,
+  ApiPublicPiHistoryRoute: ApiPublicPiHistoryRoute,
   ApiPublicPiStateRoute: ApiPublicPiStateRoute,
   ApiPublicVoiceAlexaRoute: ApiPublicVoiceAlexaRoute,
   ApiPublicTelegramWebhookUserIdRoute: ApiPublicTelegramWebhookUserIdRoute,
