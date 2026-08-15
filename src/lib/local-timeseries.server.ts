@@ -1,22 +1,36 @@
 // Pi-local 48h time series store. Server-only.
 //
 // Everything Node-RED pushes to the local app (events, live ticks, decisions,
-// trace lines) is appended to daily JSONL files under ~/.pi-hub/telemetry so
-// statistics stay verifiable locally even when the cloud is unreachable.
+// trace lines) is appended to daily JSONL files so statistics stay verifiable
+// locally even when the cloud is unreachable.
 //
-// SD-card friendly: writes are buffered (flush every 5s or 50 lines) and live
-// ticks are down-sampled to one persisted row per 15s. Files older than the
-// retention window (default 48h) are deleted on flush.
+// SD-CARD PROTECTION (Phase 4):
+//   * everything is buffered in RAM and flushed at most every 15 minutes
+//     (PI_HUB_FLUSH_MS) or when the buffer grows past PI_HUB_FLUSH_LINES
+//   * live ticks are down-sampled to one persisted row per 15s
+//   * PI_HUB_TS_RAM=1 keeps the whole store in /dev/shm → zero card writes
+//   * PI_HUB_TELEMETRY_DIR=/mnt/usb/... moves the store to USB/SSD
+//   * a flush runs on SIGINT/SIGTERM/beforeExit so nothing is lost on reboot
 
 import { promises as fs, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const DIR = join(process.env.PI_HUB_HOME || join(homedir(), ".pi-hub"), "telemetry");
+function resolveDir(): string {
+  const explicit = process.env.PI_HUB_TELEMETRY_DIR;
+  if (explicit) return explicit;
+  const ram = process.env.PI_HUB_TS_RAM;
+  if (ram === "1" || ram === "true") return "/dev/shm/pi-hub/telemetry";
+  return join(process.env.PI_HUB_HOME || join(homedir(), ".pi-hub"), "telemetry");
+}
+
+const DIR = resolveDir();
 const RETENTION_HOURS = Math.max(1, Number(process.env.PI_HUB_RETENTION_HOURS ?? 48));
-const FLUSH_MS = 5_000;
-const FLUSH_LINES = 50;
-const TICK_PERSIST_MS = 15_000;
+// 15 min instead of 5 s: ~96 card writes/day instead of ~17k.
+const FLUSH_MS = Math.max(1_000, Number(process.env.PI_HUB_FLUSH_MS ?? 15 * 60_000));
+const FLUSH_LINES = Math.max(10, Number(process.env.PI_HUB_FLUSH_LINES ?? 2_000));
+const TICK_PERSIST_MS = Math.max(1_000, Number(process.env.PI_HUB_TICK_PERSIST_MS ?? 15_000));
+
 
 export type TsKind = "event" | "tick" | "decision" | "trace";
 
