@@ -134,6 +134,35 @@ export async function flushLocalTimeseries(): Promise<void> {
   await pruneOld();
 }
 
+// Flush before the process goes away so a reboot does not lose up to 15 min.
+let exitHooked = false;
+function hookExitFlush() {
+  if (exitHooked || typeof process?.on !== "function") return;
+  exitHooked = true;
+  const bye = () => {
+    void flushLocalTimeseries();
+  };
+  process.on("beforeExit", bye);
+  process.on("SIGINT", bye);
+  process.on("SIGTERM", bye);
+}
+hookExitFlush();
+
+/** Where telemetry is stored and how card-friendly the current config is. */
+export function localStorageInfo() {
+  return {
+    dir: DIR,
+    ram_only: DIR.startsWith("/dev/shm"),
+    retention_hours: RETENTION_HOURS,
+    flush_ms: FLUSH_MS,
+    flush_lines: FLUSH_LINES,
+    tick_persist_ms: TICK_PERSIST_MS,
+    pending: pending.length,
+    approx_writes_per_day: Math.round(86_400_000 / FLUSH_MS),
+  };
+}
+
+
 let lastPrune = 0;
 async function pruneOld() {
   if (Date.now() - lastPrune < 60 * 60_000) return;
