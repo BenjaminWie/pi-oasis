@@ -119,21 +119,23 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// Chat preflight — tells the assistant page exactly why /api/chat would refuse,
-// so we don't show "AI is not authorized" for e.g. "no paired device".
+// Chat preflight — DATABASE-FREE: checks that the relay to the Pi is
+// configured and answering, so the assistant page can name the real reason.
 export const chatPreflight = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data: dev } = await context.supabase
-      .from("devices")
-      .select("id, name, device_token_hash, last_seen_at")
-      .not("device_token_hash", "is", null)
-      .order("last_seen_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!dev) return { ok: false, code: "no_paired_device" as const };
+  .handler(async () => {
+    const { piConfig, getPiState } = await import("@/lib/pi-relay.server");
+    const cfg = piConfig();
+    if (!cfg.configured) return { ok: false, code: "no_paired_device" as const };
+    const probe = await getPiState();
+    if (!probe.ok) return { ok: false, code: "pi_offline" as const };
     return {
       ok: true as const,
-      device: { id: (dev as any).id, name: (dev as any).name, last_seen_at: (dev as any).last_seen_at },
+      device: {
+        id: "pi",
+        name: cfg.url.replace(/^https?:\/\//, ""),
+        last_seen_at: probe.stale ? null : new Date().toISOString(),
+      },
     };
   });
+
