@@ -63,7 +63,7 @@ export const Route = createFileRoute("/api/chat")({
 
         const ctx: ToolCtx = {
           userId,
-          deviceId: dev.id,
+          deviceId: "pi",
           scopes: ["read", "control"],
           tokenId: "chat-session",
         };
