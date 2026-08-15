@@ -39,23 +39,17 @@ export const Route = createFileRoute("/api/chat")({
         }
         const userId = userRes.user.id;
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: dev } = await supabaseAdmin
-          .from("devices")
-          .select("id, device_token_hash")
-          .eq("user_id", userId)
-          .not("device_token_hash", "is", null)
-          .order("last_seen_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (!dev) {
-          console.warn("[chat] no paired device", { userId });
+        // DATABASE-FREE: there is no `devices` table any more — a Pi-Hub
+        // install talks to exactly one Pi through the relay.
+        const { piConfig } = await import("@/lib/pi-relay.server");
+        if (!piConfig().configured) {
           return jsonError(
             "no_paired_device",
-            "Kein Pi verbunden. Erst unter Devices pairen.",
+            "Kein Pi verbunden. Erst unter Connect → Verkabelung die Relay-URL setzen.",
             400,
           );
         }
+
 
         let body: { messages?: UIMessage[] };
         try {
