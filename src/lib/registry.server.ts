@@ -16,6 +16,8 @@ import { join } from "node:path";
 
 import { publishLocalBus } from "./local-live-bus.server";
 
+export type Json = string | number | boolean | null | Json[] | { [k: string]: Json };
+
 export type EndpointKind = "read" | "switch" | "number" | "action";
 
 export interface EndpointInvoke {
@@ -57,7 +59,7 @@ export interface Endpoint extends AnnouncedEndpoint {
   kind: EndpointKind;
   announcedAt: string;
   lastSeenAt: string;
-  value?: unknown;
+  value?: Json;
   valueAt?: string;
   config: EndpointConfig;
   /** resolved flags after applying config */
@@ -102,14 +104,15 @@ export interface DebugEntry {
   ts: string;
   dir: "in" | "out" | "error" | "info";
   what: string;
-  detail?: unknown;
+  detail?: Json;
 }
 
 const DEBUG_MAX = Math.max(50, Number(process.env.PI_CONTROL_DEBUG_MAX ?? 400));
 const debugRing: DebugEntry[] = [];
 
 export function debugLog(dir: DebugEntry["dir"], what: string, detail?: unknown) {
-  const entry: DebugEntry = { ts: new Date().toISOString(), dir, what, detail };
+  const safe = (detail === undefined ? undefined : (JSON.parse(JSON.stringify(detail ?? null)) as Json));
+  const entry: DebugEntry = { ts: new Date().toISOString(), dir, what, detail: safe };
   debugRing.push(entry);
   if (debugRing.length > DEBUG_MAX) debugRing.splice(0, debugRing.length - DEBUG_MAX);
   try {
@@ -217,6 +220,7 @@ export function registryInfo() {
 
 /** Node-RED pushes a value for an announced (or new) endpoint. */
 export function setEndpointValue(id: string, value: unknown): boolean {
+  const v = (value === undefined ? null : (JSON.parse(JSON.stringify(value)) as Json));
   loadConfigs();
   const key = id.toLowerCase();
   const now = new Date().toISOString();
@@ -228,18 +232,18 @@ export function setEndpointValue(id: string, value: unknown): boolean {
       kind: "read",
       announcedAt: now,
       lastSeenAt: now,
-      value,
+      value: v,
       valueAt: now,
       config: {},
       voice: true,
       control: false,
     });
   } else {
-    prev.value = value;
+    prev.value = v;
     prev.valueAt = now;
     prev.lastSeenAt = now;
   }
-  publishLocalBus("tick", { endpoint: key, value, ts: now });
+  publishLocalBus("tick", { endpoint: key, value: v, ts: now });
   return true;
 }
 
@@ -259,9 +263,9 @@ export function setEndpointConfig(id: string, patch: EndpointConfig) {
 export interface InvokeResult {
   ok: boolean;
   id: string;
-  value?: unknown;
+  value?: Json;
   status?: number;
-  result?: unknown;
+  result?: Json;
   error?: string;
 }
 
@@ -273,7 +277,7 @@ const TIMEOUT_MS = Math.max(1_000, Number(process.env.PI_CONTROL_INVOKE_TIMEOUT_
  */
 export async function invokeEndpoint(
   id: string,
-  value: unknown,
+  value: Json,
   opts: { force?: boolean; via?: string } = {},
 ): Promise<InvokeResult> {
   const e = getEndpoint(id);
@@ -302,9 +306,9 @@ export async function invokeEndpoint(
           body: method === "POST" ? JSON.stringify(payload) : undefined,
         });
         const body = await res.text();
-        let parsed: unknown = body;
+        let parsed: Json = body;
         try {
-          parsed = JSON.parse(body);
+          parsed = JSON.parse(body) as Json;
         } catch {
           /* plain text is fine */
         }
@@ -328,10 +332,15 @@ export async function invokeEndpoint(
       }
       if (!brokerId) return { ok: false, id: e.id, error: "no_mqtt_broker" };
       const payloadStr = typeof value === "string" ? value : JSON.stringify(value);
-      const res = await publishMqtt(brokerId, inv.mqttTopic, payloadStr);
-      debugLog("out", `mqtt ${inv.mqttTopic}`, { payload: payloadStr, res });
+      await publishMqtt(brokerId, {
+        topic: inv.mqttTopic,
+        payload: payloadStr,
+        qos: 0,
+        retained: false,
+      });
+      debugLog("out", `mqtt ${inv.mqttTopic}`, { payload: payloadStr });
       setEndpointValue(e.id, value);
-      return { ok: true, id: e.id, value, result: res };
+      return { ok: true, id: e.id, value, result: { published: inv.mqttTopic } };
     }
 
     return { ok: false, id: e.id, error: "no_invoke_target" };

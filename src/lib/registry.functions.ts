@@ -64,6 +64,6 @@ export const getDebugFn = createServerFn({ method: "GET" })
       entries: debugEntries(200),
       registry: registryInfo(),
       storage: localStorageInfo(),
-      lastEvents: recentRows("event", 20),
+      lastEvents: recentRows("event", 20) as unknown as Array<Record<string, string | number | boolean | null>>,
     };
   });
