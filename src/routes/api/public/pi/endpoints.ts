@@ -11,7 +11,10 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, content-type",
 };
 
-const Body = z.object({ id: z.string().min(1).max(64), value: z.unknown().optional() });
+const Body = z.object({
+  id: z.string().min(1).max(64),
+  value: z.union([z.string(), z.number(), z.boolean()]).optional(),
+});
 
 export const Route = createFileRoute("/api/public/pi/endpoints")({
   server: {
