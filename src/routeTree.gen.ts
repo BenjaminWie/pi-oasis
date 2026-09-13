@@ -14,6 +14,8 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as CloudRouteImport } from './routes/_cloud'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedControlRouteImport } from './routes/_authenticated/control'
+import { Route as AuthenticatedDebugRouteImport } from './routes/_authenticated/debug'
 import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
@@ -21,6 +23,7 @@ import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedPumpeRouteImport } from './routes/_authenticated/pumpe'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
+import { Route as AuthenticatedTuningRouteImport } from './routes/_authenticated/tuning'
 import { Route as CloudConnectionsRouteImport } from './routes/_cloud/connections'
 import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
 import { Route as CloudPairCallbackRouteImport } from './routes/_cloud/pair-callback'
@@ -90,6 +93,16 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedControlRoute = AuthenticatedControlRouteImport.update({
+  id: '/control',
+  path: '/control',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDebugRoute = AuthenticatedDebugRouteImport.update({
+  id: '/debug',
+  path: '/debug',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedIntegrationsRoute =
   AuthenticatedIntegrationsRouteImport.update({
     id: '/integrations',
@@ -124,6 +137,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
 const AuthenticatedTerminalRoute = AuthenticatedTerminalRouteImport.update({
   id: '/terminal',
   path: '/terminal',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedTuningRoute = AuthenticatedTuningRouteImport.update({
+  id: '/tuning',
+  path: '/tuning',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const CloudConnectionsRoute = CloudConnectionsRouteImport.update({
@@ -368,6 +386,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
+  '/control': typeof AuthenticatedControlRoute
+  '/debug': typeof AuthenticatedDebugRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
@@ -375,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/pumpe': typeof AuthenticatedPumpeRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
+  '/tuning': typeof AuthenticatedTuningRoute
   '/connections': typeof CloudConnectionsRouteWithChildren
   '/devices': typeof CloudDevicesRouteWithChildren
   '/pair-callback': typeof CloudPairCallbackRoute
@@ -424,12 +445,15 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
+  '/control': typeof AuthenticatedControlRoute
+  '/debug': typeof AuthenticatedDebugRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/pumpe': typeof AuthenticatedPumpeRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
+  '/tuning': typeof AuthenticatedTuningRoute
   '/pair-callback': typeof CloudPairCallbackRoute
   '/plugins': typeof AuthenticatedPluginsIndexRoute
   '/pump': typeof CloudPumpRoute
@@ -480,6 +504,8 @@ export interface FileRoutesById {
   '/_cloud': typeof CloudRouteWithChildren
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
+  '/_authenticated/control': typeof AuthenticatedControlRoute
+  '/_authenticated/debug': typeof AuthenticatedDebugRoute
   '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
   '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
@@ -487,6 +513,7 @@ export interface FileRoutesById {
   '/_authenticated/pumpe': typeof AuthenticatedPumpeRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
+  '/_authenticated/tuning': typeof AuthenticatedTuningRoute
   '/_cloud/connections': typeof CloudConnectionsRouteWithChildren
   '/_cloud/devices': typeof CloudDevicesRouteWithChildren
   '/_cloud/pair-callback': typeof CloudPairCallbackRoute
@@ -539,6 +566,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/login'
+    | '/control'
+    | '/debug'
     | '/integrations'
     | '/mqtt'
     | '/overview'
@@ -546,6 +575,7 @@ export interface FileRouteTypes {
     | '/pumpe'
     | '/settings'
     | '/terminal'
+    | '/tuning'
     | '/connections'
     | '/devices'
     | '/pair-callback'
@@ -595,12 +625,15 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/login'
+    | '/control'
+    | '/debug'
     | '/integrations'
     | '/mqtt'
     | '/overview'
     | '/pumpe'
     | '/settings'
     | '/terminal'
+    | '/tuning'
     | '/pair-callback'
     | '/plugins'
     | '/pump'
@@ -650,6 +683,8 @@ export interface FileRouteTypes {
     | '/_cloud'
     | '/auth'
     | '/login'
+    | '/_authenticated/control'
+    | '/_authenticated/debug'
     | '/_authenticated/integrations'
     | '/_authenticated/mqtt'
     | '/_authenticated/overview'
@@ -657,6 +692,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pumpe'
     | '/_authenticated/settings'
     | '/_authenticated/terminal'
+    | '/_authenticated/tuning'
     | '/_cloud/connections'
     | '/_cloud/devices'
     | '/_cloud/pair-callback'
@@ -777,6 +813,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/control': {
+      id: '/_authenticated/control'
+      path: '/control'
+      fullPath: '/control'
+      preLoaderRoute: typeof AuthenticatedControlRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/debug': {
+      id: '/_authenticated/debug'
+      path: '/debug'
+      fullPath: '/debug'
+      preLoaderRoute: typeof AuthenticatedDebugRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/integrations': {
       id: '/_authenticated/integrations'
       path: '/integrations'
@@ -824,6 +874,13 @@ declare module '@tanstack/react-router' {
       path: '/terminal'
       fullPath: '/terminal'
       preLoaderRoute: typeof AuthenticatedTerminalRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/tuning': {
+      id: '/_authenticated/tuning'
+      path: '/tuning'
+      fullPath: '/tuning'
+      preLoaderRoute: typeof AuthenticatedTuningRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_cloud/connections': {
@@ -1158,6 +1215,8 @@ const AuthenticatedPluginsRouteWithChildren =
   AuthenticatedPluginsRoute._addFileChildren(AuthenticatedPluginsRouteChildren)
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedControlRoute: typeof AuthenticatedControlRoute
+  AuthenticatedDebugRoute: typeof AuthenticatedDebugRoute
   AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
   AuthenticatedMqttRoute: typeof AuthenticatedMqttRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
@@ -1165,10 +1224,13 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPumpeRoute: typeof AuthenticatedPumpeRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTerminalRoute: typeof AuthenticatedTerminalRoute
+  AuthenticatedTuningRoute: typeof AuthenticatedTuningRoute
   AuthenticatedContainerIdRoute: typeof AuthenticatedContainerIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedControlRoute: AuthenticatedControlRoute,
+  AuthenticatedDebugRoute: AuthenticatedDebugRoute,
   AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
   AuthenticatedMqttRoute: AuthenticatedMqttRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
@@ -1176,6 +1238,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPumpeRoute: AuthenticatedPumpeRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTerminalRoute: AuthenticatedTerminalRoute,
+  AuthenticatedTuningRoute: AuthenticatedTuningRoute,
   AuthenticatedContainerIdRoute: AuthenticatedContainerIdRoute,
 }
 
