@@ -14,6 +14,8 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as CloudRouteImport } from './routes/_cloud'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedControlRouteImport } from './routes/_authenticated/control'
+import { Route as AuthenticatedDebugRouteImport } from './routes/_authenticated/debug'
 import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
@@ -21,6 +23,7 @@ import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedPumpeRouteImport } from './routes/_authenticated/pumpe'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
+import { Route as AuthenticatedTuningRouteImport } from './routes/_authenticated/tuning'
 import { Route as CloudConnectionsRouteImport } from './routes/_cloud/connections'
 import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
 import { Route as CloudPairCallbackRouteImport } from './routes/_cloud/pair-callback'
@@ -55,11 +58,13 @@ import { Route as ApiPublicIngestEventRouteImport } from './routes/api/public/in
 import { Route as ApiPublicIngestLiveRouteImport } from './routes/api/public/ingest/live'
 import { Route as ApiPublicIngestTraceRouteImport } from './routes/api/public/ingest/trace'
 import { Route as ApiPublicLivePublishRouteImport } from './routes/api/public/live/publish'
+import { Route as ApiPublicNoderedAnnounceRouteImport } from './routes/api/public/nodered/announce'
 import { Route as ApiPublicNoderedConfigRouteImport } from './routes/api/public/nodered/config'
 import { Route as ApiPublicOauthAuthorizeRouteImport } from './routes/api/public/oauth/authorize'
 import { Route as ApiPublicOauthAuthorizePostRouteImport } from './routes/api/public/oauth/authorize-post'
 import { Route as ApiPublicOauthTokenRouteImport } from './routes/api/public/oauth/token'
 import { Route as ApiPublicPiCommandRouteImport } from './routes/api/public/pi/command'
+import { Route as ApiPublicPiEndpointsRouteImport } from './routes/api/public/pi/endpoints'
 import { Route as ApiPublicPiHistoryRouteImport } from './routes/api/public/pi/history'
 import { Route as ApiPublicPiStateRouteImport } from './routes/api/public/pi/state'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
@@ -87,6 +92,16 @@ const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedControlRoute = AuthenticatedControlRouteImport.update({
+  id: '/control',
+  path: '/control',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDebugRoute = AuthenticatedDebugRouteImport.update({
+  id: '/debug',
+  path: '/debug',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedIntegrationsRoute =
   AuthenticatedIntegrationsRouteImport.update({
@@ -122,6 +137,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
 const AuthenticatedTerminalRoute = AuthenticatedTerminalRouteImport.update({
   id: '/terminal',
   path: '/terminal',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedTuningRoute = AuthenticatedTuningRouteImport.update({
+  id: '/tuning',
+  path: '/tuning',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const CloudConnectionsRoute = CloudConnectionsRouteImport.update({
@@ -303,6 +323,12 @@ const ApiPublicLivePublishRoute = ApiPublicLivePublishRouteImport.update({
   path: '/api/public/live/publish',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicNoderedAnnounceRoute =
+  ApiPublicNoderedAnnounceRouteImport.update({
+    id: '/api/public/nodered/announce',
+    path: '/api/public/nodered/announce',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicNoderedConfigRoute = ApiPublicNoderedConfigRouteImport.update({
   id: '/api/public/nodered/config',
   path: '/api/public/nodered/config',
@@ -327,6 +353,11 @@ const ApiPublicOauthTokenRoute = ApiPublicOauthTokenRouteImport.update({
 const ApiPublicPiCommandRoute = ApiPublicPiCommandRouteImport.update({
   id: '/api/public/pi/command',
   path: '/api/public/pi/command',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPiEndpointsRoute = ApiPublicPiEndpointsRouteImport.update({
+  id: '/api/public/pi/endpoints',
+  path: '/api/public/pi/endpoints',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPiHistoryRoute = ApiPublicPiHistoryRouteImport.update({
@@ -355,6 +386,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
+  '/control': typeof AuthenticatedControlRoute
+  '/debug': typeof AuthenticatedDebugRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
@@ -362,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/pumpe': typeof AuthenticatedPumpeRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
+  '/tuning': typeof AuthenticatedTuningRoute
   '/connections': typeof CloudConnectionsRouteWithChildren
   '/devices': typeof CloudDevicesRouteWithChildren
   '/pair-callback': typeof CloudPairCallbackRoute
@@ -395,11 +429,13 @@ export interface FileRoutesByFullPath {
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
+  '/api/public/nodered/announce': typeof ApiPublicNoderedAnnounceRoute
   '/api/public/nodered/config': typeof ApiPublicNoderedConfigRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
+  '/api/public/pi/endpoints': typeof ApiPublicPiEndpointsRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -409,12 +445,15 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
+  '/control': typeof AuthenticatedControlRoute
+  '/debug': typeof AuthenticatedDebugRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
   '/pumpe': typeof AuthenticatedPumpeRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
+  '/tuning': typeof AuthenticatedTuningRoute
   '/pair-callback': typeof CloudPairCallbackRoute
   '/plugins': typeof AuthenticatedPluginsIndexRoute
   '/pump': typeof CloudPumpRoute
@@ -446,11 +485,13 @@ export interface FileRoutesByTo {
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
+  '/api/public/nodered/announce': typeof ApiPublicNoderedAnnounceRoute
   '/api/public/nodered/config': typeof ApiPublicNoderedConfigRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
+  '/api/public/pi/endpoints': typeof ApiPublicPiEndpointsRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -463,6 +504,8 @@ export interface FileRoutesById {
   '/_cloud': typeof CloudRouteWithChildren
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
+  '/_authenticated/control': typeof AuthenticatedControlRoute
+  '/_authenticated/debug': typeof AuthenticatedDebugRoute
   '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
   '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
@@ -470,6 +513,7 @@ export interface FileRoutesById {
   '/_authenticated/pumpe': typeof AuthenticatedPumpeRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
+  '/_authenticated/tuning': typeof AuthenticatedTuningRoute
   '/_cloud/connections': typeof CloudConnectionsRouteWithChildren
   '/_cloud/devices': typeof CloudDevicesRouteWithChildren
   '/_cloud/pair-callback': typeof CloudPairCallbackRoute
@@ -504,11 +548,13 @@ export interface FileRoutesById {
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
+  '/api/public/nodered/announce': typeof ApiPublicNoderedAnnounceRoute
   '/api/public/nodered/config': typeof ApiPublicNoderedConfigRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
+  '/api/public/pi/endpoints': typeof ApiPublicPiEndpointsRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -520,6 +566,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/login'
+    | '/control'
+    | '/debug'
     | '/integrations'
     | '/mqtt'
     | '/overview'
@@ -527,6 +575,7 @@ export interface FileRouteTypes {
     | '/pumpe'
     | '/settings'
     | '/terminal'
+    | '/tuning'
     | '/connections'
     | '/devices'
     | '/pair-callback'
@@ -560,11 +609,13 @@ export interface FileRouteTypes {
     | '/api/public/ingest/live'
     | '/api/public/ingest/trace'
     | '/api/public/live/publish'
+    | '/api/public/nodered/announce'
     | '/api/public/nodered/config'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
     | '/api/public/pi/command'
+    | '/api/public/pi/endpoints'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
     | '/api/public/telegram/webhook'
@@ -574,12 +625,15 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/login'
+    | '/control'
+    | '/debug'
     | '/integrations'
     | '/mqtt'
     | '/overview'
     | '/pumpe'
     | '/settings'
     | '/terminal'
+    | '/tuning'
     | '/pair-callback'
     | '/plugins'
     | '/pump'
@@ -611,11 +665,13 @@ export interface FileRouteTypes {
     | '/api/public/ingest/live'
     | '/api/public/ingest/trace'
     | '/api/public/live/publish'
+    | '/api/public/nodered/announce'
     | '/api/public/nodered/config'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
     | '/api/public/pi/command'
+    | '/api/public/pi/endpoints'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
     | '/api/public/telegram/webhook'
@@ -627,6 +683,8 @@ export interface FileRouteTypes {
     | '/_cloud'
     | '/auth'
     | '/login'
+    | '/_authenticated/control'
+    | '/_authenticated/debug'
     | '/_authenticated/integrations'
     | '/_authenticated/mqtt'
     | '/_authenticated/overview'
@@ -634,6 +692,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pumpe'
     | '/_authenticated/settings'
     | '/_authenticated/terminal'
+    | '/_authenticated/tuning'
     | '/_cloud/connections'
     | '/_cloud/devices'
     | '/_cloud/pair-callback'
@@ -668,11 +727,13 @@ export interface FileRouteTypes {
     | '/api/public/ingest/live'
     | '/api/public/ingest/trace'
     | '/api/public/live/publish'
+    | '/api/public/nodered/announce'
     | '/api/public/nodered/config'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
     | '/api/public/pi/command'
+    | '/api/public/pi/endpoints'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
     | '/api/public/telegram/webhook'
@@ -702,11 +763,13 @@ export interface RootRouteChildren {
   ApiPublicIngestLiveRoute: typeof ApiPublicIngestLiveRoute
   ApiPublicIngestTraceRoute: typeof ApiPublicIngestTraceRoute
   ApiPublicLivePublishRoute: typeof ApiPublicLivePublishRoute
+  ApiPublicNoderedAnnounceRoute: typeof ApiPublicNoderedAnnounceRoute
   ApiPublicNoderedConfigRoute: typeof ApiPublicNoderedConfigRoute
   ApiPublicOauthAuthorizeRoute: typeof ApiPublicOauthAuthorizeRoute
   ApiPublicOauthAuthorizePostRoute: typeof ApiPublicOauthAuthorizePostRoute
   ApiPublicOauthTokenRoute: typeof ApiPublicOauthTokenRoute
   ApiPublicPiCommandRoute: typeof ApiPublicPiCommandRoute
+  ApiPublicPiEndpointsRoute: typeof ApiPublicPiEndpointsRoute
   ApiPublicPiHistoryRoute: typeof ApiPublicPiHistoryRoute
   ApiPublicPiStateRoute: typeof ApiPublicPiStateRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
@@ -749,6 +812,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/control': {
+      id: '/_authenticated/control'
+      path: '/control'
+      fullPath: '/control'
+      preLoaderRoute: typeof AuthenticatedControlRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/debug': {
+      id: '/_authenticated/debug'
+      path: '/debug'
+      fullPath: '/debug'
+      preLoaderRoute: typeof AuthenticatedDebugRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/integrations': {
       id: '/_authenticated/integrations'
@@ -797,6 +874,13 @@ declare module '@tanstack/react-router' {
       path: '/terminal'
       fullPath: '/terminal'
       preLoaderRoute: typeof AuthenticatedTerminalRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/tuning': {
+      id: '/_authenticated/tuning'
+      path: '/tuning'
+      fullPath: '/tuning'
+      preLoaderRoute: typeof AuthenticatedTuningRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_cloud/connections': {
@@ -1037,6 +1121,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicLivePublishRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/nodered/announce': {
+      id: '/api/public/nodered/announce'
+      path: '/api/public/nodered/announce'
+      fullPath: '/api/public/nodered/announce'
+      preLoaderRoute: typeof ApiPublicNoderedAnnounceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/nodered/config': {
       id: '/api/public/nodered/config'
       path: '/api/public/nodered/config'
@@ -1070,6 +1161,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/pi/command'
       fullPath: '/api/public/pi/command'
       preLoaderRoute: typeof ApiPublicPiCommandRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/pi/endpoints': {
+      id: '/api/public/pi/endpoints'
+      path: '/api/public/pi/endpoints'
+      fullPath: '/api/public/pi/endpoints'
+      preLoaderRoute: typeof ApiPublicPiEndpointsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/pi/history': {
@@ -1117,6 +1215,8 @@ const AuthenticatedPluginsRouteWithChildren =
   AuthenticatedPluginsRoute._addFileChildren(AuthenticatedPluginsRouteChildren)
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedControlRoute: typeof AuthenticatedControlRoute
+  AuthenticatedDebugRoute: typeof AuthenticatedDebugRoute
   AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
   AuthenticatedMqttRoute: typeof AuthenticatedMqttRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
@@ -1124,10 +1224,13 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPumpeRoute: typeof AuthenticatedPumpeRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTerminalRoute: typeof AuthenticatedTerminalRoute
+  AuthenticatedTuningRoute: typeof AuthenticatedTuningRoute
   AuthenticatedContainerIdRoute: typeof AuthenticatedContainerIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedControlRoute: AuthenticatedControlRoute,
+  AuthenticatedDebugRoute: AuthenticatedDebugRoute,
   AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
   AuthenticatedMqttRoute: AuthenticatedMqttRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
@@ -1135,6 +1238,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPumpeRoute: AuthenticatedPumpeRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTerminalRoute: AuthenticatedTerminalRoute,
+  AuthenticatedTuningRoute: AuthenticatedTuningRoute,
   AuthenticatedContainerIdRoute: AuthenticatedContainerIdRoute,
 }
 
@@ -1220,11 +1324,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicIngestLiveRoute: ApiPublicIngestLiveRoute,
   ApiPublicIngestTraceRoute: ApiPublicIngestTraceRoute,
   ApiPublicLivePublishRoute: ApiPublicLivePublishRoute,
+  ApiPublicNoderedAnnounceRoute: ApiPublicNoderedAnnounceRoute,
   ApiPublicNoderedConfigRoute: ApiPublicNoderedConfigRoute,
   ApiPublicOauthAuthorizeRoute: ApiPublicOauthAuthorizeRoute,
   ApiPublicOauthAuthorizePostRoute: ApiPublicOauthAuthorizePostRoute,
   ApiPublicOauthTokenRoute: ApiPublicOauthTokenRoute,
   ApiPublicPiCommandRoute: ApiPublicPiCommandRoute,
+  ApiPublicPiEndpointsRoute: ApiPublicPiEndpointsRoute,
   ApiPublicPiHistoryRoute: ApiPublicPiHistoryRoute,
   ApiPublicPiStateRoute: ApiPublicPiStateRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
