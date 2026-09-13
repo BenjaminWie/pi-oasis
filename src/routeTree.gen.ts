@@ -55,11 +55,13 @@ import { Route as ApiPublicIngestEventRouteImport } from './routes/api/public/in
 import { Route as ApiPublicIngestLiveRouteImport } from './routes/api/public/ingest/live'
 import { Route as ApiPublicIngestTraceRouteImport } from './routes/api/public/ingest/trace'
 import { Route as ApiPublicLivePublishRouteImport } from './routes/api/public/live/publish'
+import { Route as ApiPublicNoderedAnnounceRouteImport } from './routes/api/public/nodered/announce'
 import { Route as ApiPublicNoderedConfigRouteImport } from './routes/api/public/nodered/config'
 import { Route as ApiPublicOauthAuthorizeRouteImport } from './routes/api/public/oauth/authorize'
 import { Route as ApiPublicOauthAuthorizePostRouteImport } from './routes/api/public/oauth/authorize-post'
 import { Route as ApiPublicOauthTokenRouteImport } from './routes/api/public/oauth/token'
 import { Route as ApiPublicPiCommandRouteImport } from './routes/api/public/pi/command'
+import { Route as ApiPublicPiEndpointsRouteImport } from './routes/api/public/pi/endpoints'
 import { Route as ApiPublicPiHistoryRouteImport } from './routes/api/public/pi/history'
 import { Route as ApiPublicPiStateRouteImport } from './routes/api/public/pi/state'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
@@ -303,6 +305,12 @@ const ApiPublicLivePublishRoute = ApiPublicLivePublishRouteImport.update({
   path: '/api/public/live/publish',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicNoderedAnnounceRoute =
+  ApiPublicNoderedAnnounceRouteImport.update({
+    id: '/api/public/nodered/announce',
+    path: '/api/public/nodered/announce',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicNoderedConfigRoute = ApiPublicNoderedConfigRouteImport.update({
   id: '/api/public/nodered/config',
   path: '/api/public/nodered/config',
@@ -327,6 +335,11 @@ const ApiPublicOauthTokenRoute = ApiPublicOauthTokenRouteImport.update({
 const ApiPublicPiCommandRoute = ApiPublicPiCommandRouteImport.update({
   id: '/api/public/pi/command',
   path: '/api/public/pi/command',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPiEndpointsRoute = ApiPublicPiEndpointsRouteImport.update({
+  id: '/api/public/pi/endpoints',
+  path: '/api/public/pi/endpoints',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPiHistoryRoute = ApiPublicPiHistoryRouteImport.update({
@@ -395,11 +408,13 @@ export interface FileRoutesByFullPath {
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
+  '/api/public/nodered/announce': typeof ApiPublicNoderedAnnounceRoute
   '/api/public/nodered/config': typeof ApiPublicNoderedConfigRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
+  '/api/public/pi/endpoints': typeof ApiPublicPiEndpointsRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -446,11 +461,13 @@ export interface FileRoutesByTo {
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
+  '/api/public/nodered/announce': typeof ApiPublicNoderedAnnounceRoute
   '/api/public/nodered/config': typeof ApiPublicNoderedConfigRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
+  '/api/public/pi/endpoints': typeof ApiPublicPiEndpointsRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -504,11 +521,13 @@ export interface FileRoutesById {
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
   '/api/public/live/publish': typeof ApiPublicLivePublishRoute
+  '/api/public/nodered/announce': typeof ApiPublicNoderedAnnounceRoute
   '/api/public/nodered/config': typeof ApiPublicNoderedConfigRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
   '/api/public/pi/command': typeof ApiPublicPiCommandRoute
+  '/api/public/pi/endpoints': typeof ApiPublicPiEndpointsRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -560,11 +579,13 @@ export interface FileRouteTypes {
     | '/api/public/ingest/live'
     | '/api/public/ingest/trace'
     | '/api/public/live/publish'
+    | '/api/public/nodered/announce'
     | '/api/public/nodered/config'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
     | '/api/public/pi/command'
+    | '/api/public/pi/endpoints'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
     | '/api/public/telegram/webhook'
@@ -611,11 +632,13 @@ export interface FileRouteTypes {
     | '/api/public/ingest/live'
     | '/api/public/ingest/trace'
     | '/api/public/live/publish'
+    | '/api/public/nodered/announce'
     | '/api/public/nodered/config'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
     | '/api/public/pi/command'
+    | '/api/public/pi/endpoints'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
     | '/api/public/telegram/webhook'
@@ -668,11 +691,13 @@ export interface FileRouteTypes {
     | '/api/public/ingest/live'
     | '/api/public/ingest/trace'
     | '/api/public/live/publish'
+    | '/api/public/nodered/announce'
     | '/api/public/nodered/config'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
     | '/api/public/pi/command'
+    | '/api/public/pi/endpoints'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
     | '/api/public/telegram/webhook'
@@ -702,11 +727,13 @@ export interface RootRouteChildren {
   ApiPublicIngestLiveRoute: typeof ApiPublicIngestLiveRoute
   ApiPublicIngestTraceRoute: typeof ApiPublicIngestTraceRoute
   ApiPublicLivePublishRoute: typeof ApiPublicLivePublishRoute
+  ApiPublicNoderedAnnounceRoute: typeof ApiPublicNoderedAnnounceRoute
   ApiPublicNoderedConfigRoute: typeof ApiPublicNoderedConfigRoute
   ApiPublicOauthAuthorizeRoute: typeof ApiPublicOauthAuthorizeRoute
   ApiPublicOauthAuthorizePostRoute: typeof ApiPublicOauthAuthorizePostRoute
   ApiPublicOauthTokenRoute: typeof ApiPublicOauthTokenRoute
   ApiPublicPiCommandRoute: typeof ApiPublicPiCommandRoute
+  ApiPublicPiEndpointsRoute: typeof ApiPublicPiEndpointsRoute
   ApiPublicPiHistoryRoute: typeof ApiPublicPiHistoryRoute
   ApiPublicPiStateRoute: typeof ApiPublicPiStateRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
@@ -1037,6 +1064,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicLivePublishRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/nodered/announce': {
+      id: '/api/public/nodered/announce'
+      path: '/api/public/nodered/announce'
+      fullPath: '/api/public/nodered/announce'
+      preLoaderRoute: typeof ApiPublicNoderedAnnounceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/nodered/config': {
       id: '/api/public/nodered/config'
       path: '/api/public/nodered/config'
@@ -1070,6 +1104,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/pi/command'
       fullPath: '/api/public/pi/command'
       preLoaderRoute: typeof ApiPublicPiCommandRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/pi/endpoints': {
+      id: '/api/public/pi/endpoints'
+      path: '/api/public/pi/endpoints'
+      fullPath: '/api/public/pi/endpoints'
+      preLoaderRoute: typeof ApiPublicPiEndpointsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/pi/history': {
@@ -1220,11 +1261,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicIngestLiveRoute: ApiPublicIngestLiveRoute,
   ApiPublicIngestTraceRoute: ApiPublicIngestTraceRoute,
   ApiPublicLivePublishRoute: ApiPublicLivePublishRoute,
+  ApiPublicNoderedAnnounceRoute: ApiPublicNoderedAnnounceRoute,
   ApiPublicNoderedConfigRoute: ApiPublicNoderedConfigRoute,
   ApiPublicOauthAuthorizeRoute: ApiPublicOauthAuthorizeRoute,
   ApiPublicOauthAuthorizePostRoute: ApiPublicOauthAuthorizePostRoute,
   ApiPublicOauthTokenRoute: ApiPublicOauthTokenRoute,
   ApiPublicPiCommandRoute: ApiPublicPiCommandRoute,
+  ApiPublicPiEndpointsRoute: ApiPublicPiEndpointsRoute,
   ApiPublicPiHistoryRoute: ApiPublicPiHistoryRoute,
   ApiPublicPiStateRoute: ApiPublicPiStateRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
