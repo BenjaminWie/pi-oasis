@@ -7,8 +7,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { UIMessage } from "ai";
-import { brainStream } from "@/lib/assistant-brain.server";
-import type { ToolCtx } from "@/lib/mcp-tools.server";
+import { brainStream, type ToolCtx } from "@/lib/assistant-brain.server";
 
 function jsonError(code: string, message: string, status: number) {
   return new Response(JSON.stringify({ error: message, code }), {
@@ -61,12 +60,7 @@ export const Route = createFileRoute("/api/chat")({
           return jsonError("bad_messages", "messages required", 400);
         }
 
-        const ctx: ToolCtx = {
-          userId,
-          deviceId: "pi",
-          scopes: ["read", "control"],
-          tokenId: "chat-session",
-        };
+        const ctx: ToolCtx = { userId, source: "chat", allowControl: true };
         try {
           return await brainStream(ctx, body.messages);
         } catch (e: any) {
