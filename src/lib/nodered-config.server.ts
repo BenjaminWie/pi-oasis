@@ -1,28 +1,15 @@
 // Single source of truth for everything a Node-RED flow needs to talk to this
-// Pi and to the cloud. The Pi is the only place that knows the device token,
-// device id, LAN ip and port — so Node-RED fetches config from here instead of
-// having the values pasted into tab env by hand.
+// Pi. Pi Control is local-first: Node-RED never talks to the cloud, it only
+// announces its endpoints here and streams values into the local store.
 import { networkInterfaces } from "node:os";
 
 export interface NodeRedConfig {
   generatedAt: string;
-  device: { label: string; name: string | null; paired: boolean };
-  cloud: {
-    baseUrl: string;
-    eventUrl: string;
-    strategyUrl: string;
-    liveUrl: string;
-    commandPollUrl: string;
-    commandResultUrl: string;
-    realtimeBootstrapUrl: string;
-    deviceToken: string | null;
-    deviceId: string | null;
-    wsUrl: string | null;
-    channel: string | null;
-  };
+  device: { label: string };
   local: {
     baseUrl: string;
     configUrl: string;
+    announceUrl: string;
     eventUrl: string;
     liveUrl: string;
     traceUrl: string;
@@ -52,92 +39,19 @@ export function lanIp(): string | null {
   return null;
 }
 
-let realtimeCache: {
-  at: number;
-  token: string;
-  data: { wsUrl: string | null; deviceId: string | null; channel: string | null };
-} | null = null;
-
-/** Resolve the Supabase realtime websocket URL once and cache it for an hour. */
-async function resolveRealtime(cloudUrl: string, token: string) {
-  if (realtimeCache && realtimeCache.token === token && Date.now() - realtimeCache.at < 3_600_000) {
-    return realtimeCache.data;
-  }
-  const empty = { wsUrl: null, deviceId: null, channel: null };
-  try {
-    const res = await fetch(`${cloudUrl}/api/public/agent/realtime`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return empty;
-    const b = (await res.json()) as {
-      supabaseUrl?: string;
-      supabaseKey?: string;
-      deviceId?: string;
-      channel?: string;
-    };
-    if (!b.supabaseUrl || !b.supabaseKey || !b.deviceId) return empty;
-    const data = {
-      wsUrl: `${b.supabaseUrl.replace(/^http/, "ws")}/realtime/v1/websocket?apikey=${b.supabaseKey}&vsn=1.0.0`,
-      deviceId: b.deviceId,
-      channel: b.channel || `commands:${b.deviceId}`,
-    };
-    realtimeCache = { at: Date.now(), token, data };
-    return data;
-  } catch {
-    return empty;
-  }
-}
-
 export async function buildNodeRedConfig(): Promise<NodeRedConfig> {
-  const cloudUrl = (process.env.VITE_PI_HUB_CLOUD_URL || "https://pi-hub.benniwie.com").replace(
-    /\/$/,
-    "",
-  );
   const port = Number(process.env.PORT || 3000);
   const host = lanIp() || "127.0.0.1";
   const localBase = `http://${host}:${port}`;
   const localToken = process.env.PI_INGEST_TOKEN || process.env.PI_LOCAL_INGEST_TOKEN || null;
 
-  let deviceToken: string | null = null;
-  let deviceName: string | null = null;
-  let deviceId: string | null = null;
-  try {
-    const { getCloudConfig } = await import("./pin-store.server");
-    const cfg = await getCloudConfig();
-    deviceToken = cfg?.deviceToken ?? null;
-    deviceName = cfg?.name ?? null;
-    deviceId = cfg?.deviceId ?? null;
-  } catch {
-    /* not paired */
-  }
-
-  const rt = deviceToken
-    ? await resolveRealtime(cloudUrl, deviceToken)
-    : { wsUrl: null, deviceId: null, channel: null };
-
   return {
     generatedAt: new Date().toISOString(),
-    device: {
-      label: process.env.DEFAULT_DEVICE_LABEL || "drainpress",
-      name: deviceName,
-      paired: !!deviceToken,
-    },
-    cloud: {
-      baseUrl: cloudUrl,
-      eventUrl: `${cloudUrl}/api/public/cloud-bridge/event`,
-      strategyUrl: `${cloudUrl}/api/public/cloud-bridge/strategy`,
-      liveUrl: `${cloudUrl}/api/public/live/publish`,
-      commandPollUrl: `${cloudUrl}/api/public/agent/poll?runner=nodered`,
-      commandResultUrl: `${cloudUrl}/api/public/agent/result`,
-      realtimeBootstrapUrl: `${cloudUrl}/api/public/agent/realtime`,
-      deviceToken,
-      deviceId: rt.deviceId || deviceId,
-      wsUrl: rt.wsUrl,
-      channel: rt.channel,
-    },
+    device: { label: process.env.DEFAULT_DEVICE_LABEL || "pi-control" },
     local: {
       baseUrl: localBase,
       configUrl: `${localBase}/api/public/nodered/config`,
+      announceUrl: `${localBase}/api/public/nodered/announce`,
       eventUrl: `${localBase}/api/public/ingest/event`,
       liveUrl: `${localBase}/api/public/ingest/live`,
       traceUrl: `${localBase}/api/public/ingest/trace`,
