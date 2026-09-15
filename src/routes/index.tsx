@@ -65,7 +65,7 @@ function NavBar() {
         </Link>
         <nav className="flex items-center gap-2">
           <Link
-            to="/devices"
+            to="/connections"
             className="hidden sm:inline-flex px-3 py-1.5 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground transition"
           >
             Dashboard
@@ -156,7 +156,7 @@ function Hero() {
                 Install on my Pi
               </a>
               <Link
-                to="/devices"
+                to="/connections"
                 className="inline-flex items-center gap-2 rounded-md border border-border px-5 py-3 text-sm font-mono uppercase tracking-widest hover:border-primary hover:text-primary transition"
               >
                 Open dashboard
@@ -665,7 +665,7 @@ function FooterCta() {
             Create account
           </Link>
           <Link
-            to="/devices"
+            to="/connections"
             className="inline-flex items-center gap-2 rounded-md border border-border px-5 py-3 text-sm font-mono uppercase tracking-widest hover:border-primary hover:text-primary transition"
           >
             Open dashboard
