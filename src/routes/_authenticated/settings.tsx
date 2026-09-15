@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { LogOut, Smartphone, Cpu, Shield, Cloud, KeyRound, RefreshCw } from "lucide-react";
+import { LogOut, Smartphone, Cpu, Shield, KeyRound, RefreshCw } from "lucide-react";
 import { auth } from "@/lib/auth-store";
 import { changePin, resetPinWithFactoryToken } from "@/lib/auth.functions";
 import {
@@ -10,11 +10,6 @@ import {
   revokeTrustedDevices,
   getFactoryTokenForDisplay,
 } from "@/lib/host-info.functions";
-import {
-  createPairingNonce,
-  claimCloudPairing,
-  disconnectCloudBridge,
-} from "@/lib/cloud-pairing.functions";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -28,9 +23,6 @@ function SettingsPage() {
   const changeFn = useServerFn(changePin);
   const resetFn = useServerFn(resetPinWithFactoryToken);
   const tokenFn = useServerFn(getFactoryTokenForDisplay);
-  const nonceFn = useServerFn(createPairingNonce);
-  const claimFn = useServerFn(claimCloudPairing);
-  const disconnectFn = useServerFn(disconnectCloudBridge);
 
   const { data: host } = useQuery({
     queryKey: ["host-info"],
@@ -39,65 +31,18 @@ function SettingsPage() {
   });
 
   const [pinMode, setPinMode] = useState<null | "change" | "reset" | "factory">(null);
-  const [bridgeStatus, setBridgeStatus] = useState<string | null>(null);
 
   const revokeMut = useMutation({
     mutationFn: () => revokeFn({}),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["host-info"] }),
   });
 
-  const disconnectBridgeMut = useMutation({
-    mutationFn: () => disconnectFn({}),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["host-info"] }),
-  });
 
   const logout = () => {
     auth.clear();
     navigate({ to: "/login" });
   };
 
-  const startCloudPair = async () => {
-    try {
-      setBridgeStatus("Erzeuge Nonce …");
-      const res = await nonceFn({});
-      if (!res.ok) {
-        setBridgeStatus(res.error || "Pairing nicht möglich");
-        return;
-      }
-      const cloudUrl =
-        (import.meta as any).env?.VITE_PI_HUB_CLOUD_URL || "https://pi-hub.benniwie.com";
-      const local = window.location.origin;
-      const hostname = host?.hostname || window.location.hostname;
-      const dest = new URL(cloudUrl + "/auth");
-      dest.searchParams.set("returnTo", "pair-callback");
-      dest.searchParams.set("local", local);
-      dest.searchParams.set("nonce", res.nonce);
-      dest.searchParams.set("hostname", hostname);
-      window.open(dest.toString(), "pi-hub-pair", "width=480,height=720");
-      setBridgeStatus("Warte auf Cloud-Login …");
-
-      // Poll the cloud (via Pi server fn) until the freshly minted pairing shows up
-      const nonce = res.nonce;
-      const deadline = Date.now() + 5 * 60 * 1000;
-      while (Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, 2500));
-        const cl = await claimFn({ data: { nonce, cloudUrl } });
-        if (cl.ok) {
-          setBridgeStatus(`✓ Bridged as ${cl.name}`);
-          qc.invalidateQueries({ queryKey: ["host-info"] });
-          return;
-        }
-        if (!cl.ok && "pending" in cl && cl.pending) continue;
-        if (!cl.ok && "error" in cl && cl.error) {
-          setBridgeStatus(cl.error);
-          return;
-        }
-      }
-      setBridgeStatus("Timeout — versuche es nochmal.");
-    } catch (e: any) {
-      setBridgeStatus(e.message || String(e));
-    }
-  };
 
   return (
     <div className="px-4 pt-6 space-y-6">
@@ -118,48 +63,6 @@ function SettingsPage() {
           value={host?.isPi ? "Pi (live)" : "preview"}
           tone={host?.isPi ? "ok" : undefined}
         />
-      </Section>
-
-      <Section title="Cloud bridge" icon={<Cloud className="size-4" />}>
-        {host?.cloudBridge?.connected ? (
-          <>
-            <Row label="Status" value="bridged" tone="ok" />
-            <Row label="Gerät" value={host.cloudBridge.deviceName ?? "—"} />
-            <Row label="Cloud" value={host.cloudBridge.cloudUrl ?? "—"} />
-            <button
-              onClick={() => disconnectBridgeMut.mutate()}
-              disabled={disconnectBridgeMut.isPending}
-              className="w-full mt-3 py-3 text-[10px] font-bold uppercase tracking-widest border border-destructive/40 text-destructive rounded-2xl active:scale-95 transition-transform"
-            >
-              Bridge trennen
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="text-xs text-muted-foreground mb-3">
-              Verbinde diesen Pi mit der Cloud, um aus dem Mobilnetz oder via Telegram
-              fernzusteuern. Du meldest dich einmal in der Cloud an, das Token wird automatisch
-              übertragen.
-            </p>
-            <button
-              onClick={startCloudPair}
-              disabled={!host?.isPi}
-              className="w-full py-3 text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground rounded-2xl active:scale-95 transition-transform disabled:opacity-40"
-            >
-              In Cloud anmelden & Bridge aktivieren
-            </button>
-            {bridgeStatus && (
-              <p className="text-[11px] text-center mt-3 font-mono text-muted-foreground">
-                {bridgeStatus}
-              </p>
-            )}
-            {!host?.isPi && (
-              <p className="text-[10px] text-muted-foreground/60 mt-2 text-center">
-                Pairing nur auf dem Pi-Runtime verfügbar.
-              </p>
-            )}
-          </>
-        )}
       </Section>
 
       <Section title="Trusted devices" icon={<Smartphone className="size-4" />}>

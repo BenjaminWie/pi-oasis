@@ -206,7 +206,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           try {
             const { brainReply } = await import("@/lib/assistant-brain.server");
             const answer = await brainReply(
-              { userId: "owner", deviceId: "pi", scopes: ["read", "control"], tokenId: "telegram" },
+              { userId: "owner", source: "telegram", allowControl: true },
               text,
               { channel: "telegram" },
             );

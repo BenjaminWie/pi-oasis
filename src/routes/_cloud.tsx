@@ -1,9 +1,8 @@
 import { createFileRoute, Outlet, Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Server, LogOut, Droplets, Link2 } from "lucide-react";
+import { LogOut, Link2, Sparkles } from "lucide-react";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
-import { useDynamicFavicon } from "@/hooks/use-dynamic-favicon";
 
 export const Route = createFileRoute("/_cloud")({
   ssr: false,
@@ -15,16 +14,7 @@ function CloudLayout() {
   const loc = useLocation();
   const [ready, setReady] = useState(false);
 
-  // Initialize dynamic favicon
-  useDynamicFavicon();
-
-  const authRedirectSearch = () => {
-    if (loc.pathname !== "/pair-callback") return undefined;
-    return {
-      ...(loc.search as Record<string, unknown>),
-      returnTo: "pair-callback",
-    };
-  };
+  const authRedirectSearch = () => undefined;
 
   useEffect(() => {
     let active = true;
@@ -56,9 +46,8 @@ function CloudLayout() {
   }
 
   const tabs = [
-    { to: "/devices", label: "Geräte", icon: Server },
-    { to: "/pump", label: "Pumpe", icon: Droplets },
     { to: "/connections", label: "Connect", icon: Link2 },
+    { to: "/connections/assistant", label: "Assistent", icon: Sparkles },
   ];
 
 
@@ -66,9 +55,9 @@ function CloudLayout() {
     <div className="min-h-screen bg-background text-foreground max-w-md mx-auto pb-36">
       <header className="flex items-center justify-between px-5 pt-6 pb-4">
         <div>
-          <h1 className="text-lg font-mono font-bold text-primary">PI HUB</h1>
+          <h1 className="text-lg font-mono font-bold text-primary">PI CONTROL</h1>
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            Cloud Control
+            Command Router
           </p>
         </div>
         <button
@@ -89,7 +78,7 @@ function CloudLayout() {
       <InstallPWAButton />
 
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md border-t border-border bg-card/95 backdrop-blur z-40">
-        <div className="grid grid-cols-3">
+        <div className="grid grid-cols-2">
           {tabs.map((t) => {
             const active = loc.pathname.startsWith(t.to);
             const Icon = t.icon;

@@ -14,8 +14,7 @@ let cached: boolean | null = null;
 
 export function isPiRuntime(): boolean {
   if (cached !== null) {
-    if (cached) maybeStartBridge();
-    return cached;
+      return cached;
   }
   try {
     const hasProc = existsSync("/proc/stat") && existsSync("/proc/meminfo");
@@ -30,22 +29,9 @@ export function isPiRuntime(): boolean {
   } catch {
     cached = false;
   }
-  if (cached) maybeStartBridge();
   return cached;
 }
 
-let bridgeStartScheduled = false;
-function maybeStartBridge() {
-  if (bridgeStartScheduled) return;
-  bridgeStartScheduled = true;
-  // fire-and-forget; the bridge itself idles when no cloud config is present.
-  import("./cloud-bridge.server")
-    .then((m) => m.ensureCloudBridgeStarted())
-    .catch((e) => console.error("[pi-runtime] bridge start failed", e));
-  import("./plugin-runner.server")
-    .then((m) => m.ensurePluginRunnerStarted())
-    .catch((e) => console.error("[pi-runtime] plugin runner start failed", e));
-}
 
 export function hasProcStats(): boolean {
   try {

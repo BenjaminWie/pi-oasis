@@ -19,51 +19,25 @@ import { Route as AuthenticatedDebugRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
-import { Route as AuthenticatedPluginsRouteImport } from './routes/_authenticated/plugins'
-import { Route as AuthenticatedPumpeRouteImport } from './routes/_authenticated/pumpe'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
 import { Route as AuthenticatedTuningRouteImport } from './routes/_authenticated/tuning'
 import { Route as CloudConnectionsRouteImport } from './routes/_cloud/connections'
-import { Route as CloudDevicesRouteImport } from './routes/_cloud/devices'
-import { Route as CloudPairCallbackRouteImport } from './routes/_cloud/pair-callback'
-import { Route as CloudPluginsRouteImport } from './routes/_cloud/plugins'
-import { Route as CloudPumpRouteImport } from './routes/_cloud/pump'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiLiveStreamRouteImport } from './routes/api/live-stream'
-import { Route as AuthenticatedContainerIdRouteImport } from './routes/_authenticated/container.$id'
-import { Route as AuthenticatedPluginsIndexRouteImport } from './routes/_authenticated/plugins.index'
-import { Route as AuthenticatedPluginsIdRouteImport } from './routes/_authenticated/plugins.$id'
 import { Route as CloudConnectionsIndexRouteImport } from './routes/_cloud/connections.index'
 import { Route as CloudConnectionsAlexaRouteImport } from './routes/_cloud/connections.alexa'
 import { Route as CloudConnectionsAssistantRouteImport } from './routes/_cloud/connections.assistant'
-import { Route as CloudConnectionsMcpRouteImport } from './routes/_cloud/connections.mcp'
 import { Route as CloudConnectionsSetupRouteImport } from './routes/_cloud/connections.setup'
 import { Route as CloudConnectionsTelegramRouteImport } from './routes/_cloud/connections.telegram'
-import { Route as CloudConnectionsUsageRouteImport } from './routes/_cloud/connections.usage'
-import { Route as CloudDevicesIndexRouteImport } from './routes/_cloud/devices.index'
-import { Route as CloudDevicesIdRouteImport } from './routes/_cloud/devices.$id'
-import { Route as ApiPublicMcpRouteImport } from './routes/api/public/mcp'
-import { Route as ApiPublicAgentHeartbeatRouteImport } from './routes/api/public/agent/heartbeat'
-import { Route as ApiPublicAgentPollRouteImport } from './routes/api/public/agent/poll'
-import { Route as ApiPublicAgentRealtimeRouteImport } from './routes/api/public/agent/realtime'
-import { Route as ApiPublicAgentRegisterRouteImport } from './routes/api/public/agent/register'
-import { Route as ApiPublicAgentResultRouteImport } from './routes/api/public/agent/result'
-import { Route as ApiPublicCloudBridgeClaimRouteImport } from './routes/api/public/cloud-bridge/claim'
-import { Route as ApiPublicCloudBridgeEventRouteImport } from './routes/api/public/cloud-bridge/event'
-import { Route as ApiPublicCloudBridgeStrategyRouteImport } from './routes/api/public/cloud-bridge/strategy'
-import { Route as ApiPublicHooksAggregateEventsRouteImport } from './routes/api/public/hooks/aggregate-events'
-import { Route as ApiPublicHooksAnomalyScanRouteImport } from './routes/api/public/hooks/anomaly-scan'
 import { Route as ApiPublicIngestEventRouteImport } from './routes/api/public/ingest/event'
 import { Route as ApiPublicIngestLiveRouteImport } from './routes/api/public/ingest/live'
 import { Route as ApiPublicIngestTraceRouteImport } from './routes/api/public/ingest/trace'
-import { Route as ApiPublicLivePublishRouteImport } from './routes/api/public/live/publish'
 import { Route as ApiPublicNoderedAnnounceRouteImport } from './routes/api/public/nodered/announce'
 import { Route as ApiPublicNoderedConfigRouteImport } from './routes/api/public/nodered/config'
 import { Route as ApiPublicOauthAuthorizeRouteImport } from './routes/api/public/oauth/authorize'
 import { Route as ApiPublicOauthAuthorizePostRouteImport } from './routes/api/public/oauth/authorize-post'
 import { Route as ApiPublicOauthTokenRouteImport } from './routes/api/public/oauth/token'
-import { Route as ApiPublicPiCommandRouteImport } from './routes/api/public/pi/command'
 import { Route as ApiPublicPiEndpointsRouteImport } from './routes/api/public/pi/endpoints'
 import { Route as ApiPublicPiHistoryRouteImport } from './routes/api/public/pi/history'
 import { Route as ApiPublicPiStateRouteImport } from './routes/api/public/pi/state'
@@ -119,16 +93,6 @@ const AuthenticatedOverviewRoute = AuthenticatedOverviewRouteImport.update({
   path: '/overview',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedPluginsRoute = AuthenticatedPluginsRouteImport.update({
-  id: '/plugins',
-  path: '/plugins',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedPumpeRoute = AuthenticatedPumpeRouteImport.update({
-  id: '/pumpe',
-  path: '/pumpe',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -149,26 +113,6 @@ const CloudConnectionsRoute = CloudConnectionsRouteImport.update({
   path: '/connections',
   getParentRoute: () => CloudRoute,
 } as any)
-const CloudDevicesRoute = CloudDevicesRouteImport.update({
-  id: '/devices',
-  path: '/devices',
-  getParentRoute: () => CloudRoute,
-} as any)
-const CloudPairCallbackRoute = CloudPairCallbackRouteImport.update({
-  id: '/pair-callback',
-  path: '/pair-callback',
-  getParentRoute: () => CloudRoute,
-} as any)
-const CloudPluginsRoute = CloudPluginsRouteImport.update({
-  id: '/plugins',
-  path: '/plugins',
-  getParentRoute: () => CloudRoute,
-} as any)
-const CloudPumpRoute = CloudPumpRouteImport.update({
-  id: '/pump',
-  path: '/pump',
-  getParentRoute: () => CloudRoute,
-} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
@@ -178,23 +122,6 @@ const ApiLiveStreamRoute = ApiLiveStreamRouteImport.update({
   id: '/api/live-stream',
   path: '/api/live-stream',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedContainerIdRoute =
-  AuthenticatedContainerIdRouteImport.update({
-    id: '/container/$id',
-    path: '/container/$id',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedPluginsIndexRoute =
-  AuthenticatedPluginsIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedPluginsRoute,
-  } as any)
-const AuthenticatedPluginsIdRoute = AuthenticatedPluginsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedPluginsRoute,
 } as any)
 const CloudConnectionsIndexRoute = CloudConnectionsIndexRouteImport.update({
   id: '/',
@@ -212,11 +139,6 @@ const CloudConnectionsAssistantRoute =
     path: '/assistant',
     getParentRoute: () => CloudConnectionsRoute,
   } as any)
-const CloudConnectionsMcpRoute = CloudConnectionsMcpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
-  getParentRoute: () => CloudConnectionsRoute,
-} as any)
 const CloudConnectionsSetupRoute = CloudConnectionsSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
@@ -227,81 +149,6 @@ const CloudConnectionsTelegramRoute =
     id: '/telegram',
     path: '/telegram',
     getParentRoute: () => CloudConnectionsRoute,
-  } as any)
-const CloudConnectionsUsageRoute = CloudConnectionsUsageRouteImport.update({
-  id: '/usage',
-  path: '/usage',
-  getParentRoute: () => CloudConnectionsRoute,
-} as any)
-const CloudDevicesIndexRoute = CloudDevicesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CloudDevicesRoute,
-} as any)
-const CloudDevicesIdRoute = CloudDevicesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => CloudDevicesRoute,
-} as any)
-const ApiPublicMcpRoute = ApiPublicMcpRouteImport.update({
-  id: '/api/public/mcp',
-  path: '/api/public/mcp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAgentHeartbeatRoute = ApiPublicAgentHeartbeatRouteImport.update({
-  id: '/api/public/agent/heartbeat',
-  path: '/api/public/agent/heartbeat',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAgentPollRoute = ApiPublicAgentPollRouteImport.update({
-  id: '/api/public/agent/poll',
-  path: '/api/public/agent/poll',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAgentRealtimeRoute = ApiPublicAgentRealtimeRouteImport.update({
-  id: '/api/public/agent/realtime',
-  path: '/api/public/agent/realtime',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAgentRegisterRoute = ApiPublicAgentRegisterRouteImport.update({
-  id: '/api/public/agent/register',
-  path: '/api/public/agent/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAgentResultRoute = ApiPublicAgentResultRouteImport.update({
-  id: '/api/public/agent/result',
-  path: '/api/public/agent/result',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicCloudBridgeClaimRoute =
-  ApiPublicCloudBridgeClaimRouteImport.update({
-    id: '/api/public/cloud-bridge/claim',
-    path: '/api/public/cloud-bridge/claim',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCloudBridgeEventRoute =
-  ApiPublicCloudBridgeEventRouteImport.update({
-    id: '/api/public/cloud-bridge/event',
-    path: '/api/public/cloud-bridge/event',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCloudBridgeStrategyRoute =
-  ApiPublicCloudBridgeStrategyRouteImport.update({
-    id: '/api/public/cloud-bridge/strategy',
-    path: '/api/public/cloud-bridge/strategy',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksAggregateEventsRoute =
-  ApiPublicHooksAggregateEventsRouteImport.update({
-    id: '/api/public/hooks/aggregate-events',
-    path: '/api/public/hooks/aggregate-events',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksAnomalyScanRoute =
-  ApiPublicHooksAnomalyScanRouteImport.update({
-    id: '/api/public/hooks/anomaly-scan',
-    path: '/api/public/hooks/anomaly-scan',
-    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicIngestEventRoute = ApiPublicIngestEventRouteImport.update({
   id: '/api/public/ingest/event',
@@ -316,11 +163,6 @@ const ApiPublicIngestLiveRoute = ApiPublicIngestLiveRouteImport.update({
 const ApiPublicIngestTraceRoute = ApiPublicIngestTraceRouteImport.update({
   id: '/api/public/ingest/trace',
   path: '/api/public/ingest/trace',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicLivePublishRoute = ApiPublicLivePublishRouteImport.update({
-  id: '/api/public/live/publish',
-  path: '/api/public/live/publish',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicNoderedAnnounceRoute =
@@ -348,11 +190,6 @@ const ApiPublicOauthAuthorizePostRoute =
 const ApiPublicOauthTokenRoute = ApiPublicOauthTokenRouteImport.update({
   id: '/api/public/oauth/token',
   path: '/api/public/oauth/token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicPiCommandRoute = ApiPublicPiCommandRouteImport.update({
-  id: '/api/public/pi/command',
-  path: '/api/public/pi/command',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPiEndpointsRoute = ApiPublicPiEndpointsRouteImport.update({
@@ -391,50 +228,25 @@ export interface FileRoutesByFullPath {
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
-  '/plugins': typeof CloudPluginsRoute
-  '/pumpe': typeof AuthenticatedPumpeRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
   '/tuning': typeof AuthenticatedTuningRoute
   '/connections': typeof CloudConnectionsRouteWithChildren
-  '/devices': typeof CloudDevicesRouteWithChildren
-  '/pair-callback': typeof CloudPairCallbackRoute
-  '/pump': typeof CloudPumpRoute
   '/api/chat': typeof ApiChatRoute
   '/api/live-stream': typeof ApiLiveStreamRoute
-  '/container/$id': typeof AuthenticatedContainerIdRoute
-  '/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
   '/connections/assistant': typeof CloudConnectionsAssistantRoute
-  '/connections/mcp': typeof CloudConnectionsMcpRoute
   '/connections/setup': typeof CloudConnectionsSetupRoute
   '/connections/telegram': typeof CloudConnectionsTelegramRoute
-  '/connections/usage': typeof CloudConnectionsUsageRoute
-  '/devices/$id': typeof CloudDevicesIdRoute
-  '/api/public/mcp': typeof ApiPublicMcpRoute
-  '/plugins/': typeof AuthenticatedPluginsIndexRoute
   '/connections/': typeof CloudConnectionsIndexRoute
-  '/devices/': typeof CloudDevicesIndexRoute
-  '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
-  '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
-  '/api/public/agent/realtime': typeof ApiPublicAgentRealtimeRoute
-  '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
-  '/api/public/agent/result': typeof ApiPublicAgentResultRoute
-  '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
-  '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
-  '/api/public/cloud-bridge/strategy': typeof ApiPublicCloudBridgeStrategyRoute
-  '/api/public/hooks/aggregate-events': typeof ApiPublicHooksAggregateEventsRoute
-  '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
-  '/api/public/live/publish': typeof ApiPublicLivePublishRoute
   '/api/public/nodered/announce': typeof ApiPublicNoderedAnnounceRoute
   '/api/public/nodered/config': typeof ApiPublicNoderedConfigRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
-  '/api/public/pi/command': typeof ApiPublicPiCommandRoute
   '/api/public/pi/endpoints': typeof ApiPublicPiEndpointsRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
@@ -450,47 +262,24 @@ export interface FileRoutesByTo {
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
-  '/pumpe': typeof AuthenticatedPumpeRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/terminal': typeof AuthenticatedTerminalRoute
   '/tuning': typeof AuthenticatedTuningRoute
-  '/pair-callback': typeof CloudPairCallbackRoute
-  '/plugins': typeof AuthenticatedPluginsIndexRoute
-  '/pump': typeof CloudPumpRoute
   '/api/chat': typeof ApiChatRoute
   '/api/live-stream': typeof ApiLiveStreamRoute
-  '/container/$id': typeof AuthenticatedContainerIdRoute
-  '/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
   '/connections/assistant': typeof CloudConnectionsAssistantRoute
-  '/connections/mcp': typeof CloudConnectionsMcpRoute
   '/connections/setup': typeof CloudConnectionsSetupRoute
   '/connections/telegram': typeof CloudConnectionsTelegramRoute
-  '/connections/usage': typeof CloudConnectionsUsageRoute
-  '/devices/$id': typeof CloudDevicesIdRoute
-  '/api/public/mcp': typeof ApiPublicMcpRoute
   '/connections': typeof CloudConnectionsIndexRoute
-  '/devices': typeof CloudDevicesIndexRoute
-  '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
-  '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
-  '/api/public/agent/realtime': typeof ApiPublicAgentRealtimeRoute
-  '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
-  '/api/public/agent/result': typeof ApiPublicAgentResultRoute
-  '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
-  '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
-  '/api/public/cloud-bridge/strategy': typeof ApiPublicCloudBridgeStrategyRoute
-  '/api/public/hooks/aggregate-events': typeof ApiPublicHooksAggregateEventsRoute
-  '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
-  '/api/public/live/publish': typeof ApiPublicLivePublishRoute
   '/api/public/nodered/announce': typeof ApiPublicNoderedAnnounceRoute
   '/api/public/nodered/config': typeof ApiPublicNoderedConfigRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
-  '/api/public/pi/command': typeof ApiPublicPiCommandRoute
   '/api/public/pi/endpoints': typeof ApiPublicPiEndpointsRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
@@ -509,51 +298,25 @@ export interface FileRoutesById {
   '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
   '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
-  '/_authenticated/plugins': typeof AuthenticatedPluginsRouteWithChildren
-  '/_authenticated/pumpe': typeof AuthenticatedPumpeRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
   '/_authenticated/tuning': typeof AuthenticatedTuningRoute
   '/_cloud/connections': typeof CloudConnectionsRouteWithChildren
-  '/_cloud/devices': typeof CloudDevicesRouteWithChildren
-  '/_cloud/pair-callback': typeof CloudPairCallbackRoute
-  '/_cloud/plugins': typeof CloudPluginsRoute
-  '/_cloud/pump': typeof CloudPumpRoute
   '/api/chat': typeof ApiChatRoute
   '/api/live-stream': typeof ApiLiveStreamRoute
-  '/_authenticated/container/$id': typeof AuthenticatedContainerIdRoute
-  '/_authenticated/plugins/$id': typeof AuthenticatedPluginsIdRoute
   '/_cloud/connections/alexa': typeof CloudConnectionsAlexaRoute
   '/_cloud/connections/assistant': typeof CloudConnectionsAssistantRoute
-  '/_cloud/connections/mcp': typeof CloudConnectionsMcpRoute
   '/_cloud/connections/setup': typeof CloudConnectionsSetupRoute
   '/_cloud/connections/telegram': typeof CloudConnectionsTelegramRoute
-  '/_cloud/connections/usage': typeof CloudConnectionsUsageRoute
-  '/_cloud/devices/$id': typeof CloudDevicesIdRoute
-  '/api/public/mcp': typeof ApiPublicMcpRoute
-  '/_authenticated/plugins/': typeof AuthenticatedPluginsIndexRoute
   '/_cloud/connections/': typeof CloudConnectionsIndexRoute
-  '/_cloud/devices/': typeof CloudDevicesIndexRoute
-  '/api/public/agent/heartbeat': typeof ApiPublicAgentHeartbeatRoute
-  '/api/public/agent/poll': typeof ApiPublicAgentPollRoute
-  '/api/public/agent/realtime': typeof ApiPublicAgentRealtimeRoute
-  '/api/public/agent/register': typeof ApiPublicAgentRegisterRoute
-  '/api/public/agent/result': typeof ApiPublicAgentResultRoute
-  '/api/public/cloud-bridge/claim': typeof ApiPublicCloudBridgeClaimRoute
-  '/api/public/cloud-bridge/event': typeof ApiPublicCloudBridgeEventRoute
-  '/api/public/cloud-bridge/strategy': typeof ApiPublicCloudBridgeStrategyRoute
-  '/api/public/hooks/aggregate-events': typeof ApiPublicHooksAggregateEventsRoute
-  '/api/public/hooks/anomaly-scan': typeof ApiPublicHooksAnomalyScanRoute
   '/api/public/ingest/event': typeof ApiPublicIngestEventRoute
   '/api/public/ingest/live': typeof ApiPublicIngestLiveRoute
   '/api/public/ingest/trace': typeof ApiPublicIngestTraceRoute
-  '/api/public/live/publish': typeof ApiPublicLivePublishRoute
   '/api/public/nodered/announce': typeof ApiPublicNoderedAnnounceRoute
   '/api/public/nodered/config': typeof ApiPublicNoderedConfigRoute
   '/api/public/oauth/authorize': typeof ApiPublicOauthAuthorizeRoute
   '/api/public/oauth/authorize-post': typeof ApiPublicOauthAuthorizePostRoute
   '/api/public/oauth/token': typeof ApiPublicOauthTokenRoute
-  '/api/public/pi/command': typeof ApiPublicPiCommandRoute
   '/api/public/pi/endpoints': typeof ApiPublicPiEndpointsRoute
   '/api/public/pi/history': typeof ApiPublicPiHistoryRoute
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
@@ -571,50 +334,25 @@ export interface FileRouteTypes {
     | '/integrations'
     | '/mqtt'
     | '/overview'
-    | '/plugins'
-    | '/pumpe'
     | '/settings'
     | '/terminal'
     | '/tuning'
     | '/connections'
-    | '/devices'
-    | '/pair-callback'
-    | '/pump'
     | '/api/chat'
     | '/api/live-stream'
-    | '/container/$id'
-    | '/plugins/$id'
     | '/connections/alexa'
     | '/connections/assistant'
-    | '/connections/mcp'
     | '/connections/setup'
     | '/connections/telegram'
-    | '/connections/usage'
-    | '/devices/$id'
-    | '/api/public/mcp'
-    | '/plugins/'
     | '/connections/'
-    | '/devices/'
-    | '/api/public/agent/heartbeat'
-    | '/api/public/agent/poll'
-    | '/api/public/agent/realtime'
-    | '/api/public/agent/register'
-    | '/api/public/agent/result'
-    | '/api/public/cloud-bridge/claim'
-    | '/api/public/cloud-bridge/event'
-    | '/api/public/cloud-bridge/strategy'
-    | '/api/public/hooks/aggregate-events'
-    | '/api/public/hooks/anomaly-scan'
     | '/api/public/ingest/event'
     | '/api/public/ingest/live'
     | '/api/public/ingest/trace'
-    | '/api/public/live/publish'
     | '/api/public/nodered/announce'
     | '/api/public/nodered/config'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
-    | '/api/public/pi/command'
     | '/api/public/pi/endpoints'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
@@ -630,47 +368,24 @@ export interface FileRouteTypes {
     | '/integrations'
     | '/mqtt'
     | '/overview'
-    | '/pumpe'
     | '/settings'
     | '/terminal'
     | '/tuning'
-    | '/pair-callback'
-    | '/plugins'
-    | '/pump'
     | '/api/chat'
     | '/api/live-stream'
-    | '/container/$id'
-    | '/plugins/$id'
     | '/connections/alexa'
     | '/connections/assistant'
-    | '/connections/mcp'
     | '/connections/setup'
     | '/connections/telegram'
-    | '/connections/usage'
-    | '/devices/$id'
-    | '/api/public/mcp'
     | '/connections'
-    | '/devices'
-    | '/api/public/agent/heartbeat'
-    | '/api/public/agent/poll'
-    | '/api/public/agent/realtime'
-    | '/api/public/agent/register'
-    | '/api/public/agent/result'
-    | '/api/public/cloud-bridge/claim'
-    | '/api/public/cloud-bridge/event'
-    | '/api/public/cloud-bridge/strategy'
-    | '/api/public/hooks/aggregate-events'
-    | '/api/public/hooks/anomaly-scan'
     | '/api/public/ingest/event'
     | '/api/public/ingest/live'
     | '/api/public/ingest/trace'
-    | '/api/public/live/publish'
     | '/api/public/nodered/announce'
     | '/api/public/nodered/config'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
-    | '/api/public/pi/command'
     | '/api/public/pi/endpoints'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
@@ -688,51 +403,25 @@ export interface FileRouteTypes {
     | '/_authenticated/integrations'
     | '/_authenticated/mqtt'
     | '/_authenticated/overview'
-    | '/_authenticated/plugins'
-    | '/_authenticated/pumpe'
     | '/_authenticated/settings'
     | '/_authenticated/terminal'
     | '/_authenticated/tuning'
     | '/_cloud/connections'
-    | '/_cloud/devices'
-    | '/_cloud/pair-callback'
-    | '/_cloud/plugins'
-    | '/_cloud/pump'
     | '/api/chat'
     | '/api/live-stream'
-    | '/_authenticated/container/$id'
-    | '/_authenticated/plugins/$id'
     | '/_cloud/connections/alexa'
     | '/_cloud/connections/assistant'
-    | '/_cloud/connections/mcp'
     | '/_cloud/connections/setup'
     | '/_cloud/connections/telegram'
-    | '/_cloud/connections/usage'
-    | '/_cloud/devices/$id'
-    | '/api/public/mcp'
-    | '/_authenticated/plugins/'
     | '/_cloud/connections/'
-    | '/_cloud/devices/'
-    | '/api/public/agent/heartbeat'
-    | '/api/public/agent/poll'
-    | '/api/public/agent/realtime'
-    | '/api/public/agent/register'
-    | '/api/public/agent/result'
-    | '/api/public/cloud-bridge/claim'
-    | '/api/public/cloud-bridge/event'
-    | '/api/public/cloud-bridge/strategy'
-    | '/api/public/hooks/aggregate-events'
-    | '/api/public/hooks/anomaly-scan'
     | '/api/public/ingest/event'
     | '/api/public/ingest/live'
     | '/api/public/ingest/trace'
-    | '/api/public/live/publish'
     | '/api/public/nodered/announce'
     | '/api/public/nodered/config'
     | '/api/public/oauth/authorize'
     | '/api/public/oauth/authorize-post'
     | '/api/public/oauth/token'
-    | '/api/public/pi/command'
     | '/api/public/pi/endpoints'
     | '/api/public/pi/history'
     | '/api/public/pi/state'
@@ -748,27 +437,14 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiLiveStreamRoute: typeof ApiLiveStreamRoute
-  ApiPublicMcpRoute: typeof ApiPublicMcpRoute
-  ApiPublicAgentHeartbeatRoute: typeof ApiPublicAgentHeartbeatRoute
-  ApiPublicAgentPollRoute: typeof ApiPublicAgentPollRoute
-  ApiPublicAgentRealtimeRoute: typeof ApiPublicAgentRealtimeRoute
-  ApiPublicAgentRegisterRoute: typeof ApiPublicAgentRegisterRoute
-  ApiPublicAgentResultRoute: typeof ApiPublicAgentResultRoute
-  ApiPublicCloudBridgeClaimRoute: typeof ApiPublicCloudBridgeClaimRoute
-  ApiPublicCloudBridgeEventRoute: typeof ApiPublicCloudBridgeEventRoute
-  ApiPublicCloudBridgeStrategyRoute: typeof ApiPublicCloudBridgeStrategyRoute
-  ApiPublicHooksAggregateEventsRoute: typeof ApiPublicHooksAggregateEventsRoute
-  ApiPublicHooksAnomalyScanRoute: typeof ApiPublicHooksAnomalyScanRoute
   ApiPublicIngestEventRoute: typeof ApiPublicIngestEventRoute
   ApiPublicIngestLiveRoute: typeof ApiPublicIngestLiveRoute
   ApiPublicIngestTraceRoute: typeof ApiPublicIngestTraceRoute
-  ApiPublicLivePublishRoute: typeof ApiPublicLivePublishRoute
   ApiPublicNoderedAnnounceRoute: typeof ApiPublicNoderedAnnounceRoute
   ApiPublicNoderedConfigRoute: typeof ApiPublicNoderedConfigRoute
   ApiPublicOauthAuthorizeRoute: typeof ApiPublicOauthAuthorizeRoute
   ApiPublicOauthAuthorizePostRoute: typeof ApiPublicOauthAuthorizePostRoute
   ApiPublicOauthTokenRoute: typeof ApiPublicOauthTokenRoute
-  ApiPublicPiCommandRoute: typeof ApiPublicPiCommandRoute
   ApiPublicPiEndpointsRoute: typeof ApiPublicPiEndpointsRoute
   ApiPublicPiHistoryRoute: typeof ApiPublicPiHistoryRoute
   ApiPublicPiStateRoute: typeof ApiPublicPiStateRoute
@@ -848,20 +524,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOverviewRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/plugins': {
-      id: '/_authenticated/plugins'
-      path: '/plugins'
-      fullPath: '/plugins'
-      preLoaderRoute: typeof AuthenticatedPluginsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/pumpe': {
-      id: '/_authenticated/pumpe'
-      path: '/pumpe'
-      fullPath: '/pumpe'
-      preLoaderRoute: typeof AuthenticatedPumpeRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/settings': {
       id: '/_authenticated/settings'
       path: '/settings'
@@ -890,34 +552,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CloudConnectionsRouteImport
       parentRoute: typeof CloudRoute
     }
-    '/_cloud/devices': {
-      id: '/_cloud/devices'
-      path: '/devices'
-      fullPath: '/devices'
-      preLoaderRoute: typeof CloudDevicesRouteImport
-      parentRoute: typeof CloudRoute
-    }
-    '/_cloud/pair-callback': {
-      id: '/_cloud/pair-callback'
-      path: '/pair-callback'
-      fullPath: '/pair-callback'
-      preLoaderRoute: typeof CloudPairCallbackRouteImport
-      parentRoute: typeof CloudRoute
-    }
-    '/_cloud/plugins': {
-      id: '/_cloud/plugins'
-      path: '/plugins'
-      fullPath: '/plugins'
-      preLoaderRoute: typeof CloudPluginsRouteImport
-      parentRoute: typeof CloudRoute
-    }
-    '/_cloud/pump': {
-      id: '/_cloud/pump'
-      path: '/pump'
-      fullPath: '/pump'
-      preLoaderRoute: typeof CloudPumpRouteImport
-      parentRoute: typeof CloudRoute
-    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -931,27 +565,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/live-stream'
       preLoaderRoute: typeof ApiLiveStreamRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/container/$id': {
-      id: '/_authenticated/container/$id'
-      path: '/container/$id'
-      fullPath: '/container/$id'
-      preLoaderRoute: typeof AuthenticatedContainerIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/plugins/': {
-      id: '/_authenticated/plugins/'
-      path: '/'
-      fullPath: '/plugins/'
-      preLoaderRoute: typeof AuthenticatedPluginsIndexRouteImport
-      parentRoute: typeof AuthenticatedPluginsRoute
-    }
-    '/_authenticated/plugins/$id': {
-      id: '/_authenticated/plugins/$id'
-      path: '/$id'
-      fullPath: '/plugins/$id'
-      preLoaderRoute: typeof AuthenticatedPluginsIdRouteImport
-      parentRoute: typeof AuthenticatedPluginsRoute
     }
     '/_cloud/connections/': {
       id: '/_cloud/connections/'
@@ -974,13 +587,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CloudConnectionsAssistantRouteImport
       parentRoute: typeof CloudConnectionsRoute
     }
-    '/_cloud/connections/mcp': {
-      id: '/_cloud/connections/mcp'
-      path: '/mcp'
-      fullPath: '/connections/mcp'
-      preLoaderRoute: typeof CloudConnectionsMcpRouteImport
-      parentRoute: typeof CloudConnectionsRoute
-    }
     '/_cloud/connections/setup': {
       id: '/_cloud/connections/setup'
       path: '/setup'
@@ -994,104 +600,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/connections/telegram'
       preLoaderRoute: typeof CloudConnectionsTelegramRouteImport
       parentRoute: typeof CloudConnectionsRoute
-    }
-    '/_cloud/connections/usage': {
-      id: '/_cloud/connections/usage'
-      path: '/usage'
-      fullPath: '/connections/usage'
-      preLoaderRoute: typeof CloudConnectionsUsageRouteImport
-      parentRoute: typeof CloudConnectionsRoute
-    }
-    '/_cloud/devices/': {
-      id: '/_cloud/devices/'
-      path: '/'
-      fullPath: '/devices/'
-      preLoaderRoute: typeof CloudDevicesIndexRouteImport
-      parentRoute: typeof CloudDevicesRoute
-    }
-    '/_cloud/devices/$id': {
-      id: '/_cloud/devices/$id'
-      path: '/$id'
-      fullPath: '/devices/$id'
-      preLoaderRoute: typeof CloudDevicesIdRouteImport
-      parentRoute: typeof CloudDevicesRoute
-    }
-    '/api/public/mcp': {
-      id: '/api/public/mcp'
-      path: '/api/public/mcp'
-      fullPath: '/api/public/mcp'
-      preLoaderRoute: typeof ApiPublicMcpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/agent/heartbeat': {
-      id: '/api/public/agent/heartbeat'
-      path: '/api/public/agent/heartbeat'
-      fullPath: '/api/public/agent/heartbeat'
-      preLoaderRoute: typeof ApiPublicAgentHeartbeatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/agent/poll': {
-      id: '/api/public/agent/poll'
-      path: '/api/public/agent/poll'
-      fullPath: '/api/public/agent/poll'
-      preLoaderRoute: typeof ApiPublicAgentPollRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/agent/realtime': {
-      id: '/api/public/agent/realtime'
-      path: '/api/public/agent/realtime'
-      fullPath: '/api/public/agent/realtime'
-      preLoaderRoute: typeof ApiPublicAgentRealtimeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/agent/register': {
-      id: '/api/public/agent/register'
-      path: '/api/public/agent/register'
-      fullPath: '/api/public/agent/register'
-      preLoaderRoute: typeof ApiPublicAgentRegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/agent/result': {
-      id: '/api/public/agent/result'
-      path: '/api/public/agent/result'
-      fullPath: '/api/public/agent/result'
-      preLoaderRoute: typeof ApiPublicAgentResultRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cloud-bridge/claim': {
-      id: '/api/public/cloud-bridge/claim'
-      path: '/api/public/cloud-bridge/claim'
-      fullPath: '/api/public/cloud-bridge/claim'
-      preLoaderRoute: typeof ApiPublicCloudBridgeClaimRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cloud-bridge/event': {
-      id: '/api/public/cloud-bridge/event'
-      path: '/api/public/cloud-bridge/event'
-      fullPath: '/api/public/cloud-bridge/event'
-      preLoaderRoute: typeof ApiPublicCloudBridgeEventRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cloud-bridge/strategy': {
-      id: '/api/public/cloud-bridge/strategy'
-      path: '/api/public/cloud-bridge/strategy'
-      fullPath: '/api/public/cloud-bridge/strategy'
-      preLoaderRoute: typeof ApiPublicCloudBridgeStrategyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/aggregate-events': {
-      id: '/api/public/hooks/aggregate-events'
-      path: '/api/public/hooks/aggregate-events'
-      fullPath: '/api/public/hooks/aggregate-events'
-      preLoaderRoute: typeof ApiPublicHooksAggregateEventsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/anomaly-scan': {
-      id: '/api/public/hooks/anomaly-scan'
-      path: '/api/public/hooks/anomaly-scan'
-      fullPath: '/api/public/hooks/anomaly-scan'
-      preLoaderRoute: typeof ApiPublicHooksAnomalyScanRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/public/ingest/event': {
       id: '/api/public/ingest/event'
@@ -1112,13 +620,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/ingest/trace'
       fullPath: '/api/public/ingest/trace'
       preLoaderRoute: typeof ApiPublicIngestTraceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/live/publish': {
-      id: '/api/public/live/publish'
-      path: '/api/public/live/publish'
-      fullPath: '/api/public/live/publish'
-      preLoaderRoute: typeof ApiPublicLivePublishRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/nodered/announce': {
@@ -1154,13 +655,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/oauth/token'
       fullPath: '/api/public/oauth/token'
       preLoaderRoute: typeof ApiPublicOauthTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/pi/command': {
-      id: '/api/public/pi/command'
-      path: '/api/public/pi/command'
-      fullPath: '/api/public/pi/command'
-      preLoaderRoute: typeof ApiPublicPiCommandRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/pi/endpoints': {
@@ -1201,31 +695,15 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedPluginsRouteChildren {
-  AuthenticatedPluginsIdRoute: typeof AuthenticatedPluginsIdRoute
-  AuthenticatedPluginsIndexRoute: typeof AuthenticatedPluginsIndexRoute
-}
-
-const AuthenticatedPluginsRouteChildren: AuthenticatedPluginsRouteChildren = {
-  AuthenticatedPluginsIdRoute: AuthenticatedPluginsIdRoute,
-  AuthenticatedPluginsIndexRoute: AuthenticatedPluginsIndexRoute,
-}
-
-const AuthenticatedPluginsRouteWithChildren =
-  AuthenticatedPluginsRoute._addFileChildren(AuthenticatedPluginsRouteChildren)
-
 interface AuthenticatedRouteChildren {
   AuthenticatedControlRoute: typeof AuthenticatedControlRoute
   AuthenticatedDebugRoute: typeof AuthenticatedDebugRoute
   AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
   AuthenticatedMqttRoute: typeof AuthenticatedMqttRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
-  AuthenticatedPluginsRoute: typeof AuthenticatedPluginsRouteWithChildren
-  AuthenticatedPumpeRoute: typeof AuthenticatedPumpeRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTerminalRoute: typeof AuthenticatedTerminalRoute
   AuthenticatedTuningRoute: typeof AuthenticatedTuningRoute
-  AuthenticatedContainerIdRoute: typeof AuthenticatedContainerIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -1234,12 +712,9 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
   AuthenticatedMqttRoute: AuthenticatedMqttRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
-  AuthenticatedPluginsRoute: AuthenticatedPluginsRouteWithChildren,
-  AuthenticatedPumpeRoute: AuthenticatedPumpeRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTerminalRoute: AuthenticatedTerminalRoute,
   AuthenticatedTuningRoute: AuthenticatedTuningRoute,
-  AuthenticatedContainerIdRoute: AuthenticatedContainerIdRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -1249,54 +724,28 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 interface CloudConnectionsRouteChildren {
   CloudConnectionsAlexaRoute: typeof CloudConnectionsAlexaRoute
   CloudConnectionsAssistantRoute: typeof CloudConnectionsAssistantRoute
-  CloudConnectionsMcpRoute: typeof CloudConnectionsMcpRoute
   CloudConnectionsSetupRoute: typeof CloudConnectionsSetupRoute
   CloudConnectionsTelegramRoute: typeof CloudConnectionsTelegramRoute
-  CloudConnectionsUsageRoute: typeof CloudConnectionsUsageRoute
   CloudConnectionsIndexRoute: typeof CloudConnectionsIndexRoute
 }
 
 const CloudConnectionsRouteChildren: CloudConnectionsRouteChildren = {
   CloudConnectionsAlexaRoute: CloudConnectionsAlexaRoute,
   CloudConnectionsAssistantRoute: CloudConnectionsAssistantRoute,
-  CloudConnectionsMcpRoute: CloudConnectionsMcpRoute,
   CloudConnectionsSetupRoute: CloudConnectionsSetupRoute,
   CloudConnectionsTelegramRoute: CloudConnectionsTelegramRoute,
-  CloudConnectionsUsageRoute: CloudConnectionsUsageRoute,
   CloudConnectionsIndexRoute: CloudConnectionsIndexRoute,
 }
 
 const CloudConnectionsRouteWithChildren =
   CloudConnectionsRoute._addFileChildren(CloudConnectionsRouteChildren)
 
-interface CloudDevicesRouteChildren {
-  CloudDevicesIdRoute: typeof CloudDevicesIdRoute
-  CloudDevicesIndexRoute: typeof CloudDevicesIndexRoute
-}
-
-const CloudDevicesRouteChildren: CloudDevicesRouteChildren = {
-  CloudDevicesIdRoute: CloudDevicesIdRoute,
-  CloudDevicesIndexRoute: CloudDevicesIndexRoute,
-}
-
-const CloudDevicesRouteWithChildren = CloudDevicesRoute._addFileChildren(
-  CloudDevicesRouteChildren,
-)
-
 interface CloudRouteChildren {
   CloudConnectionsRoute: typeof CloudConnectionsRouteWithChildren
-  CloudDevicesRoute: typeof CloudDevicesRouteWithChildren
-  CloudPairCallbackRoute: typeof CloudPairCallbackRoute
-  CloudPluginsRoute: typeof CloudPluginsRoute
-  CloudPumpRoute: typeof CloudPumpRoute
 }
 
 const CloudRouteChildren: CloudRouteChildren = {
   CloudConnectionsRoute: CloudConnectionsRouteWithChildren,
-  CloudDevicesRoute: CloudDevicesRouteWithChildren,
-  CloudPairCallbackRoute: CloudPairCallbackRoute,
-  CloudPluginsRoute: CloudPluginsRoute,
-  CloudPumpRoute: CloudPumpRoute,
 }
 
 const CloudRouteWithChildren = CloudRoute._addFileChildren(CloudRouteChildren)
@@ -1309,27 +758,14 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ApiChatRoute: ApiChatRoute,
   ApiLiveStreamRoute: ApiLiveStreamRoute,
-  ApiPublicMcpRoute: ApiPublicMcpRoute,
-  ApiPublicAgentHeartbeatRoute: ApiPublicAgentHeartbeatRoute,
-  ApiPublicAgentPollRoute: ApiPublicAgentPollRoute,
-  ApiPublicAgentRealtimeRoute: ApiPublicAgentRealtimeRoute,
-  ApiPublicAgentRegisterRoute: ApiPublicAgentRegisterRoute,
-  ApiPublicAgentResultRoute: ApiPublicAgentResultRoute,
-  ApiPublicCloudBridgeClaimRoute: ApiPublicCloudBridgeClaimRoute,
-  ApiPublicCloudBridgeEventRoute: ApiPublicCloudBridgeEventRoute,
-  ApiPublicCloudBridgeStrategyRoute: ApiPublicCloudBridgeStrategyRoute,
-  ApiPublicHooksAggregateEventsRoute: ApiPublicHooksAggregateEventsRoute,
-  ApiPublicHooksAnomalyScanRoute: ApiPublicHooksAnomalyScanRoute,
   ApiPublicIngestEventRoute: ApiPublicIngestEventRoute,
   ApiPublicIngestLiveRoute: ApiPublicIngestLiveRoute,
   ApiPublicIngestTraceRoute: ApiPublicIngestTraceRoute,
-  ApiPublicLivePublishRoute: ApiPublicLivePublishRoute,
   ApiPublicNoderedAnnounceRoute: ApiPublicNoderedAnnounceRoute,
   ApiPublicNoderedConfigRoute: ApiPublicNoderedConfigRoute,
   ApiPublicOauthAuthorizeRoute: ApiPublicOauthAuthorizeRoute,
   ApiPublicOauthAuthorizePostRoute: ApiPublicOauthAuthorizePostRoute,
   ApiPublicOauthTokenRoute: ApiPublicOauthTokenRoute,
-  ApiPublicPiCommandRoute: ApiPublicPiCommandRoute,
   ApiPublicPiEndpointsRoute: ApiPublicPiEndpointsRoute,
   ApiPublicPiHistoryRoute: ApiPublicPiHistoryRoute,
   ApiPublicPiStateRoute: ApiPublicPiStateRoute,

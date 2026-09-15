@@ -31,6 +31,8 @@ const Endpoint = z.object({
       method: z.enum(["GET", "POST"]).optional(),
       mqttTopic: z.string().max(200).optional(),
       mqttBrokerId: z.string().max(80).optional(),
+      mqttPayloadOn: z.string().max(80).optional(),
+      mqttPayloadOff: z.string().max(80).optional(),
     })
     .optional(),
   value: z.unknown().optional(),
@@ -41,8 +43,10 @@ const Body = z.object({
   replace: z.boolean().optional(),
   endpoints: z.array(Endpoint).max(200).optional(),
   values: z
-    .array(z.object({ id: z.string().min(1).max(64), value: z.unknown() }))
-    .max(200)
+    .union([
+      z.array(z.object({ id: z.string().min(1).max(64), value: z.unknown() })).max(200),
+      z.record(z.string().min(1).max(64), z.unknown()),
+    ])
     .optional(),
 });
 
@@ -78,9 +82,12 @@ export const Route = createFileRoute("/api/public/nodered/announce")({
           Object.assign(out, res);
         }
 
-        if (body.values?.length) {
+        if (body.values) {
+          const pairs = Array.isArray(body.values)
+            ? body.values.map((v) => [v.id, v.value] as const)
+            : Object.entries(body.values);
           let applied = 0;
-          for (const v of body.values) if (reg.setEndpointValue(v.id, v.value)) applied++;
+          for (const [id, value] of pairs) if (reg.setEndpointValue(id, value)) applied++;
           out.valuesApplied = applied;
         }
 

@@ -6,7 +6,7 @@ import { Bot, Sparkle, AlertCircle } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { chatPreflight } from "@/lib/usage.functions";
+import { getWiringStatus } from "@/lib/wiring.functions";
 import {
   Conversation,
   ConversationContent,
@@ -27,9 +27,9 @@ export const Route = createFileRoute("/_cloud/connections/assistant")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Pi-Hub Assistent — Chat mit deiner Anlage" },
-      { name: "description", content: "Sprich mit dem Pi-Hub Assistenten. Fragt Status, plant Wässerung, schaltet die Pumpe." },
-      { property: "og:title", content: "Pi-Hub Assistent" },
+      { title: "Pi-Control Assistent — Chat mit deiner Anlage" },
+      { name: "description", content: "Sprich mit dem Pi-Control Assistenten. Fragt Status, plant Wässerung, schaltet die Pumpe." },
+      { property: "og:title", content: "Pi-Control Assistent" },
       { property: "og:description", content: "Natürliche Sprache statt Slash-Commands. Nutzt dieselben Tools wie MCP, Telegram und Alexa." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -73,9 +73,9 @@ function AssistantPage() {
   });
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const preflightFn = useServerFn(chatPreflight);
+  const preflightFn = useServerFn(getWiringStatus);
   const preflight = useQuery({
-    queryKey: ["chat-preflight"],
+    queryKey: ["wiring-status"],
     queryFn: () => preflightFn(),
     enabled: ready && !!token,
     staleTime: 60_000,
@@ -92,8 +92,8 @@ function AssistantPage() {
       ? "loading"
       : !token
       ? "no_session"
-      : preflight.data && preflight.data.ok === false
-      ? preflight.data.code
+      : preflight.data && !preflight.data.relay.configured
+      ? "no_paired_device"
       : null;
 
   const handleSubmit = (msg: PromptInputMessage) => {
@@ -128,8 +128,8 @@ function AssistantPage() {
                 <div className="font-medium">Kein Pi verbunden</div>
                 <div className="text-muted-foreground">
                   Der Assistent braucht einen gepairten Pi für seine Tools.{" "}
-                  <Link to="/devices" className="underline text-primary">
-                    Jetzt pairen →
+                  <Link to="/connections/setup" className="underline text-primary">
+                    Relay einrichten →
                   </Link>
                 </div>
               </>

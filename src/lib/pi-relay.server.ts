@@ -125,3 +125,47 @@ export async function relayCommand(
     return { ok: false, error: msg === "pi_not_configured" ? "pi_not_configured" : "pi_offline" };
   }
 }
+
+// ------------------------------------------------------- endpoint catalogue
+export interface RelayEndpoint {
+  id: string;
+  label?: string;
+  kind: "read" | "switch" | "number" | "action";
+  unit?: string;
+  value?: unknown;
+  valueAt?: string | null;
+  control?: boolean;
+  options?: string[];
+  min?: number;
+  max?: number;
+  description?: string;
+}
+
+/** Everything the Pi exposes to voice/AI, with current values. */
+export async function getPiEndpoints(): Promise<
+  RelayRead<{ ts: string; endpoints: RelayEndpoint[] }>
+> {
+  return relayGet<{ ts: string; endpoints: RelayEndpoint[] }>(
+    "/api/public/pi/endpoints",
+    "endpoints",
+  );
+}
+
+/** Execute one endpoint on the Pi. Never cached. */
+export async function relayInvoke(
+  id: string,
+  value: unknown,
+): Promise<{ ok: boolean; result?: unknown; error?: string }> {
+  try {
+    const res = await piFetch("/api/public/pi/endpoints", {
+      method: "POST",
+      body: JSON.stringify({ id, value }),
+    });
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) return { ok: false, error: body?.error ?? `pi_http_${res.status}` };
+    return { ok: true, result: body };
+  } catch (e: any) {
+    const msg = String(e?.message ?? e);
+    return { ok: false, error: msg === "pi_not_configured" ? "pi_not_configured" : "pi_offline" };
+  }
+}

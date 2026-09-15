@@ -1,405 +1,134 @@
-// Pi-local integration center: every URL/token a Node-RED flow or external
-// tool needs to talk to this Pi + the cloud. Built so the user never has to
-// SSH in or hunt through .env / settings to wire up Tab "1. Cloud-Bridge".
-
+// Node-RED setup for Pi Control: download the personalized flow, import it,
+// hit Deploy. Everything else (URLs, token, broker) is already baked in.
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { Download, Cable, Activity, CheckCircle2, XCircle } from "lucide-react";
 import {
-  Cable,
-  Copy,
-  Check,
-  Download,
-  ExternalLink,
-  Cloud,
-  Network,
-  AlertTriangle,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  Wand2,
-  Activity,
-  Loader2,
-} from "lucide-react";
-import {
-  getIntegrationSecrets,
   getIntegrationsInfo,
   getPersonalizedFlow,
   getIntegrationHealth,
 } from "@/lib/integrations.functions";
 
 export const Route = createFileRoute("/_authenticated/integrations")({
+  ssr: false,
+  head: () => ({
+    meta: [
+      { title: "Node-RED — Pi Control" },
+      {
+        name: "description",
+        content:
+          "Personalisierten Node-RED-Flow herunterladen: Endpunkte anmelden, Werte streamen, Kommandos empfangen.",
+      },
+      { property: "og:title", content: "Node-RED — Pi Control" },
+      { property: "og:description", content: "Flow herunterladen, importieren, deployen." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: IntegrationsPage,
 });
 
+function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="bg-card border border-border rounded-3xl p-5 space-y-2">
+      <h3 className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        {icon} {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="flex items-start justify-between gap-3 py-1">
+      <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="text-[11px] font-mono break-all text-right">{value ?? "—"}</span>
+    </div>
+  );
+}
+
 function IntegrationsPage() {
-  const fetchInfo = useServerFn(getIntegrationsInfo);
-  const fetchSecrets = useServerFn(getIntegrationSecrets);
-  const fetchFlow = useServerFn(getPersonalizedFlow);
-  const fetchHealth = useServerFn(getIntegrationHealth);
-  const [flowBusy, setFlowBusy] = useState(false);
-  const [flowError, setFlowError] = useState<string | null>(null);
+  const infoFn = useServerFn(getIntegrationsInfo);
+  const flowFn = useServerFn(getPersonalizedFlow);
+  const healthFn = useServerFn(getIntegrationHealth);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const { data: info } = useQuery({ queryKey: ["integrations-info"], queryFn: () => infoFn() });
   const { data: health } = useQuery({
     queryKey: ["integration-health"],
-    queryFn: () => fetchHealth(),
+    queryFn: () => healthFn(),
     refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
   });
 
-  async function downloadPersonalizedFlow() {
-    setFlowBusy(true);
-    setFlowError(null);
-    try {
-      const res = await fetchFlow();
-      if (!res.json) {
-        setFlowError(res.error || "Flow konnte nicht erzeugt werden");
-        return;
-      }
-      const blob = new Blob([res.json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "pi-hub-flow-personalisiert.json";
-      a.click();
-      URL.revokeObjectURL(url);
-      if (!res.paired) setFlowError("Achtung: Pi ist nicht gepaart — Cloud-Zweige bleiben inaktiv.");
-      else if (!res.wsReady) {
-        setFlowError(
-          "Cloud-WebSocket nicht verfügbar: Der Export läuft lokal und nutzt den 15-Minuten-Safety-Poll. Nach Wiederherstellung der Cloud den Flow erneut herunterladen.",
-        );
-      }
-    } catch (e) {
-      setFlowError(e instanceof Error ? e.message : "Download fehlgeschlagen");
-    } finally {
-      setFlowBusy(false);
+  const download = async () => {
+    setMsg("Flow wird gebaut…");
+    const res = await flowFn();
+    if (!res.json) {
+      setMsg(`Fehler: ${res.error}`);
+      return;
     }
-  }
-  const { data: info } = useQuery({
-    queryKey: ["integrations-info"],
-    queryFn: () => fetchInfo(),
-    refetchInterval: 15_000,
-  });
-  const [copied, setCopied] = useState<string | null>(null);
-  const [revealedToken, setRevealedToken] = useState<string | null>(null);
-  const [revealedLocalToken, setRevealedLocalToken] = useState<string | null>(null);
-  const [tokenError, setTokenError] = useState<string | null>(null);
-
-  function copy(label: string, text: string) {
-    const done = () => {
-      setCopied(label);
-      setTimeout(() => setCopied(null), 1500);
-    };
-    if (navigator.clipboard?.writeText && window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
-    } else {
-      fallbackCopy(text, done);
-    }
-  }
-
-  function fallbackCopy(text: string, done: () => void) {
-    const el = document.createElement("textarea");
-    el.value = text;
-    el.setAttribute("readonly", "");
-    el.style.position = "fixed";
-    el.style.opacity = "0";
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand("copy");
-    document.body.removeChild(el);
-    done();
-  }
-
-  function Row({ label, value, secret }: { label: string; value: string | null; secret?: boolean }) {
-    return (
-      <div className="rounded-xl border border-border bg-background p-3">
-        <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">
-          {label}
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <code className="font-mono text-[11px] break-all">
-            {value ?? <span className="text-muted-foreground">— nicht verfügbar —</span>}
-          </code>
-          {value && (
-            <button
-              onClick={() => copy(label, value)}
-              className="text-primary shrink-0"
-              aria-label={`${label} kopieren`}
-            >
-              {copied === label ? <Check size={14} /> : <Copy size={14} />}
-            </button>
-          )}
-        </div>
-        {secret && (
-          <p className="text-[9px] text-muted-foreground mt-1">
-            Token nicht im Klartext — verwende den Pairing-Flow in den Einstellungen.
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  async function revealToken() {
-    setTokenError(null);
-    const res = await fetchSecrets();
-    if (res.cloudDeviceToken) {
-      setRevealedToken(res.cloudDeviceToken);
-      setRevealedLocalToken(res.localIngestToken ?? null);
-    } else {
-      setTokenError(res.error || "Token nicht verfügbar");
-    }
-  }
-
-  const envBlock = info
-    ? [
-        `CLOUD_BRIDGE_URL=${info.cloudBridge.eventUrl}`,
-        `CLOUD_STRATEGY_URL=${info.cloudBridge.strategyUrl}`,
-        `CLOUD_LIVE_URL=${info.cloudBridge.liveUrl}`,
-        `CLOUD_REALTIME_BOOTSTRAP_URL=${info.cloudBridge.realtimeBootstrapUrl}`,
-        `CLOUD_COMMAND_POLL_URL=${info.cloudBridge.commandPollUrl}`,
-        `CLOUD_COMMAND_RESULT_URL=${info.cloudBridge.commandResultUrl}`,
-        `CLOUD_DEVICE_TOKEN=${revealedToken ?? "<erst oben Token anzeigen>"}`,
-        `LOCAL_API_URL=${info.local.ingestUrl ?? "http://127.0.0.1:3000/api/public/ingest/event"}`,
-        `PI_INGEST_TOKEN=${revealedLocalToken ?? ""}`,
-        "DEFAULT_DEVICE_LABEL=drainpress",
-        "MQTT_COMMAND_TOPIC=cmnd/zisterne/POWER",
-        "MQTT_BROKER_HOST=mosquitto",
-        "MQTT_BROKER_PORT=1883",
-        "TRACE_MODE=errors",
-      ].join("\n")
-    : "";
+    const blob = new Blob([res.json], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "pi-control-flow.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setMsg("Heruntergeladen — in Node-RED importieren und Deploy drücken.");
+  };
 
   return (
-    <div className="px-4 pb-8 space-y-5 max-w-md mx-auto">
-      <header className="flex items-center gap-2 pt-2">
-        <Cable className="size-5 text-primary" />
-        <div>
-          <h1 className="text-base font-bold">Node-RED & Integrationen</h1>
-          <p className="text-[11px] text-muted-foreground">
-            Alles, was dein Flow zum Senden braucht.
-          </p>
-        </div>
-      </header>
+    <div className="px-4 pb-28 space-y-4">
+      <h1 className="text-lg font-semibold px-1">Node-RED</h1>
 
-      {/* Cloud-Bridge */}
-      <section className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Cloud size={14} className="text-primary" />
-          <h2 className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            1. Cloud-Bridge
-          </h2>
-          {info?.cloudBridge.deviceTokenPresent ? (
-            <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-primary">
-              <CheckCircle2 size={11} /> gepaart
-            </span>
-          ) : (
-            <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-amber-500">
-              <AlertTriangle size={11} /> nicht gepaart
-            </span>
-          )}
-        </div>
-        <Row label="CLOUD_BRIDGE_URL" value={info?.cloudBridge.eventUrl ?? null} />
-        <Row label="CLOUD_STRATEGY_URL" value={info?.cloudBridge.strategyUrl ?? null} />
-        <Row label="CLOUD_LIVE_URL" value={info?.cloudBridge.liveUrl ?? null} />
-        <Row label="CLOUD_REALTIME_BOOTSTRAP_URL" value={info?.cloudBridge.realtimeBootstrapUrl ?? null} />
-        <Row label="CLOUD_COMMAND_POLL_URL" value={info?.cloudBridge.commandPollUrl ?? null} />
-        <Row label="CLOUD_COMMAND_RESULT_URL" value={info?.cloudBridge.commandResultUrl ?? null} />
-        <Row
-          label="CLOUD_DEVICE_TOKEN"
-          value={revealedToken ?? (info?.cloudBridge.deviceTokenPrefix ? `${info.cloudBridge.deviceTokenPrefix}…` : null)}
-          secret={!revealedToken}
-        />
-        {info?.cloudBridge.deviceTokenPresent && (
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => (revealedToken ? setRevealedToken(null) : revealToken())}
-              className="rounded-xl border border-border bg-card py-2 text-[10px] uppercase tracking-widest flex items-center justify-center gap-1"
-            >
-              {revealedToken ? <EyeOff size={12} /> : <Eye size={12} />}
-              {revealedToken ? "Verbergen" : "Token anzeigen"}
-            </button>
-            <button
-              disabled={!revealedToken}
-              onClick={() => revealedToken && copy("CLOUD_DEVICE_TOKEN", revealedToken)}
-              className="rounded-xl border border-border bg-card py-2 text-[10px] uppercase tracking-widest flex items-center justify-center gap-1 disabled:opacity-40"
-            >
-              {copied === "CLOUD_DEVICE_TOKEN" ? <Check size={12} /> : <Copy size={12} />}
-              Token kopieren
-            </button>
-          </div>
-        )}
-        {tokenError && <p className="text-[10px] text-destructive">{tokenError}</p>}
-        <p className="text-[10px] text-muted-foreground">
-          Für Node-RED immer diesen Cloud Device Token verwenden — nicht Factory-, Reset- oder
-          Revocation-Token. Im Node-RED HTTP Request keine eingebaute Bearer-Auth aktivieren; der
-          Flow setzt den Header selbst.
+      <Section title="Flow" icon={<Cable className="size-3" />}>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Der Flow meldet seine Endpunkte selbst an. Im Function-Node
+          „Endpunkt-Katalog" trägst du ein, was steuerbar oder ablesbar ist — alles andere
+          erscheint automatisch unter Steuerung, Feintuning und Debug.
         </p>
-        {!info?.cloudBridge.deviceTokenPresent && (
-          <p className="text-[11px] text-muted-foreground">
-            Erst pairen in <code>System → Cloud verbinden</code>, dann kannst du den Token hier
-            anzeigen und in den Node-RED-Env-Block kopieren.
-          </p>
-        )}
-      </section>
-
-      {/* Local fallback */}
-      <section className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Network size={14} className="text-primary" />
-          <h2 className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            2. Lokaler Fallback
-          </h2>
-        </div>
-        <Row label="LOCAL_API_URL" value={info?.local.ingestUrl ?? null} />
-        <Row
-          label="PI_INGEST_TOKEN"
-          value={revealedLocalToken ?? (info?.local.ingestTokenPrefix ? `${info.local.ingestTokenPrefix}…` : "LAN-only")}
-          secret={!!info?.local.ingestTokenPrefix && !revealedLocalToken}
-        />
-        <p className="text-[10px] text-muted-foreground">
-          IP automatisch aus dem ersten privaten Interface erkannt
-          {info?.local.lanIp ? ` (${info.local.lanIp})` : ""}. Bei Cloud-Ausfall pushst du auf die
-          lokale Ingest-Route. Wenn kein PI_INGEST_TOKEN gesetzt ist, akzeptiert sie nur LAN-Clients.
-        </p>
-      </section>
-
-      {/* Personalized flow */}
-      <section className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Wand2 size={14} className="text-primary" />
-          <h2 className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            3. Flow ohne Copy-Paste
-          </h2>
-        </div>
         <button
-          onClick={downloadPersonalizedFlow}
-          disabled={flowBusy}
-          className="w-full rounded-xl border border-primary/40 bg-primary/10 py-3 text-[11px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+          onClick={download}
+          className="w-full mt-2 py-3 text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground rounded-2xl active:scale-95 transition-transform flex items-center justify-center gap-2"
         >
-          {flowBusy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-          Flow personalisiert herunterladen
+          <Download className="size-3" /> Personalisierten Flow herunterladen
         </button>
-        <p className="text-[10px] text-muted-foreground">
-          Enthält Device-Token, Device-ID, WebSocket-URL und alle lokalen URLs bereits eingetragen.
-          In Node-RED importieren → Deploy → der Selftest meldet nach 20 s, was funktioniert.
-          Die Datei enthält Geheimnisse im Klartext — nicht weitergeben.
-        </p>
-        {flowError && <p className="text-[10px] text-amber-500">{flowError}</p>}
-      </section>
+        {msg && <p className="text-[11px] text-center font-mono text-muted-foreground">{msg}</p>}
+      </Section>
 
-      {/* Health */}
-      <section className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Activity size={14} className="text-primary" />
-          <h2 className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            Integration-Health (24 h)
-          </h2>
-        </div>
-        <div className="rounded-xl border border-border bg-background p-3 space-y-2">
-          {health?.routes?.length ? (
-            health.routes.map((r) => (
-              <div key={`${r.target}:${r.route}`} className="flex items-center gap-2 text-[10px]">
-                <span className={r.ok ? "text-primary" : "text-destructive"}>
-                  {r.ok ? <CheckCircle2 size={11} /> : <AlertTriangle size={11} />}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <code className="block truncate font-mono">{r.route}</code>
-                  <span className="text-[9px] text-muted-foreground">
-                    {r.target === "local" ? "Lokal" : r.target === "ws" ? "WebSocket" : "Cloud"}
-                    {r.failures ? ` · ${r.failures} Fehler` : " · erreichbar"}
-                  </span>
-                </div>
-                <span className="text-muted-foreground">{r.status ?? (r.ok ? "OK" : "—")}</span>
-                <span className="text-muted-foreground">×{r.count}</span>
-              </div>
-            ))
-          ) : (
-            <p className="text-[10px] text-muted-foreground">
-              Noch keine Traces empfangen. Starte in Node-RED „Pi-Hub Selftest“.
-            </p>
-          )}
-        </div>
-      </section>
+      <Section title="Lokale Endpunkte" icon={<Cable className="size-3" />}>
+        <Row label="Basis" value={info?.local.baseUrl ?? null} />
+        <Row label="Announce" value={info?.local.announceUrl ?? null} />
+        <Row label="Werte" value={info?.local.liveUrl ?? null} />
+        <Row label="Trace" value={info?.local.traceUrl ?? null} />
+        <Row
+          label="Token"
+          value={info?.local.ingestTokenPresent ? `${info.local.ingestTokenPrefix}…` : "nicht gesetzt"}
+        />
+      </Section>
 
-      {/* Quick actions */}
-      <section className="space-y-2">
-        <h2 className="text-[10px] uppercase tracking-widest text-muted-foreground">
-          Schnellstart
-        </h2>
-        {info && (
-          <div className="rounded-xl border border-border bg-background p-3 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                Node-RED Tab-Env kopieren
+      <Section title="Gesundheit (24h)" icon={<Activity className="size-3" />}>
+        {(health?.routes ?? []).length === 0 ? (
+          <p className="text-xs text-muted-foreground">Noch keine Aufrufe protokolliert.</p>
+        ) : (
+          health!.routes.map((r) => (
+            <div key={r.route} className="flex items-center gap-2 py-1">
+              {r.ok ? (
+                <CheckCircle2 className="size-3 text-primary shrink-0" />
+              ) : (
+                <XCircle className="size-3 text-destructive shrink-0" />
+              )}
+              <span className="text-[11px] font-mono truncate">{r.route}</span>
+              <span className="ml-auto text-[10px] text-muted-foreground">
+                {r.successes}/{r.count}
               </span>
-              <button
-                onClick={() => copy("NODE_RED_ENV", envBlock)}
-                className="text-primary shrink-0"
-                aria-label="Node-RED Environment kopieren"
-              >
-                {copied === "NODE_RED_ENV" ? <Check size={14} /> : <Copy size={14} />}
-              </button>
             </div>
-            <pre className="text-[10px] font-mono whitespace-pre-wrap break-all">{envBlock}</pre>
-            {!revealedToken && (
-              <p className="text-[10px] text-amber-500">
-                Klick zuerst auf „Token anzeigen“, dann enthält dieser Block den echten
-                CLOUD_DEVICE_TOKEN.
-              </p>
-            )}
-          </div>
+          ))
         )}
-        <div className="grid grid-cols-2 gap-2">
-          <a
-            href="/nodered-template.json"
-            download
-            className="rounded-xl border border-border bg-card p-3 text-[11px] flex flex-col items-start gap-1 hover:bg-muted/30"
-          >
-            <Download size={14} className="text-primary" />
-            <span className="font-bold">Flow-Template</span>
-            <span className="text-muted-foreground text-[10px]">
-              Subflow-JSON für Node-RED, vorausgefüllt.
-            </span>
-          </a>
-          <a
-            href="https://github.com/BenjaminWie/pi-oasis/blob/main/docs/nodered-integration.md"
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-xl border border-border bg-card p-3 text-[11px] flex flex-col items-start gap-1 hover:bg-muted/30"
-          >
-            <ExternalLink size={14} className="text-primary" />
-            <span className="font-bold">Doku</span>
-            <span className="text-muted-foreground text-[10px]">
-              Event-Payload, Strategy-Poll, Fallback.
-            </span>
-          </a>
-        </div>
-      </section>
-
-      {/* Event payload example */}
-      <section className="space-y-2">
-        <h2 className="text-[10px] uppercase tracking-widest text-muted-foreground">
-          Beispiel-Payload
-        </h2>
-        <pre className="rounded-xl border border-border bg-background p-3 text-[10px] font-mono overflow-x-auto">
-{`POST {CLOUD_BRIDGE_URL}
-Authorization: Bearer {CLOUD_DEVICE_TOKEN}
-
-{
-  "component": "tibber_pulse",
-  "device": "drainpress",
-  "status": "info",
-  "metrics": { "watts": 412, "tibber_ct": 28 },
-  "ts": "${new Date().toISOString()}"
-}`}
-        </pre>
-        <pre className="rounded-xl border border-border bg-background p-3 text-[10px] font-mono overflow-x-auto">
-{`GET {CLOUD_COMMAND_POLL_URL}
-Authorization: Bearer {CLOUD_DEVICE_TOKEN}
-
-// command.kind=plugin_manual -> cmnd/zisterne/POWER ON/OFF
-// danach POST {CLOUD_COMMAND_RESULT_URL}`}
-        </pre>
-      </section>
+      </Section>
     </div>
   );
 }
