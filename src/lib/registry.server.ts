@@ -27,6 +27,9 @@ export interface EndpointInvoke {
   /** Alternative: publish to this MQTT topic (broker auto-detected). */
   mqttTopic?: string;
   mqttBrokerId?: string;
+  /** payloads for switch endpoints (default "ON"/"OFF") */
+  mqttPayloadOn?: string;
+  mqttPayloadOff?: string;
 }
 
 export interface AnnouncedEndpoint {
@@ -331,7 +334,14 @@ export async function invokeEndpoint(
         brokerId = containers.find((c) => /mosquitto|mqtt|broker/i.test(c.name))?.id;
       }
       if (!brokerId) return { ok: false, id: e.id, error: "no_mqtt_broker" };
-      const payloadStr = typeof value === "string" ? value : JSON.stringify(value);
+      const isBool = typeof value === "boolean";
+      const payloadStr = isBool
+        ? value
+          ? (inv.mqttPayloadOn ?? "ON")
+          : (inv.mqttPayloadOff ?? "OFF")
+        : typeof value === "string"
+          ? value
+          : JSON.stringify(value);
       await publishMqtt(brokerId, {
         topic: inv.mqttTopic,
         payload: payloadStr,
