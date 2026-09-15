@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import type { ContainerSummary } from "@/lib/mock-data";
 
 const statusMeta = {
@@ -25,9 +24,7 @@ export function ContainerCard({ c }: { c: ContainerSummary }) {
   const isFailing = c.status === "exited";
 
   return (
-    <Link
-      to="/container/$id"
-      params={{ id: c.id }}
+    <div
       className={`block bg-card border rounded-3xl p-5 relative overflow-hidden shadow-xl active:scale-[0.98] transition-transform ${
         isFailing ? "border-status-crit/30" : "border-border"
       }`}
@@ -64,6 +61,6 @@ export function ContainerCard({ c }: { c: ContainerSummary }) {
           </span>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
