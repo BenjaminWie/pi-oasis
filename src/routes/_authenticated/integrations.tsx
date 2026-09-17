@@ -86,10 +86,20 @@ function IntegrationsPage() {
 
       <Section title="Flow" icon={<Cable className="size-3" />}>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Der Flow meldet seine Endpunkte selbst an. Im Function-Node
-          „Endpunkt-Katalog" trägst du ein, was steuerbar oder ablesbar ist — alles andere
-          erscheint automatisch unter Steuerung, Feintuning und Debug.
+          Der Beispiel-Flow bringt Pumpe, Bewässerung, Nachtruhe, PV-Überschuss, Strompreis,
+          Regen-Sperre und Strategie schon mit — plus eine Regel, die alle 5 Minuten entscheidet.
+          Herunterladen, in Node-RED importieren, Deploy. Die Endpunkte erscheinen dann von selbst
+          unter Steuerung, Feintuning und Debug.
         </p>
+        <ol className="mt-2 space-y-1 text-[11px] text-muted-foreground list-decimal list-inside">
+          <li>Flow herunterladen und in Node-RED importieren</li>
+          <li>
+            Im Tab „Pi Control" unter Bearbeiten → Umgebungsvariablen deine MQTT-Themen prüfen
+            (Pumpe, Leistung, PV, Temperatur, Regen, Preis)
+          </li>
+          <li>Im Node „Katalog (hier anpassen)" ergänzen, was dein Haus noch kann</li>
+          <li>Deploy — danach in Debug den Sprachtest für Alexa oder Telegram ausprobieren</li>
+        </ol>
         <button
           onClick={download}
           className="w-full mt-2 py-3 text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground rounded-2xl active:scale-95 transition-transform flex items-center justify-center gap-2"

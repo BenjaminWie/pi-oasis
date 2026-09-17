@@ -8,7 +8,7 @@ import { guardLocalIngest } from "@/lib/local-ingest-guard.server";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Allow-Headers": "authorization, content-type, x-pi-control-via",
 };
 
 const Body = z.object({
@@ -23,7 +23,13 @@ export const Route = createFileRoute("/api/public/pi/endpoints")({
       GET: async ({ request }) => {
         const denied = guardLocalIngest(request);
         if (denied) return Response.json({ error: denied }, { status: 401, headers: CORS });
-        const { voiceSnapshot, registryInfo } = await import("@/lib/registry.server");
+        const { voiceSnapshot, registryInfo, debugLogVerbose, asChannel } = await import(
+          "@/lib/registry.server"
+        );
+        const { ensureSystemLoop } = await import("@/lib/system-endpoints.server");
+        ensureSystemLoop();
+        const ch = asChannel(request.headers.get("x-pi-control-via"));
+        debugLogVerbose("in", "Katalog gelesen", { via: ch }, ch);
         return Response.json(
           { ts: new Date().toISOString(), endpoints: voiceSnapshot(), registry: registryInfo() },
           { headers: { ...CORS, "cache-control": "no-store" } },
@@ -42,7 +48,8 @@ export const Route = createFileRoute("/api/public/pi/endpoints")({
           );
         }
         const { invokeEndpoint } = await import("@/lib/registry.server");
-        const out = await invokeEndpoint(body.id, body.value ?? true, { via: "cloud" });
+        const via = request.headers.get("x-pi-control-via") || "cloud";
+        const out = await invokeEndpoint(body.id, body.value ?? true, { via });
         return Response.json(out, { status: out.ok ? 200 : 400, headers: CORS });
       },
     },

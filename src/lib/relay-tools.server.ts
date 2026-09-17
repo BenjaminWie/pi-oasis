@@ -14,14 +14,14 @@ export interface ToolCtx {
   allowControl?: boolean;
 }
 
-export async function readEndpoints(): Promise<{
+export async function readEndpoints(via?: string): Promise<{
   endpoints: RelayEndpoint[];
   stale: boolean;
   ageSec: number | null;
   ok: boolean;
   error?: string;
 }> {
-  const r = await getPiEndpoints();
+  const r = await getPiEndpoints(via);
   return {
     endpoints: r.data?.endpoints ?? [],
     stale: r.stale,
@@ -68,7 +68,7 @@ export async function invoke(
   if (ctx.allowControl === false) {
     return { ok: false, speech: "Dieser Zugang darf nichts schalten." };
   }
-  const { endpoints, ok } = await readEndpoints();
+  const { endpoints, ok } = await readEndpoints(ctx.source);
   if (!ok && !endpoints.length) return { ok: false, speech: "Der Pi ist nicht erreichbar." };
   const ep = findEndpoint(endpoints, query);
   if (!ep) return { ok: false, speech: `Ich kenne keinen Endpunkt "${query}".` };
@@ -76,7 +76,7 @@ export async function invoke(
   if (ep.control === false) {
     return { ok: false, speech: `${ep.label || ep.id} ist zum Schalten gesperrt.` };
   }
-  const out = await relayInvoke(ep.id, value);
+  const out = await relayInvoke(ep.id, value, ctx.source);
   if (!out.ok) {
     return {
       ok: false,
@@ -91,8 +91,11 @@ export async function invoke(
   return { ok: true, speech: `${ep.label || ep.id} auf ${shown} gesetzt.`, detail: out.result };
 }
 
-export async function statusOf(query?: string): Promise<{ ok: boolean; speech: string }> {
-  const { endpoints, stale, ageSec, ok } = await readEndpoints();
+export async function statusOf(
+  query?: string,
+  via?: string,
+): Promise<{ ok: boolean; speech: string }> {
+  const { endpoints, stale, ageSec, ok } = await readEndpoints(via);
   if (!endpoints.length) {
     return {
       ok: false,
