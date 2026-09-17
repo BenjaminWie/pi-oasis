@@ -21,8 +21,8 @@ function resolveDir(): string {
   if (explicit) return explicit;
   const ram = process.env.PI_HUB_TS_RAM;
   if (ram === "1" || ram === "true") return "/dev/shm/pi-hub/telemetry";
-  const explicit = process.env.PI_CONTROL_HOME || process.env.PI_HUB_HOME;
-  if (explicit) return join(explicit, "telemetry");
+  const home = process.env.PI_CONTROL_HOME || process.env.PI_HUB_HOME;
+  if (home) return join(home, "telemetry");
   const next = join(homedir(), ".pi-control");
   const legacy = join(homedir(), ".pi-hub");
   return join(existsSync(next) || !existsSync(legacy) ? next : legacy, "telemetry");
