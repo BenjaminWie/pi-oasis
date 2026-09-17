@@ -15,7 +15,19 @@ export interface NodeRedConfig {
     traceUrl: string;
     token: string | null;
   };
-  mqtt: { commandTopic: string; brokerHost: string; brokerPort: number };
+  mqtt: {
+    commandTopic: string;
+    brokerHost: string;
+    brokerPort: number;
+    /** topics the flow subscribes to for values */
+    pumpStateTopic: string;
+    powerTopic: string;
+    pvTopic: string;
+    tempTopic: string;
+    rainTopic: string;
+    priceTopic: string;
+  };
+  rules: { surplusThresholdW: number; rainBlockMm: number; nightFromHour: number; nightToHour: number };
 }
 
 export function lanIp(): string | null {
@@ -61,6 +73,18 @@ export async function buildNodeRedConfig(): Promise<NodeRedConfig> {
       commandTopic: process.env.MQTT_COMMAND_TOPIC || "cmnd/zisterne/POWER",
       brokerHost: process.env.MQTT_BROKER_HOST || "127.0.0.1",
       brokerPort: Number(process.env.MQTT_BROKER_PORT || 1883),
+      pumpStateTopic: process.env.MQTT_PUMP_STATE_TOPIC || "stat/zisterne/POWER",
+      powerTopic: process.env.MQTT_POWER_TOPIC || "tele/zisterne/SENSOR",
+      pvTopic: process.env.MQTT_PV_TOPIC || "sensor/pv/surplus",
+      tempTopic: process.env.MQTT_TEMP_TOPIC || "sensor/outside/temp",
+      rainTopic: process.env.MQTT_RAIN_TOPIC || "sensor/weather/rain24h",
+      priceTopic: process.env.MQTT_PRICE_TOPIC || "sensor/energy/price",
+    },
+    rules: {
+      surplusThresholdW: Number(process.env.SURPLUS_THRESHOLD_W || 800),
+      rainBlockMm: Number(process.env.RAIN_BLOCK_MM || 3),
+      nightFromHour: Number(process.env.NIGHT_FROM_HOUR || 21),
+      nightToHour: Number(process.env.NIGHT_TO_HOUR || 7),
     },
   };
 }

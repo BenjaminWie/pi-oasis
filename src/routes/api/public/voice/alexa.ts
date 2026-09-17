@@ -6,6 +6,12 @@ import { bearer, jsonResponse } from "@/lib/agent-api.server";
 import { verifyToken } from "@/lib/stateless-token.server";
 import {
   endpointList,
+  irrigationStart,
+  nightQuiet,
+  rainForecast,
+  routeText,
+  strategy,
+  surplusNow,
   endpointSet,
   endpointStatus,
   energyPriceNow,
@@ -49,7 +55,7 @@ export const Route = createFileRoute("/api/public/voice/alexa")({
         const type = body?.request?.type;
         if (type === "LaunchRequest") {
           return jsonResponse(
-            ask("Pi Control ist bereit. Sage zum Beispiel: Pumpe einschalten für fünf Minuten."),
+            ask("Pi Control ist bereit. Sage zum Beispiel: bewässere fünf Minuten, oder: wie ist der Status?"),
           );
         }
         if (type === "SessionEndedRequest") return jsonResponse(ask("", true));
@@ -79,6 +85,28 @@ export const Route = createFileRoute("/api/public/voice/alexa")({
             const r = target ? await endpointStatus(ctx, target) : await systemStatus(ctx);
             return jsonResponse(ask(r.speech));
           }
+          if (intent === "IrrigateIntent" || intent === "StartIrrigationIntent") {
+            const minutes = Number(slot("Minutes") ?? 10);
+            return jsonResponse(ask((await irrigationStart(ctx, minutes)).speech));
+          }
+          if (intent === "NightQuietIntent") {
+            const state = (slot("State") || "").toLowerCase();
+            const on = ["an", "ein", "on", "aktiv"].includes(state)
+              ? true
+              : ["aus", "off", "inaktiv"].includes(state)
+                ? false
+                : undefined;
+            return jsonResponse(ask((await nightQuiet(ctx, on)).speech));
+          }
+          if (intent === "StrategyIntent") {
+            return jsonResponse(ask((await strategy(ctx, slot("Strategy"))).speech));
+          }
+          if (intent === "RainIntent") {
+            return jsonResponse(ask((await rainForecast(ctx)).speech));
+          }
+          if (intent === "SurplusIntent" || intent === "SolarIntent") {
+            return jsonResponse(ask((await surplusNow(ctx)).speech));
+          }
           if (intent === "ListEndpointsIntent" || intent === "WaterPlanIntent") {
             return jsonResponse(ask((await endpointList()).speech));
           }
@@ -88,7 +116,7 @@ export const Route = createFileRoute("/api/public/voice/alexa")({
           if (intent === "AMAZON.HelpIntent") {
             return jsonResponse(
               ask(
-                "Du kannst sagen: Pumpe einschalten, Pumpe ausschalten, Status, welche Endpunkte gibt es, oder frag einfach frei.",
+                "Du kannst sagen: Pumpe einschalten, zehn Minuten bewässern, Nachtruhe an, Strategie Überschuss, wie viel Regen kommt, wie hoch ist der Überschuss, Status, oder frag einfach frei.",
                 false,
               ),
             );
@@ -104,6 +132,8 @@ export const Route = createFileRoute("/api/public/voice/alexa")({
             (intent === "AskIntent" || intent === "FreeQuestionIntent" ? "" : null);
           if (question === "") return jsonResponse(ask("Was möchtest du wissen?", false));
           if (question) {
+            const direct = await routeText(ctx, String(question));
+            if (direct) return jsonResponse(ask(direct.speech.slice(0, 600)));
             const { brainReply } = await import("@/lib/assistant-brain.server");
             const answer = await brainReply(
               { source: "alexa", userId: claims.sub, allowControl: ctx.allowControl },

@@ -12,16 +12,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { jsonResponse } from "@/lib/agent-api.server";
 import {
+  endpointList,
   energyPriceNow,
+  irrigationStart,
   mqttPublish,
+  nightQuiet,
   pumpOff,
   pumpOn,
   pumpStatus,
+  rainForecast,
+  routeText,
+  strategy,
+  surplusNow,
   systemStatus,
   type IntentCtx,
 } from "@/lib/voice-intents.server";
 
-const CTX: IntentCtx = { source: "telegram", deviceId: "pi" };
+const CTX: IntentCtx = { source: "telegram", deviceId: "pi", allowControl: true };
 
 /** Chats unlocked with /link during this worker's lifetime (volatile). */
 const runtimeChats = new Set<string>();
@@ -73,9 +80,12 @@ async function transcribeVoice(botToken: string, fileId: string): Promise<string
 }
 
 const HELP =
-  "*Pi Hub*\n" +
-  "`/pump on 10` · `/pump off` · `/pump status`\n" +
-  "`/status` · `/price` · `/mqtt pub <topic> <text>`\n" +
+  "*Pi Control*\n" +
+  "`/pumpe an 10` · `/pumpe aus` · `/pumpe status`\n" +
+  "`/bewaessern 10` · `/nachtruhe an|aus`\n" +
+  "`/status` · `/preis` · `/regen` · `/ueberschuss`\n" +
+  "`/strategie [automatik|ueberschuss|immer|aus]`\n" +
+  "`/endpunkte` · `/mqtt pub <topic> <text>` · `/debug`\n" +
   "Oder frag einfach frei — auch per Sprachnachricht.";
 
 export const Route = createFileRoute("/api/public/telegram/webhook")({
@@ -158,6 +168,62 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           return jsonResponse({ ok: true });
         }
 
+        if (text.startsWith("/bewaessern") || text.startsWith("/bewässern")) {
+          const minutes = Number(text.split(/\s+/)[1]);
+          const r = await irrigationStart(CTX, Number.isFinite(minutes) ? minutes : undefined);
+          await reply(`💧 ${r.speech}`);
+          return jsonResponse({ ok: true });
+        }
+
+        if (text.startsWith("/nachtruhe")) {
+          const arg = (text.split(/\s+/)[1] || "").toLowerCase();
+          const on = ["an", "on", "ein"].includes(arg)
+            ? true
+            : ["aus", "off"].includes(arg)
+              ? false
+              : undefined;
+          const r = await nightQuiet(CTX, on);
+          await reply(`🌙 ${r.speech}`);
+          return jsonResponse({ ok: true });
+        }
+
+        if (text.startsWith("/strategie")) {
+          const name = text.split(/\s+/).slice(1).join(" ").trim();
+          const r = await strategy(CTX, name || undefined);
+          await reply(`🧠 ${r.speech}`);
+          return jsonResponse({ ok: true });
+        }
+
+        if (text.startsWith("/regen")) {
+          const r = await rainForecast(CTX);
+          await reply(`🌧 ${r.speech}`);
+          return jsonResponse({ ok: true });
+        }
+
+        if (text.startsWith("/ueberschuss") || text.startsWith("/überschuss") || text.startsWith("/pv")) {
+          const r = await surplusNow(CTX);
+          await reply(`☀️ ${r.speech}`);
+          return jsonResponse({ ok: true });
+        }
+
+        if (text.startsWith("/endpunkte") || text.startsWith("/endpoints")) {
+          const r = await endpointList(CTX);
+          await reply(`📋 ${r.speech}`);
+          return jsonResponse({ ok: true });
+        }
+
+        if (text.startsWith("/debug")) {
+          const { debugEntries } = await import("@/lib/registry.server");
+          const rows = debugEntries(10)
+            .map(
+              (e) =>
+                `${new Date(e.ts).toLocaleTimeString("de-DE")} · ${e.channel} · ${e.what.slice(0, 80)}`,
+            )
+            .join("\n");
+          await reply(rows ? `🐞\n\`\`\`\n${rows}\n\`\`\`` : "🐞 Noch keine Meldungen.");
+          return jsonResponse({ ok: true });
+        }
+
         if (text.startsWith("/pump")) {
           const parts = text.split(/\s+/);
           const action = (parts[1] || "").toLowerCase();
@@ -185,7 +251,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           return jsonResponse({ ok: true });
         }
 
-        if (text.startsWith("/price") || text.startsWith("/strom")) {
+        if (text.startsWith("/price") || text.startsWith("/preis") || text.startsWith("/strom")) {
           const r = await energyPriceNow(CTX);
           await reply(`⚡ ${r.speech}`);
           return jsonResponse({ ok: true });
@@ -204,6 +270,11 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
         if (!text.startsWith("/")) {
           try {
+            const direct = await routeText(CTX, text);
+            if (direct) {
+              await reply(`${direct.ok ? "✅" : "⚠️"} ${direct.speech}`);
+              return jsonResponse({ ok: true });
+            }
             const { brainReply } = await import("@/lib/assistant-brain.server");
             const answer = await brainReply(
               { userId: "owner", source: "telegram", allowControl: true },

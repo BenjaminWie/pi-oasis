@@ -88,9 +88,13 @@ async function piFetch(path: string, init?: RequestInit): Promise<Response> {
 }
 
 /** GET a JSON document from the Pi, falling back to the volatile cache. */
-export async function relayGet<T>(path: string, cacheKey = path): Promise<RelayRead<T>> {
+export async function relayGet<T>(
+  path: string,
+  cacheKey = path,
+  via?: string,
+): Promise<RelayRead<T>> {
   try {
-    const res = await piFetch(path);
+    const res = await piFetch(path, via ? { headers: { "x-pi-control-via": via } } : undefined);
     if (!res.ok) throw new Error(`pi_http_${res.status}`);
     const data = (await res.json()) as T;
     cachePut(cacheKey, data);
@@ -142,12 +146,24 @@ export interface RelayEndpoint {
 }
 
 /** Everything the Pi exposes to voice/AI, with current values. */
-export async function getPiEndpoints(): Promise<
-  RelayRead<{ ts: string; endpoints: RelayEndpoint[] }>
-> {
+export async function getPiEndpoints(
+  via?: string,
+): Promise<RelayRead<{ ts: string; endpoints: RelayEndpoint[] }>> {
+  // Running ON the Pi (no relay configured): read the registry directly, so
+  // Alexa/Telegram/chat and the Debug simulator work without any cloud hop.
+  if (!piConfig().configured) {
+    const { voiceSnapshot } = await import("./registry.server");
+    return {
+      ok: true,
+      data: { ts: new Date().toISOString(), endpoints: voiceSnapshot() as RelayEndpoint[] },
+      stale: false,
+      ageSec: 0,
+    };
+  }
   return relayGet<{ ts: string; endpoints: RelayEndpoint[] }>(
     "/api/public/pi/endpoints",
     "endpoints",
+    via,
   );
 }
 
@@ -155,11 +171,18 @@ export async function getPiEndpoints(): Promise<
 export async function relayInvoke(
   id: string,
   value: unknown,
+  via?: string,
 ): Promise<{ ok: boolean; result?: unknown; error?: string }> {
+  if (!piConfig().configured) {
+    const { invokeEndpoint } = await import("./registry.server");
+    const out = await invokeEndpoint(id, value as never, { via: via ?? "local" });
+    return out.ok ? { ok: true, result: out } : { ok: false, error: out.error };
+  }
   try {
     const res = await piFetch("/api/public/pi/endpoints", {
       method: "POST",
       body: JSON.stringify({ id, value }),
+      headers: via ? { "x-pi-control-via": via } : undefined,
     });
     const body = (await res.json().catch(() => ({}))) as { error?: string };
     if (!res.ok) return { ok: false, error: body?.error ?? `pi_http_${res.status}` };

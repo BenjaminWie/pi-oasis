@@ -103,19 +103,99 @@ function persistConfigs() {
 }
 
 // -------------------------------------------------------------- debug buffer
+export type DebugChannel = "node-red" | "alexa" | "telegram" | "chat" | "rules" | "local";
+
+export const DEBUG_CHANNELS: DebugChannel[] = [
+  "node-red",
+  "alexa",
+  "telegram",
+  "chat",
+  "rules",
+  "local",
+];
+
+export function asChannel(via?: string | null): DebugChannel {
+  const v = (via ?? "").toLowerCase();
+  if (v.includes("alexa")) return "alexa";
+  if (v.includes("telegram")) return "telegram";
+  if (v.includes("chat") || v.includes("brain") || v.includes("assistant")) return "chat";
+  if (v.includes("rule") || v.includes("regel") || v.includes("planner")) return "rules";
+  if (v.includes("node") || v.includes("nodered")) return "node-red";
+  return "local";
+}
+
 export interface DebugEntry {
   ts: string;
   dir: "in" | "out" | "error" | "info";
+  channel: DebugChannel;
   what: string;
   detail?: Json;
+  /** ms the request took, when known */
+  ms?: number;
 }
 
 const DEBUG_MAX = Math.max(50, Number(process.env.PI_CONTROL_DEBUG_MAX ?? 400));
 const debugRing: DebugEntry[] = [];
 
-export function debugLog(dir: DebugEntry["dir"], what: string, detail?: unknown) {
-  const safe = (detail === undefined ? undefined : (JSON.parse(JSON.stringify(detail ?? null)) as Json));
-  const entry: DebugEntry = { ts: new Date().toISOString(), dir, what, detail: safe };
+// Verbose logging (raw payloads) is opt-in per channel and survives restarts.
+const SETTINGS_FILE = join(homeDir(), "debug.json");
+let verbose: Partial<Record<DebugChannel, boolean>> = {};
+let verboseLoaded = false;
+
+function loadVerbose() {
+  if (verboseLoaded) return;
+  verboseLoaded = true;
+  try {
+    if (existsSync(SETTINGS_FILE)) {
+      verbose = JSON.parse(readFileSync(SETTINGS_FILE, "utf8")) as typeof verbose;
+    }
+  } catch {
+    verbose = {};
+  }
+}
+
+export function debugSettings(): Record<DebugChannel, boolean> {
+  loadVerbose();
+  return Object.fromEntries(DEBUG_CHANNELS.map((c) => [c, Boolean(verbose[c])])) as Record<
+    DebugChannel,
+    boolean
+  >;
+}
+
+export function setDebugVerbose(channel: DebugChannel, on: boolean) {
+  loadVerbose();
+  verbose[channel] = on;
+  try {
+    const dir = homeDir();
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true, mode: 0o700 });
+    writeFileSync(SETTINGS_FILE, JSON.stringify(verbose, null, 2), { mode: 0o600 });
+  } catch {
+    /* best effort */
+  }
+  debugLog("info", `ausführliches Protokoll ${on ? "an" : "aus"}: ${channel}`, undefined, channel);
+  return debugSettings();
+}
+
+export function isVerbose(channel: DebugChannel): boolean {
+  loadVerbose();
+  return Boolean(verbose[channel]);
+}
+
+export function debugLog(
+  dir: DebugEntry["dir"],
+  what: string,
+  detail?: unknown,
+  channel: DebugChannel = "local",
+  ms?: number,
+) {
+  let safe: Json | undefined;
+  try {
+    safe = detail === undefined ? undefined : (JSON.parse(JSON.stringify(detail ?? null)) as Json);
+  } catch {
+    safe = String(detail) as Json;
+  }
+  const entry: DebugEntry = { ts: new Date().toISOString(), dir, channel, what, detail: safe };
+  if (Number.isFinite(ms)) entry.ms = Math.round(ms as number);
   debugRing.push(entry);
   if (debugRing.length > DEBUG_MAX) debugRing.splice(0, debugRing.length - DEBUG_MAX);
   try {
@@ -123,6 +203,17 @@ export function debugLog(dir: DebugEntry["dir"], what: string, detail?: unknown)
   } catch {
     /* best effort */
   }
+}
+
+/** Only recorded while the channel's verbose switch is on (raw payloads). */
+export function debugLogVerbose(
+  dir: DebugEntry["dir"],
+  what: string,
+  detail: unknown,
+  channel: DebugChannel,
+) {
+  if (!isVerbose(channel)) return;
+  debugLog(dir, what, detail, channel);
 }
 
 export function debugEntries(limit = 200): DebugEntry[] {
@@ -197,7 +288,7 @@ export function announceEndpoints(
     for (const [id] of endpoints) if (!seen.has(id)) endpoints.delete(id);
   }
 
-  debugLog("in", `announce (${seen.size} endpoints)`, { source, rejected });
+  debugLog("in", `announce (${seen.size} endpoints)`, { source, rejected }, "node-red");
   return { accepted: seen.size, rejected, total: endpoints.size };
 }
 
@@ -289,7 +380,8 @@ export async function invokeEndpoint(
   if (!e.control && !opts.force) return { ok: false, id, error: "control_disabled" };
 
   const payload = { id: e.id, value, ts: new Date().toISOString(), via: opts.via ?? "local" };
-  debugLog("out", `invoke ${e.id}`, payload);
+  const ch = asChannel(opts.via);
+  debugLog("out", `invoke ${e.id}`, payload, ch);
 
   const inv = e.invoke ?? {};
   try {
@@ -317,7 +409,7 @@ export async function invokeEndpoint(
         }
         const out: InvokeResult = { ok: res.ok, id: e.id, value, status: res.status, result: parsed };
         if (!res.ok) out.error = `nodered_http_${res.status}`;
-        debugLog(res.ok ? "in" : "error", `invoke result ${e.id}`, out);
+        debugLog(res.ok ? "in" : "error", `invoke result ${e.id}`, out, ch);
         if (res.ok) setEndpointValue(e.id, value);
         return out;
       } finally {
@@ -348,7 +440,7 @@ export async function invokeEndpoint(
         qos: 0,
         retained: false,
       });
-      debugLog("out", `mqtt ${inv.mqttTopic}`, { payload: payloadStr });
+      debugLog("out", `mqtt ${inv.mqttTopic}`, { payload: payloadStr }, ch);
       setEndpointValue(e.id, value);
       return { ok: true, id: e.id, value, result: { published: inv.mqttTopic } };
     }
@@ -356,7 +448,7 @@ export async function invokeEndpoint(
     return { ok: false, id: e.id, error: "no_invoke_target" };
   } catch (err: unknown) {
     const msg = String((err as Error)?.message ?? err);
-    debugLog("error", `invoke failed ${e.id}`, { error: msg });
+    debugLog("error", `invoke failed ${e.id}`, { error: msg }, ch);
     return { ok: false, id: e.id, error: msg.includes("abort") ? "nodered_timeout" : msg };
   }
 }

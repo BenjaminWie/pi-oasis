@@ -39,6 +39,16 @@ export async function renderPersonalizedFlow(cfg: NodeRedConfig): Promise<string
     MQTT_COMMAND_TOPIC: cfg.mqtt.commandTopic,
     MQTT_BROKER_HOST: cfg.mqtt.brokerHost,
     MQTT_BROKER_PORT: String(cfg.mqtt.brokerPort),
+    MQTT_PUMP_STATE_TOPIC: cfg.mqtt.pumpStateTopic,
+    MQTT_POWER_TOPIC: cfg.mqtt.powerTopic,
+    MQTT_PV_TOPIC: cfg.mqtt.pvTopic,
+    MQTT_TEMP_TOPIC: cfg.mqtt.tempTopic,
+    MQTT_RAIN_TOPIC: cfg.mqtt.rainTopic,
+    MQTT_PRICE_TOPIC: cfg.mqtt.priceTopic,
+    SURPLUS_THRESHOLD_W: String(cfg.rules.surplusThresholdW),
+    RAIN_BLOCK_MM: String(cfg.rules.rainBlockMm),
+    NIGHT_FROM_HOUR: String(cfg.rules.nightFromHour),
+    NIGHT_TO_HOUR: String(cfg.rules.nightToHour),
   };
 
   for (const n of nodes) {
