@@ -1,10 +1,10 @@
 [
   {
-    "id": "pi_control",
+    "id": "pc_tab",
     "type": "tab",
     "label": "Pi Control",
     "disabled": false,
-    "info": "Endpunkte anmelden, Werte streamen, Kommandos ausführen.",
+    "info": "Pi Control Beispiel-Flow: Katalog, Werte, Regeln, Kommandos, Debug.\nAnpassen: nur der Katalog-Node und die Themen im Tab-Env.",
     "env": [
       {
         "name": "LOCAL_BASE_URL",
@@ -17,9 +17,9 @@
         "value": "http://127.0.0.1:3000/api/public/nodered/announce"
       },
       {
-        "name": "LOCAL_LIVE_URL",
+        "name": "LOCAL_TRACE_URL",
         "type": "str",
-        "value": "http://127.0.0.1:3000/api/public/ingest/live"
+        "value": "http://127.0.0.1:3000/api/public/ingest/trace"
       },
       {
         "name": "LOCAL_EVENT_URL",
@@ -27,9 +27,9 @@
         "value": "http://127.0.0.1:3000/api/public/ingest/event"
       },
       {
-        "name": "LOCAL_TRACE_URL",
+        "name": "LOCAL_LIVE_URL",
         "type": "str",
-        "value": "http://127.0.0.1:3000/api/public/ingest/trace"
+        "value": "http://127.0.0.1:3000/api/public/ingest/live"
       },
       {
         "name": "PI_INGEST_TOKEN",
@@ -37,9 +37,44 @@
         "value": ""
       },
       {
+        "name": "NODERED_URL",
+        "type": "str",
+        "value": "http://127.0.0.1:1880"
+      },
+      {
         "name": "MQTT_COMMAND_TOPIC",
         "type": "str",
         "value": "cmnd/zisterne/POWER"
+      },
+      {
+        "name": "MQTT_PUMP_STATE_TOPIC",
+        "type": "str",
+        "value": "stat/zisterne/POWER"
+      },
+      {
+        "name": "MQTT_POWER_TOPIC",
+        "type": "str",
+        "value": "tele/zisterne/SENSOR"
+      },
+      {
+        "name": "MQTT_PV_TOPIC",
+        "type": "str",
+        "value": "sensor/pv/surplus"
+      },
+      {
+        "name": "MQTT_TEMP_TOPIC",
+        "type": "str",
+        "value": "sensor/outside/temp"
+      },
+      {
+        "name": "MQTT_RAIN_TOPIC",
+        "type": "str",
+        "value": "sensor/weather/rain24h"
+      },
+      {
+        "name": "MQTT_PRICE_TOPIC",
+        "type": "str",
+        "value": "sensor/energy/price"
       },
       {
         "name": "MQTT_BROKER_HOST",
@@ -50,39 +85,69 @@
         "name": "MQTT_BROKER_PORT",
         "type": "str",
         "value": "1883"
+      },
+      {
+        "name": "SURPLUS_THRESHOLD_W",
+        "type": "str",
+        "value": "800"
+      },
+      {
+        "name": "RAIN_BLOCK_MM",
+        "type": "str",
+        "value": "3"
+      },
+      {
+        "name": "NIGHT_FROM_HOUR",
+        "type": "str",
+        "value": "21"
+      },
+      {
+        "name": "NIGHT_TO_HOUR",
+        "type": "str",
+        "value": "7"
       }
     ]
   },
   {
     "id": "pc_broker",
     "type": "mqtt-broker",
-    "name": "Pi Control Broker",
+    "name": "lokaler Broker",
     "broker": "127.0.0.1",
     "port": "1883",
-    "clientid": "pi-control-nodered",
+    "clientid": "pi-control",
     "autoConnect": true,
     "usetls": false,
     "protocolVersion": "4",
     "keepalive": "60",
-    "cleansession": true
+    "cleansession": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": ""
   },
   {
     "id": "pc_announce_tick",
     "type": "inject",
-    "z": "pi_control",
-    "name": "Beim Deploy + alle 30 Min",
+    "z": "pc_tab",
+    "name": "Katalog melden (30 min)",
     "props": [
       {
         "p": "payload"
       }
     ],
     "repeat": "1800",
+    "crontab": "",
     "once": true,
-    "onceDelay": "3",
+    "onceDelay": "5",
     "topic": "",
     "payload": "",
     "payloadType": "date",
-    "x": 180,
+    "x": 170,
     "y": 80,
     "wires": [
       [
@@ -93,10 +158,11 @@
   {
     "id": "pc_catalog",
     "type": "function",
-    "z": "pi_control",
-    "name": "Endpunkt-Katalog",
-    "func": "// ==== HIER DEINE ENDPUNKTE DEFINIEREN ====\n// kind: \"read\" | \"switch\" | \"number\" | \"action\"\n// invoke: {url, method} ODER {mqttTopic, mqttPayloadOn, mqttPayloadOff}\nconst endpoints = [\n  {\n    id: \"pump\",\n    label: \"Pumpe\",\n    kind: \"switch\",\n    group: \"Bewaesserung\",\n    voice: true,\n    invoke: { mqttTopic: env.get(\"MQTT_COMMAND_TOPIC\"), mqttPayloadOn: \"ON\", mqttPayloadOff: \"OFF\" },\n  },\n  { id: \"pump_watts\", label: \"Leistung\", kind: \"read\", unit: \"W\", group: \"Bewaesserung\" },\n  { id: \"outside_temp_c\", label: \"Aussentemperatur\", kind: \"read\", unit: \"°C\", group: \"Wetter\" },\n  { id: \"pv_surplus_w\", label: \"PV-Ueberschuss\", kind: \"read\", unit: \"W\", group: \"Energie\" },\n];\n\nmsg.payload = { source: \"node-red\", replace: true, endpoints };\nmsg.headers = { \"content-type\": \"application/json\" };\nif (env.get(\"PI_INGEST_TOKEN\")) msg.headers.authorization = \"Bearer \" + env.get(\"PI_INGEST_TOKEN\");\nmsg.url = env.get(\"LOCAL_ANNOUNCE_URL\");\nreturn msg;",
+    "z": "pc_tab",
+    "name": "Katalog (hier anpassen)",
+    "func": "\n// Katalog: DAS hier passt du an dein Haus an. Alles andere bleibt.\nconst nr = env.get(\"NODERED_URL\") || \"http://127.0.0.1:1880\";\nconst cmd = (id) => ({ url: nr + \"/pi-control/cmd?id=\" + id, method: \"POST\" });\n\nconst endpoints = [\n  // ---- Pumpe -------------------------------------------------------------\n  { id: \"pump\", label: \"Pumpe\", kind: \"switch\", group: \"Pumpe\",\n    invoke: { mqttTopic: env.get(\"MQTT_COMMAND_TOPIC\"), mqttPayloadOn: \"ON\", mqttPayloadOff: \"OFF\" } },\n  { id: \"pump_watts\", label: \"Pumpenleistung\", kind: \"read\", unit: \"W\", group: \"Pumpe\" },\n  { id: \"pump_minutes_today\", label: \"Laufzeit heute\", kind: \"read\", unit: \"min\", group: \"Pumpe\" },\n  { id: \"bewaesserung\", label: \"Bewässerung starten\", kind: \"number\", unit: \"min\", min: 1, max: 120,\n    group: \"Pumpe\", description: \"Startet die Pumpe für die angegebene Zeit.\", invoke: cmd(\"bewaesserung\") },\n  { id: \"nachtruhe\", label: \"Nachtruhe\", kind: \"switch\", group: \"Pumpe\",\n    description: \"Blockt Bewässerung abends und nachts.\", invoke: cmd(\"nachtruhe\") },\n\n  // ---- Energie -----------------------------------------------------------\n  { id: \"pv_surplus_w\", label: \"PV-Überschuss\", kind: \"read\", unit: \"W\", group: \"Energie\" },\n  { id: \"price_ct\", label: \"Strompreis\", kind: \"read\", unit: \"ct/kWh\", group: \"Energie\" },\n  { id: \"only_surplus\", label: \"Nur bei Überschuss pumpen\", kind: \"switch\", group: \"Energie\",\n    invoke: cmd(\"only_surplus\") },\n  { id: \"surplus_threshold_w\", label: \"Überschuss-Schwelle\", kind: \"number\", unit: \"W\",\n    min: 0, max: 3000, group: \"Energie\", invoke: cmd(\"surplus_threshold_w\") },\n\n  // ---- Wetter ------------------------------------------------------------\n  { id: \"outside_temp_c\", label: \"Außentemperatur\", kind: \"read\", unit: \"°C\", group: \"Wetter\" },\n  { id: \"rain_24h_mm\", label: \"Regen nächste 24 h\", kind: \"read\", unit: \"mm\", group: \"Wetter\" },\n  { id: \"rain_block_mm\", label: \"Regen-Sperre\", kind: \"number\", unit: \"mm\", min: 0, max: 20,\n    group: \"Wetter\", invoke: cmd(\"rain_block_mm\") },\n\n  // ---- Strategie ---------------------------------------------------------\n  { id: \"strategy\", label: \"Strategie\", kind: \"action\", group: \"Strategie\",\n    options: [\"automatik\", \"ueberschuss\", \"immer\", \"aus\"], invoke: cmd(\"strategy\") },\n  { id: \"strategy_applied\", label: \"Zuletzt angewandt\", kind: \"read\", group: \"Strategie\" },\n  { id: \"strategy_reason\", label: \"Begründung\", kind: \"read\", group: \"Strategie\" }\n];\n\n// Startwerte für die einstellbaren Endpunkte (nur beim ersten Lauf)\nif (flow.get(\"strategy\") === undefined) {\n  flow.set(\"strategy\", \"automatik\");\n  flow.set(\"only_surplus\", true);\n  flow.set(\"nachtruhe\", false);\n  flow.set(\"surplus_threshold_w\", Number(env.get(\"SURPLUS_THRESHOLD_W\")) || 800);\n  flow.set(\"rain_block_mm\", Number(env.get(\"RAIN_BLOCK_MM\")) || 3);\n}\n\nmsg.url = env.get(\"LOCAL_ANNOUNCE_URL\");\nmsg.headers = { \"content-type\": \"application/json\",\n  authorization: \"Bearer \" + (env.get(\"PI_INGEST_TOKEN\") || \"\") };\nmsg.payload = {\n  source: \"node-red\",\n  endpoints: endpoints,\n  values: {\n    strategy: flow.get(\"strategy\"),\n    only_surplus: flow.get(\"only_surplus\"),\n    nachtruhe: flow.get(\"nachtruhe\"),\n    surplus_threshold_w: flow.get(\"surplus_threshold_w\"),\n    rain_block_mm: flow.get(\"rain_block_mm\")\n  }\n};\nreturn msg;\n",
     "outputs": 1,
+    "timeout": 0,
     "noerr": 0,
     "initialize": "",
     "finalize": "",
@@ -112,14 +178,19 @@
   {
     "id": "pc_announce_http",
     "type": "http request",
-    "z": "pi_control",
-    "name": "POST /nodered/announce",
+    "z": "pc_tab",
+    "name": "→ Pi Control",
     "method": "POST",
     "ret": "obj",
     "paytoqs": "ignore",
     "url": "",
+    "tls": "",
     "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
     "authType": "",
+    "senderr": false,
+    "headers": [],
     "x": 690,
     "y": 80,
     "wires": [
@@ -131,20 +202,25 @@
   {
     "id": "pc_announce_status",
     "type": "debug",
-    "z": "pi_control",
-    "name": "Announce-Ergebnis",
+    "z": "pc_tab",
+    "name": "Antwort",
     "active": true,
     "tosidebar": true,
+    "console": false,
+    "tostatus": true,
     "complete": "payload",
-    "x": 940,
+    "targetType": "msg",
+    "statusVal": "payload.total",
+    "statusType": "auto",
+    "x": 900,
     "y": 80,
     "wires": []
   },
   {
     "id": "pc_mqtt_in",
     "type": "mqtt in",
-    "z": "pi_control",
-    "name": "MQTT # (alle Topics)",
+    "z": "pc_tab",
+    "name": "MQTT alles",
     "topic": "#",
     "qos": "0",
     "datatype": "auto-detect",
@@ -153,8 +229,8 @@
     "rap": true,
     "rh": 0,
     "inputs": 0,
-    "x": 180,
-    "y": 200,
+    "x": 150,
+    "y": 180,
     "wires": [
       [
         "pc_values"
@@ -164,64 +240,56 @@
   {
     "id": "pc_values",
     "type": "function",
-    "z": "pi_control",
-    "name": "Werte -> Endpunkt-IDs",
-    "func": "// MQTT/Sensordaten -> Endpunkt-Werte. Topic auf Endpunkt-ID mappen.\nconst map = {\n  \"stat/zisterne/POWER\": [\"pump\", (v) => String(v).toUpperCase() === \"ON\"],\n  \"tele/zisterne/SENSOR\": [\"pump_watts\", (v) => { try { return JSON.parse(v).ENERGY.Power; } catch (e) { return null; } }],\n  \"sensor/outside/temp\": [\"outside_temp_c\", (v) => Number(v)],\n  \"sensor/pv/surplus\": [\"pv_surplus_w\", (v) => Number(v)],\n};\nconst hit = map[msg.topic];\nif (!hit) return null;\nconst value = hit[1](msg.payload);\nif (value === null || value === undefined || Number.isNaN(value)) return null;\n\n// max. 1 Update pro Endpunkt und 5 Sekunden\nconst key = \"last_\" + hit[0];\nconst last = flow.get(key) || 0;\nif (Date.now() - last < 5000) return null;\nflow.set(key, Date.now());\n\nmsg.payload = { values: { [hit[0]]: value }, source: \"node-red\" };\nmsg.headers = { \"content-type\": \"application/json\" };\nif (env.get(\"PI_INGEST_TOKEN\")) msg.headers.authorization = \"Bearer \" + env.get(\"PI_INGEST_TOKEN\");\nmsg.url = env.get(\"LOCAL_ANNOUNCE_URL\");\nreturn msg;",
+    "z": "pc_tab",
+    "name": "Werte zuordnen",
+    "func": "\n// MQTT → Endpunktwerte. Anpassen: nur die Themen oben im Tab-Env.\nconst t = msg.topic || \"\";\nconst raw = msg.payload;\nconst num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };\nconst out = {};\n\nconst T = {\n  pump: env.get(\"MQTT_PUMP_STATE_TOPIC\"),\n  power: env.get(\"MQTT_POWER_TOPIC\"),\n  pv: env.get(\"MQTT_PV_TOPIC\"),\n  temp: env.get(\"MQTT_TEMP_TOPIC\"),\n  rain: env.get(\"MQTT_RAIN_TOPIC\"),\n  price: env.get(\"MQTT_PRICE_TOPIC\")\n};\n\nif (t === T.pump) {\n  const on = String(raw).toUpperCase() === \"ON\" || raw === true || raw === 1;\n  const was = flow.get(\"pump_on\");\n  if (was !== on) {\n    // Laufzeit heute mitzählen\n    const today = new Date().toISOString().slice(0, 10);\n    if (flow.get(\"runtime_day\") !== today) { flow.set(\"runtime_day\", today); flow.set(\"runtime_min\", 0); }\n    if (on) { flow.set(\"pump_since\", Date.now()); }\n    else {\n      const since = flow.get(\"pump_since\");\n      if (since) {\n        const mins = (Date.now() - since) / 60000;\n        flow.set(\"runtime_min\", Math.round(((flow.get(\"runtime_min\") || 0) + mins) * 10) / 10);\n        flow.set(\"pump_since\", null);\n      }\n    }\n    out.pump_minutes_today = flow.get(\"runtime_min\") || 0;\n  }\n  flow.set(\"pump_on\", on);\n  out.pump = on;\n} else if (t === T.power) {\n  let w = null;\n  if (raw && typeof raw === \"object\") {\n    w = num(raw.ENERGY && raw.ENERGY.Power) ?? num(raw.Power) ?? num(raw.watts);\n  } else { w = num(raw); }\n  if (w !== null) { out.pump_watts = w; flow.set(\"watts\", w); }\n} else if (t === T.pv) {\n  const w = num(typeof raw === \"object\" ? raw.value : raw);\n  if (w !== null) { out.pv_surplus_w = w; flow.set(\"pv\", w); }\n} else if (t === T.temp) {\n  const c = num(typeof raw === \"object\" ? raw.value : raw);\n  if (c !== null) { out.outside_temp_c = c; flow.set(\"temp\", c); }\n} else if (t === T.rain) {\n  const mm = num(typeof raw === \"object\" ? raw.value : raw);\n  if (mm !== null) { out.rain_24h_mm = mm; flow.set(\"rain\", mm); }\n} else if (t === T.price) {\n  const ct = num(typeof raw === \"object\" ? raw.value : raw);\n  if (ct !== null) { out.price_ct = ct; flow.set(\"price\", ct); }\n} else {\n  return null; // unbekanntes Thema: ignorieren\n}\n\n// 5 Sekunden Entprellung pro Wert\nconst send = {};\nconst now = Date.now();\nfor (const k of Object.keys(out)) {\n  const key = \"last_\" + k;\n  const last = flow.get(key) || { at: 0, v: undefined };\n  if (last.v === out[k] && now - last.at < 5000) continue;\n  flow.set(key, { at: now, v: out[k] });\n  send[k] = out[k];\n}\nif (!Object.keys(send).length) return null;\n\nmsg.url = env.get(\"LOCAL_ANNOUNCE_URL\");\nmsg.headers = { \"content-type\": \"application/json\",\n  authorization: \"Bearer \" + (env.get(\"PI_INGEST_TOKEN\") || \"\") };\nmsg.payload = { source: \"node-red\", values: send };\nreturn msg;\n",
     "outputs": 1,
+    "timeout": 0,
     "noerr": 0,
     "initialize": "",
     "finalize": "",
     "libs": [],
-    "x": 430,
-    "y": 200,
+    "x": 400,
+    "y": 180,
     "wires": [
       [
-        "pc_values_http"
+        "pc_report_http"
       ]
     ]
   },
   {
-    "id": "pc_values_http",
+    "id": "pc_report_http",
     "type": "http request",
-    "z": "pi_control",
-    "name": "POST Werte",
+    "z": "pc_tab",
+    "name": "Werte → Pi Control",
     "method": "POST",
     "ret": "obj",
     "paytoqs": "ignore",
     "url": "",
-    "persist": true,
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
     "authType": "",
-    "x": 690,
-    "y": 200,
+    "senderr": false,
+    "headers": [],
+    "x": 700,
+    "y": 180,
     "wires": [
-      [
-        "pc_values_done"
-      ]
+      []
     ]
-  },
-  {
-    "id": "pc_values_done",
-    "type": "debug",
-    "z": "pi_control",
-    "name": "Werte-Ergebnis",
-    "active": false,
-    "tosidebar": true,
-    "complete": "payload",
-    "x": 940,
-    "y": 200,
-    "wires": []
   },
   {
     "id": "pc_cmd_in",
     "type": "http in",
-    "z": "pi_control",
-    "name": "/pi-control/cmd",
+    "z": "pc_tab",
+    "name": "POST /pi-control/cmd",
     "url": "/pi-control/cmd",
     "method": "post",
     "upload": false,
     "swaggerDoc": "",
-    "x": 180,
-    "y": 320,
+    "x": 170,
+    "y": 280,
     "wires": [
       [
         "pc_cmd_fn"
@@ -231,14 +299,14 @@
   {
     "id": "pc_cmd_in_get",
     "type": "http in",
-    "z": "pi_control",
-    "name": "/pi-control/cmd (GET)",
+    "z": "pc_tab",
+    "name": "GET /pi-control/cmd",
     "url": "/pi-control/cmd",
     "method": "get",
     "upload": false,
     "swaggerDoc": "",
-    "x": 180,
-    "y": 370,
+    "x": 170,
+    "y": 330,
     "wires": [
       [
         "pc_cmd_fn"
@@ -248,20 +316,23 @@
   {
     "id": "pc_cmd_fn",
     "type": "function",
-    "z": "pi_control",
-    "name": "Kommando -> MQTT",
-    "func": "// Pi Control ruft diesen Endpunkt: /pi-control/cmd?id=pump&value=true\nconst id = (msg.req && msg.req.query.id) || (msg.payload && msg.payload.id);\nlet value = (msg.req && msg.req.query.value);\nif (value === undefined && msg.payload) value = msg.payload.value;\nif (value === \"true\") value = true;\nif (value === \"false\") value = false;\nif (!id) { msg.statusCode = 400; msg.payload = { ok: false, error: \"id fehlt\" }; return [null, msg]; }\n\nconst on = value === true || value === \"ON\" || Number(value) > 0;\nmsg.topic = env.get(\"MQTT_COMMAND_TOPIC\");\nmsg.payload = on ? \"ON\" : \"OFF\";\nmsg._res_payload = { ok: true, id, value, topic: msg.topic, sent: msg.payload };\nreturn [msg, null];",
-    "outputs": 2,
+    "z": "pc_tab",
+    "name": "Kommando ausführen",
+    "func": "\n// Kommandos von Pi Control (Steuerung, Alexa, Telegram, Chat, Debug-Testschuss)\nconst q = msg.req && msg.req.query ? msg.req.query : {};\nconst body = (msg.payload && typeof msg.payload === \"object\") ? msg.payload : {};\nconst id = String(body.id || q.id || \"\").toLowerCase();\nlet value = body.value !== undefined ? body.value : q.value;\nif (value === \"true\") value = true;\nif (value === \"false\") value = false;\nif (typeof value === \"string\" && value !== \"\" && !isNaN(Number(value))) value = Number(value);\n\nconst topic = env.get(\"MQTT_COMMAND_TOPIC\");\nconst report = {};\nlet mqtt = null;\nlet ok = true;\nlet note = \"\";\n\nconst publish = (on) => ({ topic: topic, payload: on ? \"ON\" : \"OFF\", qos: 0, retain: false });\n\nswitch (id) {\n  case \"pump\":\n    mqtt = publish(value === true || value === \"ON\" || Number(value) > 0);\n    report.pump = value === true || value === \"ON\" || Number(value) > 0;\n    break;\n  case \"bewaesserung\": {\n    const min = Math.max(1, Math.min(120, Number(value) || 10));\n    if (flow.get(\"nachtruhe\") === true) { ok = false; note = \"Nachtruhe aktiv\"; break; }\n    if ((flow.get(\"rain\") || 0) >= (flow.get(\"rain_block_mm\") || 3)) { ok = false; note = \"Regen erwartet\"; break; }\n    flow.set(\"irrigate_until\", Date.now() + min * 60000);\n    mqtt = publish(true);\n    report.pump = true;\n    report.strategy_applied = \"manuell\";\n    report.strategy_reason = \"Bewässerung \" + min + \" Minuten\";\n    note = min + \" Minuten\";\n    break;\n  }\n  case \"nachtruhe\":\n    flow.set(\"nachtruhe\", value === true);\n    report.nachtruhe = value === true;\n    if (value === true && flow.get(\"pump_on\")) { mqtt = publish(false); report.pump = false; }\n    break;\n  case \"only_surplus\":\n    flow.set(\"only_surplus\", value === true);\n    report.only_surplus = value === true;\n    break;\n  case \"surplus_threshold_w\":\n    flow.set(\"surplus_threshold_w\", Math.max(0, Math.min(3000, Number(value) || 0)));\n    report.surplus_threshold_w = flow.get(\"surplus_threshold_w\");\n    break;\n  case \"rain_block_mm\":\n    flow.set(\"rain_block_mm\", Math.max(0, Math.min(20, Number(value) || 0)));\n    report.rain_block_mm = flow.get(\"rain_block_mm\");\n    break;\n  case \"strategy\": {\n    const allowed = [\"automatik\", \"ueberschuss\", \"immer\", \"aus\"];\n    const v = String(value || \"\").toLowerCase();\n    if (allowed.indexOf(v) === -1) { ok = false; note = \"unbekannte Strategie\"; break; }\n    flow.set(\"strategy\", v);\n    report.strategy = v;\n    if (v === \"aus\" && flow.get(\"pump_on\")) { mqtt = publish(false); report.pump = false; }\n    break;\n  }\n  default:\n    ok = false;\n    note = \"unbekannter Endpunkt \" + id;\n}\n\nconst res = { payload: { ok: ok, id: id, value: value, note: note } };\nconst values = Object.keys(report).length\n  ? { url: env.get(\"LOCAL_ANNOUNCE_URL\"),\n      headers: { \"content-type\": \"application/json\",\n                 authorization: \"Bearer \" + (env.get(\"PI_INGEST_TOKEN\") || \"\") },\n      payload: { source: \"node-red\", values: report } }\n  : null;\nconst resMsg = Object.assign({}, msg, res);\nresMsg.statusCode = ok ? 200 : 400;\nreturn [mqtt, values, resMsg];\n",
+    "outputs": 3,
+    "timeout": 0,
     "noerr": 0,
     "initialize": "",
     "finalize": "",
     "libs": [],
     "x": 430,
-    "y": 345,
+    "y": 305,
     "wires": [
       [
-        "pc_cmd_mqtt",
-        "pc_cmd_ok"
+        "pc_mqtt_out"
+      ],
+      [
+        "pc_report_http"
       ],
       [
         "pc_cmd_res"
@@ -269,60 +340,91 @@
     ]
   },
   {
-    "id": "pc_cmd_mqtt",
+    "id": "pc_mqtt_out",
     "type": "mqtt out",
-    "z": "pi_control",
-    "name": "MQTT senden",
+    "z": "pc_tab",
+    "name": "Pumpe schalten",
     "topic": "",
-    "qos": "1",
+    "qos": "0",
     "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
     "broker": "pc_broker",
-    "x": 690,
-    "y": 320,
+    "x": 720,
+    "y": 270,
     "wires": []
-  },
-  {
-    "id": "pc_cmd_ok",
-    "type": "change",
-    "z": "pi_control",
-    "name": "Antwort bauen",
-    "rules": [
-      {
-        "t": "move",
-        "p": "_res_payload",
-        "pt": "msg",
-        "to": "payload",
-        "tot": "msg"
-      }
-    ],
-    "x": 690,
-    "y": 370,
-    "wires": [
-      [
-        "pc_cmd_res"
-      ]
-    ]
   },
   {
     "id": "pc_cmd_res",
     "type": "http response",
-    "z": "pi_control",
+    "z": "pc_tab",
     "name": "Antwort",
     "statusCode": "",
     "headers": {},
-    "x": 940,
-    "y": 345,
+    "x": 700,
+    "y": 350,
     "wires": []
+  },
+  {
+    "id": "pc_rules_tick",
+    "type": "inject",
+    "z": "pc_tab",
+    "name": "Regeln prüfen (5 min)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "300",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "20",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 160,
+    "y": 420,
+    "wires": [
+      [
+        "pc_rules"
+      ]
+    ]
+  },
+  {
+    "id": "pc_rules",
+    "type": "function",
+    "z": "pc_tab",
+    "name": "Entscheidung",
+    "func": "\n// Regel-Baustein: alle 5 Minuten entscheiden, ob gepumpt wird.\nconst strategy = flow.get(\"strategy\") || \"automatik\";\nconst night = flow.get(\"nachtruhe\") === true;\nconst pv = Number(flow.get(\"pv\") || 0);\nconst rain = Number(flow.get(\"rain\") || 0);\nconst price = flow.get(\"price\");\nconst thr = Number(flow.get(\"surplus_threshold_w\") || 800);\nconst rainBlock = Number(flow.get(\"rain_block_mm\") || 3);\nconst on = flow.get(\"pump_on\") === true;\nconst until = flow.get(\"irrigate_until\") || 0;\nconst hour = new Date().getHours();\nconst from = Number(env.get(\"NIGHT_FROM_HOUR\")) || 21;\nconst to = Number(env.get(\"NIGHT_TO_HOUR\")) || 7;\nconst quietHour = from > to ? (hour >= from || hour < to) : (hour >= from && hour < to);\n\nlet want = on;\nlet reason = \"\";\n\nif (until && Date.now() < until) {\n  want = true; reason = \"manuelle Bewässerung läuft\";\n} else {\n  if (until) flow.set(\"irrigate_until\", 0);\n  if (strategy === \"aus\") { want = false; reason = \"Strategie aus\"; }\n  else if (night && quietHour) { want = false; reason = \"Nachtruhe\"; }\n  else if (rain >= rainBlock) { want = false; reason = \"Regen \" + rain + \" mm erwartet\"; }\n  else if (strategy === \"immer\") { want = true; reason = \"Strategie immer\"; }\n  else if (strategy === \"ueberschuss\" || flow.get(\"only_surplus\") === true) {\n    want = pv >= thr;\n    reason = want ? \"PV-Überschuss \" + pv + \" W\" : \"zu wenig Überschuss (\" + pv + \" von \" + thr + \" W)\";\n  } else {\n    want = pv >= thr || (typeof price === \"number\" && price <= 10);\n    reason = want ? \"Automatik: günstig oder Überschuss\" : \"Automatik: warten\";\n  }\n}\n\nconst values = { url: env.get(\"LOCAL_ANNOUNCE_URL\"),\n  headers: { \"content-type\": \"application/json\",\n             authorization: \"Bearer \" + (env.get(\"PI_INGEST_TOKEN\") || \"\") },\n  payload: { source: \"node-red\", values: { strategy_applied: strategy, strategy_reason: reason } } };\n\nlet mqtt = null;\nif (want !== on) {\n  mqtt = { topic: env.get(\"MQTT_COMMAND_TOPIC\"), payload: want ? \"ON\" : \"OFF\", qos: 0, retain: false };\n  values.payload.values.pump = want;\n}\nreturn [mqtt, values];\n",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 420,
+    "wires": [
+      [
+        "pc_mqtt_out"
+      ],
+      [
+        "pc_report_http"
+      ]
+    ]
   },
   {
     "id": "pc_catch",
     "type": "catch",
-    "z": "pi_control",
-    "name": "Fehler im Flow",
+    "z": "pc_tab",
+    "name": "Fehler",
     "scope": null,
     "uncaught": false,
-    "x": 180,
-    "y": 460,
+    "x": 160,
+    "y": 500,
     "wires": [
       [
         "pc_trace_fn"
@@ -332,16 +434,17 @@
   {
     "id": "pc_trace_fn",
     "type": "function",
-    "z": "pi_control",
-    "name": "Fehler -> Debug-Kanal",
-    "func": "const e = msg.error || {};\nmsg.payload = {\n  component: \"node-red\",\n  status: \"error\",\n  message: String(e.message || \"unbekannter Fehler\"),\n  metrics: { source: (e.source && e.source.name) || null },\n};\nmsg.headers = { \"content-type\": \"application/json\" };\nif (env.get(\"PI_INGEST_TOKEN\")) msg.headers.authorization = \"Bearer \" + env.get(\"PI_INGEST_TOKEN\");\nmsg.url = env.get(\"LOCAL_TRACE_URL\");\nreturn msg;",
+    "z": "pc_tab",
+    "name": "Fehler melden",
+    "func": "\nmsg.url = env.get(\"LOCAL_TRACE_URL\");\nmsg.headers = { \"content-type\": \"application/json\",\n  authorization: \"Bearer \" + (env.get(\"PI_INGEST_TOKEN\") || \"\") };\nmsg.payload = { component: \"node-red\", status: \"error\",\n  message: String((msg.error && msg.error.message) || \"Fehler\"),\n  metrics: { source: (msg.error && msg.error.source && msg.error.source.id) || null } };\nreturn msg;\n",
     "outputs": 1,
+    "timeout": 0,
     "noerr": 0,
     "initialize": "",
     "finalize": "",
     "libs": [],
-    "x": 430,
-    "y": 460,
+    "x": 400,
+    "y": 500,
     "wires": [
       [
         "pc_trace_http"
@@ -351,27 +454,32 @@
   {
     "id": "pc_trace_http",
     "type": "http request",
-    "z": "pi_control",
-    "name": "POST Trace",
+    "z": "pc_tab",
+    "name": "→ Debug-Strom",
     "method": "POST",
     "ret": "obj",
     "paytoqs": "ignore",
     "url": "",
+    "tls": "",
     "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
     "authType": "",
-    "x": 690,
-    "y": 460,
+    "senderr": false,
+    "headers": [],
+    "x": 680,
+    "y": 500,
     "wires": [
       []
     ]
   },
   {
-    "id": "pc_note",
+    "id": "pc_comment",
     "type": "comment",
-    "z": "pi_control",
-    "name": "1) Katalog im Function-Node anpassen  2) Deploy  3) In Pi Control unter Steuerung erscheinen die Endpunkte",
-    "info": "",
-    "x": 430,
+    "z": "pc_tab",
+    "name": "1) Katalog-Node anpassen  2) Deploy  3) In Pi Control unter Steuerung erscheinen die Endpunkte",
+    "info": "Themen und Schwellen stehen im Tab-Env (Bearbeiten → Umgebungsvariablen).\nFehler und alle Kommandos siehst du in Pi Control unter Debug.",
+    "x": 420,
     "y": 30,
     "wires": []
   }
