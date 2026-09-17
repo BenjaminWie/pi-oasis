@@ -1,4 +1,4 @@
-# Pi Hub — running on your Raspberry Pi
+# Pi Control — running on your Raspberry Pi
 
 This app is built mobile-first as a TanStack Start app. In the Lovable preview
 it uses **mocked** Docker / system data so you can see the UI working from
@@ -17,7 +17,7 @@ one `systemctl restart` away from any change.
 For the fastest experience, use the bootstrap script:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/benniwie/pi-hub/main/scripts/bootstrap.sh | bash
+curl -sSL https://raw.githubusercontent.com/benniwie/pi-control/main/scripts/bootstrap.sh | bash
 ```
 
 Alternatively, you can install manually:
@@ -28,9 +28,9 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt update && sudo apt install -y nodejs git
 
 # 2) clone & build (writes .env, runs npm install + npm run build)
-sudo git clone <your-repo-url> /opt/pi-hub
-sudo chown -R "$USER":"$USER" /opt/pi-hub
-cd /opt/pi-hub
+sudo git clone <your-repo-url> /opt/pi-control
+sudo chown -R "$USER":"$USER" /opt/pi-control
+cd /opt/pi-control
 ./scripts/install.sh
 ```
 
@@ -45,7 +45,7 @@ and ships with log rotation and crash restarts.
 
 ```bash
 sudo npm install -g pm2
-cd /opt/pi-hub
+cd /opt/pi-control
 pm2 start ecosystem.config.cjs
 pm2 save
 pm2 startup                       # run the sudo command it prints
@@ -54,8 +54,8 @@ pm2 startup                       # run the sudo command it prints
 ### Alternative: systemd
 
 ```bash
-cd /opt/pi-hub
-./scripts/install-systemd.sh      # installs /etc/systemd/system/pi-hub.service
+cd /opt/pi-control
+./scripts/install-systemd.sh      # installs /etc/systemd/system/pi-control.service
 ```
 
 The unit pins `ExecStart` to the resolved build artifact and does NOT auto-build

@@ -99,7 +99,7 @@ function AuthPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-3xl font-mono font-bold text-primary mb-1">PI HUB</h1>
+        <h1 className="text-3xl font-mono font-bold text-primary mb-1">Pi Control</h1>
         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-8">
           Cloud Control
         </p>

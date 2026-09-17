@@ -1,11 +1,11 @@
-// PM2 ecosystem for pi-hub on Raspberry Pi.
+// PM2 ecosystem for pi-control on Raspberry Pi.
 // Tight memory budget so a Pi 3 (1 GB RAM, no swap) stays responsive.
 const path = require("path");
 
 module.exports = {
   apps: [
     {
-      name: "pi-hub",
+      name: "pi-control",
       script: ".output/server/index.mjs",
       interpreter: "node",
       // Cap V8 heap so we never balloon past PM2's restart threshold.

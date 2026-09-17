@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# pi-hub bootstrap — downloads the latest prebuilt arm64 release.
+# pi-control bootstrap — downloads the latest prebuilt arm64 release.
 # NEVER runs `npm install` or `npm run build` on the device.
 #
 # Usage:
 #   curl -fsSL https://pi-hub.benniwie.com/install.sh | sh
 #
 # Env overrides:
-#   PI_HUB_DIR   install dir (default: /opt/pi-hub)
+#   PI_HUB_DIR   install dir (default: /opt/pi-control)
 #   PI_HUB_REPO  github owner/repo (default: BenjaminWie/pi-oasis)
 #   PI_HUB_TAG   release tag (default: latest)
 
@@ -14,8 +14,8 @@ set -eu
 
 REPO="${PI_HUB_REPO:-BenjaminWie/pi-oasis}"
 TAG="${PI_HUB_TAG:-latest}"
-DIR="${PI_HUB_DIR:-/opt/pi-hub}"
-ASSET="pi-hub-linux-arm64.tar.gz"
+DIR="${PI_HUB_DIR:-/opt/pi-control}"
+ASSET="pi-control-linux-arm64.tar.gz"
 
 BLUE='\033[0;34m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'; BOLD='\033[1m'
 say()  { printf "${BLUE}→${NC} %s\n" "$*"; }
@@ -24,14 +24,14 @@ warn() { printf "${YELLOW}!${NC} %s\n" "$*" >&2; }
 die()  { printf "${RED}✗${NC} %s\n" "$*" >&2; exit 1; }
 
 printf "${BOLD}${BLUE}╔══════════════════════════════════════════════╗${NC}\n"
-printf "${BOLD}${BLUE}║              Pi Hub Bootstrap                ║${NC}\n"
+printf "${BOLD}${BLUE}║              Pi Control Bootstrap                ║${NC}\n"
 printf "${BOLD}${BLUE}╚══════════════════════════════════════════════╝${NC}\n\n"
 
 # --- arch / OS check ---
 ARCH=$(uname -m)
 case "$ARCH" in
   aarch64|arm64) ok "architecture: $ARCH" ;;
-  *) die "pi-hub releases ship arm64 binaries only — found $ARCH.
+  *) die "pi-control releases ship arm64 binaries only — found $ARCH.
    Use a 64-bit Raspberry Pi OS, or run from source (see DEPLOY.md)." ;;
 esac
 
@@ -52,7 +52,7 @@ ok "node $(node -v)"
 # --- memory hint (no swap setup — just inform) ---
 MEM_MB=$(awk '/MemTotal/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || echo 0)
 if [ "$MEM_MB" -gt 0 ] && [ "$MEM_MB" -lt 700 ]; then
-  warn "low RAM (${MEM_MB} MB). pi-hub runs fine but consider 256 MB swap."
+  warn "low RAM (${MEM_MB} MB). pi-control runs fine but consider 256 MB swap."
 fi
 
 # --- resolve release ---
@@ -102,7 +102,7 @@ fi
 
 # Stop any running instance before swapping files
 if command -v pm2 >/dev/null 2>&1; then
-  pm2 stop pi-hub >/dev/null 2>&1 || true
+  pm2 stop pi-control >/dev/null 2>&1 || true
 fi
 
 say "extracting to $DIR"
@@ -125,7 +125,7 @@ EOF
   ok "wrote .env (PIN: 1234 — change in Settings)"
 fi
 
-STATE_DIR="$HOME/.pi-hub"
+STATE_DIR="$HOME/.pi-control"
 STATE_FILE="$STATE_DIR/state.json"
 if [ ! -f "$STATE_FILE" ]; then
   mkdir -p "$STATE_DIR" && chmod 700 "$STATE_DIR"
@@ -153,7 +153,7 @@ if ! command -v pm2 >/dev/null 2>&1; then
   if [ "$(id -u)" = "0" ]; then npm install -g pm2; else sudo npm install -g pm2; fi
 fi
 
-say "starting pi-hub"
+say "starting pi-control"
 pm2 start ecosystem.config.cjs >/dev/null
 pm2 save >/dev/null
 # pm2 startup is optional and needs a tty for the sudo handshake — print it
@@ -165,12 +165,12 @@ IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 HOST_LOCAL="$(hostname).local"
 echo
 printf "${BOLD}${GREEN}╔══════════════════════════════════════════════╗${NC}\n"
-printf "${BOLD}${GREEN}║      Pi Hub installed and running            ║${NC}\n"
+printf "${BOLD}${GREEN}║      Pi Control installed and running            ║${NC}\n"
 printf "${BOLD}${GREEN}╚══════════════════════════════════════════════╝${NC}\n\n"
 echo "  http://${HOST_LOCAL}:3000"
 [ -n "$IP" ] && echo "  http://${IP}:3000"
 echo
 echo "  Default PIN: 1234   (change in Settings → PIN)"
-echo "  Logs:        pm2 logs pi-hub"
+echo "  Logs:        pm2 logs pi-control"
 echo "  Re-run:      curl -fsSL https://pi-hub.benniwie.com/install.sh | sh"
 echo

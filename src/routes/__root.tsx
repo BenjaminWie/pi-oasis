@@ -75,14 +75,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1",
       },
       { name: "theme-color", content: "#07090a" },
-      { title: "pi-hub — your home, in your terminal" },
+      { title: "pi-control — your home, in your terminal" },
       {
         name: "description",
         content:
           "Self-hosted home OS for your Raspberry Pi. Voice, chat, and Telegram — for the geeks and the rest of the household.",
       },
-      { property: "og:title", content: "pi-hub — your home, in your terminal" },
-      { name: "twitter:title", content: "pi-hub — your home, in your terminal" },
+      { property: "og:title", content: "pi-control — your home, in your terminal" },
+      { name: "twitter:title", content: "pi-control — your home, in your terminal" },
       {
         property: "og:description",
         content:

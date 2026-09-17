@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install and enable pi-hub as a systemd service.
+# Install and enable pi-control as a systemd service.
 # Run AFTER ./scripts/install.sh has built the project.
 #
 # PM2 is the recommended production runner — see ecosystem.config.cjs.
@@ -29,11 +29,11 @@ if [ -z "$ENTRY" ]; then
   exit 1
 fi
 
-UNIT=/etc/systemd/system/pi-hub.service
+UNIT=/etc/systemd/system/pi-control.service
 
 sudo tee "$UNIT" > /dev/null <<EOF
 [Unit]
-Description=Pi Hub
+Description=Pi Control
 After=network-online.target docker.service
 Wants=network-online.target
 
@@ -53,9 +53,9 @@ EOF
 
 sudo usermod -aG docker "$USER_NAME" || true
 sudo systemctl daemon-reload
-sudo systemctl enable --now pi-hub
+sudo systemctl enable --now pi-control
 
-echo "✓ pi-hub service installed"
-echo "  status:  sudo systemctl status pi-hub"
-echo "  logs:    journalctl -u pi-hub -f"
+echo "✓ pi-control service installed"
+echo "  status:  sudo systemctl status pi-control"
+echo "  logs:    journalctl -u pi-control -f"
 echo "  open:    http://$(hostname).local:${PORT:-3000}"

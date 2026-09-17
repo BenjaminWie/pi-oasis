@@ -1,4 +1,4 @@
-# Pi-Hub Slim Runtime
+# Pi Control Slim Runtime
 
 The build that ships to the Raspberry Pi is intentionally minimal. The full
 feature set still exists in the codebase — it just isn't loaded on the
@@ -8,7 +8,7 @@ device.
 
 | Audience | Command | What runs |
 |---|---|---|
-| **End user (Pi)** | `curl -fsSL https://pi-hub.benniwie.com/install.sh \| sh` | Downloads the prebuilt `pi-hub-linux-arm64.tar.gz` from GitHub Releases and starts it under PM2. **No `npm install`, no build.** |
+| **End user (Pi)** | `curl -fsSL https://pi-hub.benniwie.com/install.sh \| sh` | Downloads the prebuilt `pi-control-linux-arm64.tar.gz` from GitHub Releases and starts it under PM2. **No `npm install`, no build.** |
 | **Contributor** | `./scripts/install.sh` | Full local build (Vite, esbuild, all dev deps). Requires ≥ 4 GB RAM. Marked dev-only in the script header. |
 | **Cloud** | Lovable deploy pipeline | Full landing + cloud dashboard at `pi-hub.benniwie.com`. Built without `VITE_PI_SLIM_MODE`. |
 
@@ -42,7 +42,7 @@ Radix `carousel`, `menubar`, `navigation-menu`, `hover-card`,
 - `max_memory_restart: 220M` (PM2 restarts if it grows past this)
 - `restart_delay: 5000` ms
 
-This keeps pi-hub well under 250 MB resident on a Pi 3.
+This keeps pi-control well under 250 MB resident on a Pi 3.
 
 ## GitHub release pipeline
 
@@ -52,6 +52,6 @@ This keeps pi-hub well under 250 MB resident on a Pi 3.
 1. Builds with `VITE_PI_SLIM_MODE=true`.
 2. Verifies `.output/server/index.mjs` exists.
 3. Rebuilds production-only deps for `linux/arm64` under QEMU.
-4. Ships `pi-hub-linux-arm64.tar.gz` + `.sha256` to the release page.
+4. Ships `pi-control-linux-arm64.tar.gz` + `.sha256` to the release page.
 
 The bootstrap script verifies the SHA256 before extracting.

@@ -1,5 +1,5 @@
 #!/bin/sh
-# pi-hub installer (served at https://pi-hub.benniwie.com/install.sh)
+# pi-control installer (served at https://pi-hub.benniwie.com/install.sh)
 #
 # Thin wrapper that downloads the matching bootstrap.sh from the latest
 # GitHub release and executes it. The bootstrap installs the prebuilt

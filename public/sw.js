@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pi-hub-cache-v1';
+const CACHE_NAME = 'pi-control-cache-v1';
 
 self.addEventListener('install', (event) => {
   // Service worker installed
