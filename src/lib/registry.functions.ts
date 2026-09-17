@@ -7,6 +7,8 @@ export const listEndpointsFn = createServerFn({ method: "GET" })
   .middleware([requirePiAuth])
   .handler(async () => {
     const { listEndpoints, registryInfo } = await import("@/lib/registry.server");
+    const { ensureSystemLoop } = await import("@/lib/system-endpoints.server");
+    ensureSystemLoop();
     return { endpoints: listEndpoints(), registry: registryInfo() };
   });
 

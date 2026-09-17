@@ -26,6 +26,8 @@ export const Route = createFileRoute("/api/public/pi/endpoints")({
         const { voiceSnapshot, registryInfo, debugLogVerbose, asChannel } = await import(
           "@/lib/registry.server"
         );
+        const { ensureSystemLoop } = await import("@/lib/system-endpoints.server");
+        ensureSystemLoop();
         const ch = asChannel(request.headers.get("x-pi-control-via"));
         debugLogVerbose("in", "Katalog gelesen", { via: ch }, ch);
         return Response.json(
