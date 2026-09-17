@@ -309,7 +309,7 @@ function ResetPinModal({
   return (
     <ModalShell title="Reset PIN" onClose={onClose}>
       <p className="text-xs text-muted-foreground">
-        Factory-Token findest du auf dem Pi unter <code>~/.pi-hub/state.json</code> oder im Output
+        Factory-Token findest du auf dem Pi unter <code>~/.pi-control/state.json</code> oder im Output
         von <code>./scripts/install.sh</code>.
       </p>
       <input

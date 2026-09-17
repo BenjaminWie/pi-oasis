@@ -13,7 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as CloudRouteImport } from './routes/_cloud'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as DevicesRouteImport } from './routes/devices'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PluginsRouteImport } from './routes/plugins'
+import { Route as PumpRouteImport } from './routes/pump'
+import { Route as PumpeRouteImport } from './routes/pumpe'
 import { Route as AuthenticatedControlRouteImport } from './routes/_authenticated/control'
 import { Route as AuthenticatedDebugRouteImport } from './routes/_authenticated/debug'
 import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
@@ -62,9 +66,29 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevicesRoute = DevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PluginsRoute = PluginsRouteImport.update({
+  id: '/plugins',
+  path: '/plugins',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PumpRoute = PumpRouteImport.update({
+  id: '/pump',
+  path: '/pump',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PumpeRoute = PumpeRouteImport.update({
+  id: '/pumpe',
+  path: '/pumpe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedControlRoute = AuthenticatedControlRouteImport.update({
@@ -222,7 +246,11 @@ const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/devices': typeof DevicesRoute
   '/login': typeof LoginRoute
+  '/plugins': typeof PluginsRoute
+  '/pump': typeof PumpRoute
+  '/pumpe': typeof PumpeRoute
   '/control': typeof AuthenticatedControlRoute
   '/debug': typeof AuthenticatedDebugRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
@@ -256,7 +284,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/devices': typeof DevicesRoute
   '/login': typeof LoginRoute
+  '/plugins': typeof PluginsRoute
+  '/pump': typeof PumpRoute
+  '/pumpe': typeof PumpeRoute
   '/control': typeof AuthenticatedControlRoute
   '/debug': typeof AuthenticatedDebugRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
@@ -292,7 +324,11 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_cloud': typeof CloudRouteWithChildren
   '/auth': typeof AuthRoute
+  '/devices': typeof DevicesRoute
   '/login': typeof LoginRoute
+  '/plugins': typeof PluginsRoute
+  '/pump': typeof PumpRoute
+  '/pumpe': typeof PumpeRoute
   '/_authenticated/control': typeof AuthenticatedControlRoute
   '/_authenticated/debug': typeof AuthenticatedDebugRoute
   '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
@@ -328,7 +364,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/devices'
     | '/login'
+    | '/plugins'
+    | '/pump'
+    | '/pumpe'
     | '/control'
     | '/debug'
     | '/integrations'
@@ -362,7 +402,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/devices'
     | '/login'
+    | '/plugins'
+    | '/pump'
+    | '/pumpe'
     | '/control'
     | '/debug'
     | '/integrations'
@@ -397,7 +441,11 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/_cloud'
     | '/auth'
+    | '/devices'
     | '/login'
+    | '/plugins'
+    | '/pump'
+    | '/pumpe'
     | '/_authenticated/control'
     | '/_authenticated/debug'
     | '/_authenticated/integrations'
@@ -434,7 +482,11 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   CloudRoute: typeof CloudRouteWithChildren
   AuthRoute: typeof AuthRoute
+  DevicesRoute: typeof DevicesRoute
   LoginRoute: typeof LoginRoute
+  PluginsRoute: typeof PluginsRoute
+  PumpRoute: typeof PumpRoute
+  PumpeRoute: typeof PumpeRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiLiveStreamRoute: typeof ApiLiveStreamRoute
   ApiPublicIngestEventRoute: typeof ApiPublicIngestEventRoute
@@ -482,11 +534,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/devices': {
+      id: '/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof DevicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plugins': {
+      id: '/plugins'
+      path: '/plugins'
+      fullPath: '/plugins'
+      preLoaderRoute: typeof PluginsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pump': {
+      id: '/pump'
+      path: '/pump'
+      fullPath: '/pump'
+      preLoaderRoute: typeof PumpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pumpe': {
+      id: '/pumpe'
+      path: '/pumpe'
+      fullPath: '/pumpe'
+      preLoaderRoute: typeof PumpeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/control': {
@@ -755,7 +835,11 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   CloudRoute: CloudRouteWithChildren,
   AuthRoute: AuthRoute,
+  DevicesRoute: DevicesRoute,
   LoginRoute: LoginRoute,
+  PluginsRoute: PluginsRoute,
+  PumpRoute: PumpRoute,
+  PumpeRoute: PumpeRoute,
   ApiChatRoute: ApiChatRoute,
   ApiLiveStreamRoute: ApiLiveStreamRoute,
   ApiPublicIngestEventRoute: ApiPublicIngestEventRoute,

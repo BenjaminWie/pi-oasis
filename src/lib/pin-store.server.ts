@@ -1,11 +1,25 @@
 // Pi-local state store: hashed PIN, factory reset token, trusted devices,
-// cloud bridge config. Lives at ~/.pi-hub/state.json. Server-only.
+// cloud bridge config. Lives at ~/.pi-control/state.json. Server-only.
 import { promises as fs, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 
-const DIR = process.env.PI_HUB_HOME || join(homedir(), ".pi-hub");
+function stateHome(): string {
+  const explicit = process.env.PI_CONTROL_HOME || process.env.PI_HUB_HOME;
+  if (explicit) return explicit;
+  const next = join(homedir(), ".pi-control");
+  const legacy = join(homedir(), ".pi-hub");
+  try {
+    // keep working on installs that still have the old directory
+    if (!existsSync(next) && existsSync(legacy)) return legacy;
+  } catch {
+    /* ignore */
+  }
+  return next;
+}
+
+const DIR = stateHome();
 const FILE = join(DIR, "state.json");
 
 export interface TrustedDevice {

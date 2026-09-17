@@ -1,7 +1,7 @@
 {
-  "name": "PI HUB Cloud",
-  "short_name": "PI HUB",
-  "description": "Cloud control for your PI HUB smart pump system.",
+  "name": "Pi Control Cloud",
+  "short_name": "Pi Control",
+  "description": "Cloud control for your Pi Control smart pump system.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#07090a",

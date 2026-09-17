@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# DEV-ONLY install script — builds pi-hub from source.
+# DEV-ONLY install script — builds pi-control from source.
 #
 # Do NOT run this on a Raspberry Pi 3 / 4 / Zero — it will exhaust RAM and
 # the prebuilt esbuild binaries SIGILL on ARMv8.0. End users should install
@@ -136,8 +136,8 @@ EOF
   echo "→ wrote .env (PIN: 1234 — change in Settings)"
 fi
 
-# --- pi-hub state (PIN hash + factory reset token) ---
-STATE_DIR="$HOME/.pi-hub"
+# --- pi-control state (PIN hash + factory reset token) ---
+STATE_DIR="$HOME/.pi-control"
 STATE_FILE="$STATE_DIR/state.json"
 if [ ! -f "$STATE_FILE" ]; then
   mkdir -p "$STATE_DIR"
@@ -153,9 +153,9 @@ if [ ! -f "$STATE_FILE" ]; then
       JSON.stringify({ pinHash: hash, pinSalt: salt, factoryToken: token, trustedDevices: [] }, null, 2),
       { mode: 0o600 });
     console.log(token);
-  " > /tmp/pi-hub-factory-token
-  FACTORY_TOKEN=$(cat /tmp/pi-hub-factory-token)
-  rm -f /tmp/pi-hub-factory-token
+  " > /tmp/pi-control-factory-token
+  FACTORY_TOKEN=$(cat /tmp/pi-control-factory-token)
+  rm -f /tmp/pi-control-factory-token
   echo
   echo "════════════════════════════════════════════════════════════════"
   echo "  FACTORY RESET TOKEN — note this somewhere safe!"

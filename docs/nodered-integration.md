@@ -1,4 +1,4 @@
-# Node-RED ↔ Pi-Hub Integration
+# Node-RED ↔ Pi Control Integration
 
 ## Kurzweg (5 Schritte, ohne Token-Copy-Paste)
 
@@ -9,12 +9,12 @@
    und die WebSocket-URL bereits eingetragen (Geheimnisse im Klartext — nicht
    weitergeben).
 3. **Importieren** — Node-RED `Menü → Import → Datei auswählen`.
-4. **Deploy** — der Node „Pi-Hub Config laden" holt beim Deploy und danach alle
+4. **Deploy** — der Node „Pi Control Config laden" holt beim Deploy und danach alle
    30 min `/api/public/nodered/config` vom Pi und legt alles unter
    `global.pihub` ab. Neu gepairt? Kein Deploy nötig, der Flow zieht den neuen
    Token selbst.
 5. **Selftest** — läuft 20 s nach Deploy automatisch, manuell über den Inject
-   „Pi-Hub Selftest". Ergebnis als Tabelle im Debug-Fenster **und** in der Pi-UI
+   „Pi Control Selftest". Ergebnis als Tabelle im Debug-Fenster **und** in der Pi-UI
    unter „Integration-Health".
 
 ```text
@@ -33,10 +33,10 @@ local/trace   OK   200
 | --- | --- | --- |
 | `config ---` / „keine Verbindung" | Pi-App läuft nicht oder falscher Port | `LOCAL_CONFIG_URL` prüfen (Default `http://127.0.0.1:3000/api/public/nodered/config`) |
 | `config leer` / „nicht gepaart" | Kein Device-Token auf dem Pi | Pi-UI → System → Cloud verbinden |
-| `cloud/*  FAIL 401` | Token ungültig/abgelaufen oder falscher Token (Factory statt Device) | Neu pairen, dann „Pi-Hub Config laden" auslösen |
+| `cloud/*  FAIL 401` | Token ungültig/abgelaufen oder falscher Token (Factory statt Device) | Neu pairen, dann „Pi Control Config laden" auslösen |
 | Alle `cloud/*`-Checks scheitern, lokal ist `OK` | Gehostete Cloud ist pausiert/nicht erreichbar oder Token wurde dort entfernt | Lokaler Betrieb läuft weiter. Cloud reaktivieren, danach neu pairen und Config laden |
 | `realtime websocket —` sehr häufig | Wiederholte Reconnect-Statusmeldungen; kein lokaler Datenverlust | Neuer Flow fasst `error` und `disconnected` als einen Ausfall zusammen und meldet ihn höchstens alle 6 Stunden |
-| `Unexpected token ')'` in `Build Live Telemetry Request` | Veralteter Flow mit defektem Telemetrie-Builder | Aktuellen personalisierten Flow herunterladen und den bisherigen Pi-Hub-Tab ersetzen |
+| `Unexpected token ')'` in `Build Live Telemetry Request` | Veralteter Flow mit defektem Telemetrie-Builder | Aktuellen personalisierten Flow herunterladen und den bisherigen Pi Control-Tab ersetzen |
 | WebSocket-URL beim Download nicht verfügbar | Cloud-Bootstrap war nicht erreichbar | Der Export lässt den Socket bewusst weg; lokal und Safety-Poll laufen weiter. Nach Cloud-Wiederherstellung erneut herunterladen |
 | `cloud aus — lokal aktiv` | Cloud-Token fehlt oder wurde nach 401 per Circuit-Breaker deaktiviert | Kein lokaler Fehler. Lokal weiterarbeiten; für Cloud neu pairen und Config neu laden |
 | `local/* FAIL 403` | Lokaler Guard blockt (nicht aus dem LAN) | `PI_INGEST_TOKEN` in `.env` setzen und Flow neu laden |
@@ -414,7 +414,7 @@ Request" → „POST Live Telemetry"**. Empfohlenes Intervall: 60 s.
    fehlt `/sys/class/thermal/thermal_zone0/temp`, dann bleibt `temp_c` leer, der
    Rest funktioniert trotzdem.
 4. `CLOUD_DEVICE_TOKEN` und `CLOUD_LIVE_URL` in den Tab-Env-Werten gesetzt?
-   (Werte stehen in Pi-Hub unter `/integrations`.)
+   (Werte stehen in Pi Control unter `/integrations`.)
 5. HTTP 401 = falscher/abgelaufener Token, 403/404 = falsche URL.
 
 ## 8. Kosten-Regeln (was in die DB darf)
@@ -483,8 +483,8 @@ evt-m8fq2k-a13c -> POST /cloud-bridge/event | 2 item(s) | 200 | received=2, inse
 ## 10. Dual-Sink: Cloud + lokale App (48h lokale Historie)
 
 Jeder Push geht jetzt optional **doppelt** raus: an die Cloud (wie bisher) und an die
-lokal auf dem Pi laufende Pi-Hub App. Die lokale App speichert Ticks, Events und Traces
-48 Stunden lang in JSONL-Dateien unter `~/.pi-hub/timeseries/` und zeigt sie unter
+lokal auf dem Pi laufende Pi Control App. Die lokale App speichert Ticks, Events und Traces
+48 Stunden lang in JSONL-Dateien unter `~/.pi-control/timeseries/` und zeigt sie unter
 **/pumpe** (Live-Gauges, 48h-Charts, Debug-/Trace-Panel) an — komplett ohne Datenbank
 und ohne Cloud-Wake.
 
@@ -492,7 +492,7 @@ und ohne Cloud-Wake.
 
 | Name | Default | Bedeutung |
 | --- | --- | --- |
-| `LOCAL_BASE_URL` | `http://127.0.0.1:8080` | Basis-URL der lokalen Pi-Hub App |
+| `LOCAL_BASE_URL` | `http://127.0.0.1:8080` | Basis-URL der lokalen Pi Control App |
 | `LOCAL_SINK` | `on` | `off` schaltet den lokalen Zweig komplett ab |
 | `PI_INGEST_TOKEN` | leer | optional; ohne Token akzeptiert die App nur Aufrufe aus dem LAN/localhost |
 

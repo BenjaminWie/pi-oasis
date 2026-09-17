@@ -58,7 +58,7 @@ function NavBar() {
       <div className="mx-auto max-w-6xl px-5 h-14 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-primary glow-mint" />
-          <span className="font-mono text-sm tracking-widest text-primary">pi-hub</span>
+          <span className="font-mono text-sm tracking-widest text-primary">pi-control</span>
           <span className="font-mono text-[10px] text-muted-foreground hidden sm:inline">
             // v1
           </span>
@@ -104,7 +104,7 @@ function Hero() {
           className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-[11px] font-mono uppercase tracking-widest text-primary"
         >
           <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-          pi-hub // self-hosted home OS
+          pi-control // self-hosted home OS
         </motion.div>
 
         <motion.h1
@@ -221,7 +221,7 @@ function TerminalCard() {
         <span className="h-2.5 w-2.5 rounded-full bg-coral/80" />
         <span className="h-2.5 w-2.5 rounded-full bg-primary/40" />
         <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-        <span className="ml-3 text-[11px] font-mono text-muted-foreground">~/pi-hub · zsh</span>
+        <span className="ml-3 text-[11px] font-mono text-muted-foreground">~/pi-control · zsh</span>
       </div>
       <div className="p-5 font-mono text-[13px] leading-relaxed min-h-[230px]">
         {lines.slice(0, shown).map((l, i) => (
@@ -373,7 +373,7 @@ function HowItWorks() {
           <DiagramArrow label="long-poll · HTTPS" />
           <DiagramNode
             icon={<Cloud className="h-6 w-6" />}
-            title="pi-hub cloud"
+            title="pi-control cloud"
             lines={["queues commands", "no shell access"]}
           />
         </div>
@@ -387,7 +387,7 @@ function HowItWorks() {
           <DiagramArrow label="webhook · per-user" reverse />
           <DiagramNode
             icon={<Cloud className="h-6 w-6" />}
-            title="pi-hub cloud"
+            title="pi-control cloud"
             lines={["routes to your device", "audit log"]}
           />
         </div>
@@ -431,7 +431,7 @@ function NoDnsHustle() {
         </h2>
         <p className="mt-4 text-muted-foreground max-w-2xl">
           Most "remote your home" guides end in a swamp of router screens, DuckDNS scripts, NGINX
-          reverse proxies, and a Pi sitting on the public internet praying nobody notices. pi-hub
+          reverse proxies, and a Pi sitting on the public internet praying nobody notices. pi-control
           flips that: your Pi opens a quiet outbound HTTPS connection to the cloud and waits.
           Commands ride back on the same wire. Your router never sees an inbound packet.
         </p>
@@ -451,7 +451,7 @@ function NoDnsHustle() {
           <CompareCard
             tone="good"
             icon={<Lock className="h-5 w-5" />}
-            title="pi-hub way"
+            title="pi-control way"
             lines={[
               "Run one install script",
               "Pi long-polls cloud (outbound)",

@@ -1,4 +1,4 @@
-# Pi Hub
+# Pi Control
 
 Self-hosted home OS for your Raspberry Pi. Voice, chat, and Telegram —
 agent-driven, cyberpunk, household-friendly.
@@ -26,11 +26,11 @@ curl -fsSL https://pi-hub.benniwie.com/install.sh | sh
 That's it. The installer:
 
 1. Detects your arm64 Pi and checks for Node 20+ (installs it if missing).
-2. Downloads the latest **prebuilt** `pi-hub-linux-arm64.tar.gz` from GitHub
+2. Downloads the latest **prebuilt** `pi-control-linux-arm64.tar.gz` from GitHub
    Releases — never compiles on the device.
-3. Verifies the SHA256, extracts to `/opt/pi-hub`, generates a fresh PIN +
+3. Verifies the SHA256, extracts to `/opt/pi-control`, generates a fresh PIN +
    factory-reset token.
-4. Starts pi-hub under PM2 (capped at 220 MB RSS, auto-restart on crash).
+4. Starts pi-control under PM2 (capped at 220 MB RSS, auto-restart on crash).
 
 When it's done, open `http://<pi>.local:3000` and log in with PIN **1234**
 (change it in Settings on first login). Re-run the same command any time to
@@ -53,7 +53,7 @@ Prefer raw systemd? `./scripts/install-systemd.sh` writes a unit file.
 ## Run on your laptop (preview with mock data)
 
 ```bash
-git clone <this-repo> pi-hub && cd pi-hub
+git clone <this-repo> pi-control && cd pi-control
 ./scripts/dev.sh                  # → http://localhost:5173
 ```
 
@@ -65,7 +65,7 @@ can see the UI end-to-end.
 ## Architecture
 
 Native Node process, single binary. No Docker-in-Docker, no nginx reverse
-proxy, no DB server. State is a tiny JSON file at `~/.pi-hub/state.json`
+proxy, no DB server. State is a tiny JSON file at `~/.pi-control/state.json`
 (PIN hash + trusted devices).
 
 | Concern        | How                                                       |
@@ -92,7 +92,7 @@ source build (Node 22+, ≥ 4 GB RAM recommended). See
 
 ## Real data vs demo
 
-When pi-hub runs on a host with `/proc/stat` and `/var/run/docker.sock`
+When pi-control runs on a host with `/proc/stat` and `/var/run/docker.sock`
 (i.e. your Pi), server functions read real Docker containers, real CPU/RAM
 from `/proc`, real temperature from `vcgencmd`, and connect to real MQTT
 brokers. Anywhere else — the public landing site, local laptop preview —
