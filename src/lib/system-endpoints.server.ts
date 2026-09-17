@@ -30,13 +30,14 @@ export async function reportSystemEndpoints(): Promise<void> {
       );
     }
 
-    setEndpointValue("sys_cpu_pct", Math.round(s.cpu));
-    if (s.ramTotalGb > 0) {
-      setEndpointValue("sys_mem_pct", Math.round((s.ramUsedGb / s.ramTotalGb) * 100));
-    }
-    setEndpointValue("sys_disk_pct", Math.round(s.diskUsedPct));
-    if (s.tempC) setEndpointValue("sys_temp_c", Math.round(s.tempC * 10) / 10);
-    setEndpointValue("sys_uptime_h", Math.round((s.uptime / 3600) * 10) / 10);
+    const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : Number(v) || 0);
+    setEndpointValue("sys_cpu_pct", Math.round(n(s.cpu)));
+    const total = n(s.ramTotalGb);
+    if (total > 0) setEndpointValue("sys_mem_pct", Math.round((n(s.ramUsedGb) / total) * 100));
+    setEndpointValue("sys_disk_pct", Math.round(n(s.diskUsedPct)));
+    const temp = n(s.tempC);
+    if (temp) setEndpointValue("sys_temp_c", Math.round(temp * 10) / 10);
+    setEndpointValue("sys_uptime_h", Math.round((n(s.uptime) / 3600) * 10) / 10);
     debugLogVerbose("in", "Systemwerte gelesen", s, "local");
   } catch {
     /* best effort */
