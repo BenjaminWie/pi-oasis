@@ -60,6 +60,8 @@ export interface EndpointConfig {
 
 export interface Endpoint extends AnnouncedEndpoint {
   kind: EndpointKind;
+  /** who announced it — "nodered", "pi-control", … */
+  source?: string;
   announcedAt: string;
   lastSeenAt: string;
   value?: Json;
@@ -274,6 +276,7 @@ export function announceEndpoints(
       id,
       kind,
       group: raw.group ?? prev?.group,
+      source,
       announcedAt: prev?.announcedAt ?? now,
       lastSeenAt: now,
       value: prev?.value,
@@ -285,7 +288,10 @@ export function announceEndpoints(
   }
 
   if (meta.replace !== false) {
-    for (const [id] of endpoints) if (!seen.has(id)) endpoints.delete(id);
+    // only prune what the SAME source announced before
+    for (const [id, e] of endpoints) {
+      if (!seen.has(id) && (e.source ?? "nodered") === source) endpoints.delete(id);
+    }
   }
 
   debugLog("in", `announce (${seen.size} endpoints)`, { source, rejected }, "node-red");
