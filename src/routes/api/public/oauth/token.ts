@@ -47,6 +47,15 @@ function parseCreds(request: Request, form: URLSearchParams) {
   };
 }
 
+async function log(dir: "in" | "out" | "error", what: string, detail?: unknown) {
+  try {
+    const { debugLog } = await import("@/lib/registry.server");
+    debugLog(dir, what, detail, "alexa");
+  } catch {
+    /* best effort */
+  }
+}
+
 function mint(sub: string, scopes: string[]) {
   const access = issueToken("access", ACCESS_TTL_SEC, { sc: scopes }, sub);
   const refresh = issueToken("refresh", REFRESH_TTL_SEC, { sc: scopes }, sub);
@@ -83,6 +92,7 @@ export const Route = createFileRoute("/api/public/oauth/token")({
             !safeEqual(client_secret, client.secret)
           ) {
             console.warn("[oauth] invalid_client", { client_id, grant_type });
+            await log("error", "Token: falsche Client-Daten", { grant_type });
             return oauthResponse({ error: "invalid_client" }, 401);
           }
 
@@ -92,14 +102,19 @@ export const Route = createFileRoute("/api/public/oauth/token")({
             if (!code || !redirect_uri) return oauthResponse({ error: "invalid_request" }, 400);
 
             const payload = verifyToken(code, "code");
-            if (!payload) return oauthResponse({ error: "invalid_grant" }, 400);
+            if (!payload) {
+              await log("error", "Token: Code ungültig oder abgelaufen");
+              return oauthResponse({ error: "invalid_grant" }, 400);
+            }
             if (payload.cid !== client_id || payload.ru !== redirect_uri) {
               console.warn("[oauth] code mismatch", { cid: payload.cid, ru: payload.ru });
+              await log("error", "Token: Code passt nicht zur Anfrage");
               return oauthResponse({ error: "invalid_grant" }, 400);
             }
 
             const scopes = normalizeScopes((payload.sc as string[]) ?? ["read"]);
             const { access, refresh } = mint(payload.sub, scopes);
+            await log("out", "Token ausgestellt (Code eingelöst)", { scope: scopes.join(" ") });
             return oauthResponse({
               access_token: access,
               token_type: "Bearer",
@@ -112,9 +127,13 @@ export const Route = createFileRoute("/api/public/oauth/token")({
           if (grant_type === "refresh_token") {
             const rt = form.get("refresh_token");
             const payload = verifyToken(rt, "refresh");
-            if (!payload) return oauthResponse({ error: "invalid_grant" }, 400);
+            if (!payload) {
+              await log("error", "Token: Refresh-Token ungültig");
+              return oauthResponse({ error: "invalid_grant" }, 400);
+            }
             const scopes = normalizeScopes((payload.sc as string[]) ?? ["read"]);
             const { access, refresh } = mint(payload.sub, scopes);
+            await log("out", "Token erneuert", { scope: scopes.join(" ") });
             return oauthResponse({
               access_token: access,
               token_type: "Bearer",

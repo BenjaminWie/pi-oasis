@@ -47,6 +47,7 @@ import { Route as ApiPublicPiHistoryRouteImport } from './routes/api/public/pi/h
 import { Route as ApiPublicPiStateRouteImport } from './routes/api/public/pi/state'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicVoiceAlexaRouteImport } from './routes/api/public/voice/alexa'
+import { Route as ApiPublicVoiceAlexaModelRouteImport } from './routes/api/public/voice/alexa-model'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -242,6 +243,12 @@ const ApiPublicVoiceAlexaRoute = ApiPublicVoiceAlexaRouteImport.update({
   path: '/api/public/voice/alexa',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicVoiceAlexaModelRoute =
+  ApiPublicVoiceAlexaModelRouteImport.update({
+    id: '/api/public/voice/alexa-model',
+    path: '/api/public/voice/alexa-model',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -280,6 +287,7 @@ export interface FileRoutesByFullPath {
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
+  '/api/public/voice/alexa-model': typeof ApiPublicVoiceAlexaModelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -317,6 +325,7 @@ export interface FileRoutesByTo {
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
+  '/api/public/voice/alexa-model': typeof ApiPublicVoiceAlexaModelRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -358,6 +367,7 @@ export interface FileRoutesById {
   '/api/public/pi/state': typeof ApiPublicPiStateRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/voice/alexa': typeof ApiPublicVoiceAlexaRoute
+  '/api/public/voice/alexa-model': typeof ApiPublicVoiceAlexaModelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -398,6 +408,7 @@ export interface FileRouteTypes {
     | '/api/public/pi/state'
     | '/api/public/telegram/webhook'
     | '/api/public/voice/alexa'
+    | '/api/public/voice/alexa-model'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -435,6 +446,7 @@ export interface FileRouteTypes {
     | '/api/public/pi/state'
     | '/api/public/telegram/webhook'
     | '/api/public/voice/alexa'
+    | '/api/public/voice/alexa-model'
   id:
     | '__root__'
     | '/'
@@ -475,6 +487,7 @@ export interface FileRouteTypes {
     | '/api/public/pi/state'
     | '/api/public/telegram/webhook'
     | '/api/public/voice/alexa'
+    | '/api/public/voice/alexa-model'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -502,6 +515,7 @@ export interface RootRouteChildren {
   ApiPublicPiStateRoute: typeof ApiPublicPiStateRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
   ApiPublicVoiceAlexaRoute: typeof ApiPublicVoiceAlexaRoute
+  ApiPublicVoiceAlexaModelRoute: typeof ApiPublicVoiceAlexaModelRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -772,6 +786,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicVoiceAlexaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/voice/alexa-model': {
+      id: '/api/public/voice/alexa-model'
+      path: '/api/public/voice/alexa-model'
+      fullPath: '/api/public/voice/alexa-model'
+      preLoaderRoute: typeof ApiPublicVoiceAlexaModelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -855,6 +876,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPiStateRoute: ApiPublicPiStateRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
   ApiPublicVoiceAlexaRoute: ApiPublicVoiceAlexaRoute,
+  ApiPublicVoiceAlexaModelRoute: ApiPublicVoiceAlexaModelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
