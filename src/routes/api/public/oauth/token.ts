@@ -47,6 +47,15 @@ function parseCreds(request: Request, form: URLSearchParams) {
   };
 }
 
+async function log(dir: "in" | "out" | "error", what: string, detail?: unknown) {
+  try {
+    const { debugLog } = await import("@/lib/registry.server");
+    debugLog(dir, what, detail, "alexa");
+  } catch {
+    /* best effort */
+  }
+}
+
 function mint(sub: string, scopes: string[]) {
   const access = issueToken("access", ACCESS_TTL_SEC, { sc: scopes }, sub);
   const refresh = issueToken("refresh", REFRESH_TTL_SEC, { sc: scopes }, sub);
