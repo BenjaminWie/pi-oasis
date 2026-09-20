@@ -11,7 +11,7 @@ export interface WiringStatus {
   baseUrl: string;
   relay: { configured: boolean; piUrl: string | null; online: boolean; stale: boolean; ageSec: number | null; error?: string };
   telegram: { configured: boolean; secretSet: boolean; chatAllowlist: number; webhookUrl: string; botUsername: string | null; webhookOk: boolean | null; webhookInfo: string | null };
-  alexa: { clientConfigured: boolean; linkSecretSet: boolean; tokenSecretSet: boolean; authorizeUrl: string; tokenUrl: string; skillEndpoint: string; extraRedirectUris: string[] };
+  alexa: { clientConfigured: boolean; linkSecretSet: boolean; tokenSecretSet: boolean; skillIdSet: boolean; authorizeUrl: string; tokenUrl: string; skillEndpoint: string; modelUrl: string; extraRedirectUris: string[] };
   ai: { gatewayKeySet: boolean };
 }
 
@@ -78,9 +78,11 @@ export const getWiringStatus = createServerFn({ method: "GET" })
         clientConfigured: client.configured,
         linkSecretSet: Boolean(process.env.PIHUB_LINK_SECRET || process.env.PIHUB_DEVICE_TOKEN),
         tokenSecretSet: Boolean(process.env.PIHUB_TOKEN_SECRET || process.env.PIHUB_DEVICE_TOKEN),
+        skillIdSet: Boolean(process.env.PIHUB_ALEXA_SKILL_ID),
         authorizeUrl: `${base}/api/public/oauth/authorize`,
         tokenUrl: `${base}/api/public/oauth/token`,
         skillEndpoint: `${base}/api/public/voice/alexa`,
+        modelUrl: `${base}/api/public/voice/alexa-model`,
         extraRedirectUris: (process.env.PIHUB_OAUTH_REDIRECT_URIS || "")
           .split(",")
           .map((s) => s.trim())
