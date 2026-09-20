@@ -14,12 +14,14 @@ import { Input } from "@/components/ui/input";
 import { checkAuthorizeRequest } from "@/lib/alexa-link.functions";
 
 export const Route = createFileRoute("/api/public/oauth/authorize")({
+  // Keep the search object identical to the incoming URL — adding defaults here
+  // makes the router redirect, which Alexa's webview reports as a link failure.
   validateSearch: (s: Record<string, unknown>) => ({
-    client_id: (s.client_id as string) ?? "",
-    redirect_uri: (s.redirect_uri as string) ?? "",
-    state: (s.state as string) ?? "",
-    scope: (s.scope as string) ?? "",
-    response_type: (s.response_type as string) ?? "code",
+    client_id: s.client_id as string | undefined,
+    redirect_uri: s.redirect_uri as string | undefined,
+    state: s.state as string | undefined,
+    scope: s.scope as string | undefined,
+    response_type: s.response_type as string | undefined,
   }),
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) =>
