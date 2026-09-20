@@ -5,12 +5,16 @@
 // is an HMAC-signed, self-describing token — nothing is stored anywhere.
 
 import { createFileRoute } from "@tanstack/react-router";
-import { timingSafeEqual } from "crypto";
+import { randomBytes, timingSafeEqual } from "crypto";
 import { jsonResponse } from "@/lib/agent-api.server";
 import { normalizeScope } from "@/lib/oauth-scope";
+import { isRedirectAllowed } from "@/lib/oauth-redirect";
 import { issueToken, oauthClient } from "@/lib/stateless-token.server";
 
-const CODE_TTL_SEC = 10 * 60;
+/** Alexa redeems the code within seconds; a short window limits replay. */
+const CODE_TTL_SEC = 60;
+
+export { isRedirectAllowed };
 
 function safeEqual(a: string, b: string) {
   const A = Buffer.from(a);
@@ -22,23 +26,13 @@ function linkSecret() {
   return process.env.PIHUB_LINK_SECRET || process.env.PIHUB_DEVICE_TOKEN || "";
 }
 
-/** Alexa rotates its redirect host, so allow its known domains plus an env list. */
-export function isRedirectAllowed(uri: string): boolean {
-  let u: URL;
+async function log(dir: "in" | "out" | "error", what: string, detail?: unknown) {
   try {
-    u = new URL(uri);
+    const { debugLog } = await import("@/lib/registry.server");
+    debugLog(dir, what, detail, "alexa");
   } catch {
-    return false;
+    /* logging is best effort */
   }
-  if (u.protocol !== "https:") return false;
-  const extra = (process.env.PIHUB_OAUTH_REDIRECT_URIS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (extra.some((allowed) => uri === allowed || uri.startsWith(allowed))) return true;
-  return /(^|\.)(amazon\.com|amazon\.co\.jp|amazonalexa\.com|pitangui\.amazon\.com|layla\.amazon\.com)$/.test(
-    u.hostname,
-  );
 }
 
 export const Route = createFileRoute("/api/public/oauth/authorize-post")({
@@ -55,25 +49,31 @@ export const Route = createFileRoute("/api/public/oauth/authorize-post")({
         };
 
         if (!body.client_id || !body.redirect_uri) {
+          await log("error", "Verknüpfung: Parameter fehlen");
           return jsonResponse({ error: "missing params" }, 400);
         }
 
         const client = oauthClient();
         if (!client.configured) {
+          await log("error", "Verknüpfung: OAuth-Client nicht konfiguriert");
           return jsonResponse({ error: "OAuth ist auf diesem Server nicht konfiguriert." }, 500);
         }
         if (!safeEqual(body.client_id, client.id)) {
+          await log("error", "Verknüpfung: unbekannte Client-ID");
           return jsonResponse({ error: "unbekannte Client-ID" }, 403);
         }
         if (!isRedirectAllowed(body.redirect_uri)) {
+          await log("error", "Verknüpfung: redirect_uri nicht erlaubt", { uri: body.redirect_uri });
           return jsonResponse({ error: `redirect_uri nicht erlaubt: ${body.redirect_uri}` }, 400);
         }
 
         const secret = linkSecret();
         if (!secret) {
+          await log("error", "Verknüpfung: kein Link-Secret gesetzt");
           return jsonResponse({ error: "Kein Link-Secret gesetzt (PIHUB_LINK_SECRET)." }, 500);
         }
         if (!body.link_secret || !safeEqual(body.link_secret, secret)) {
+          await log("error", "Verknüpfung: falsches Link-Secret");
           return jsonResponse({ error: "Falsches Link-Secret." }, 401);
         }
 
@@ -81,6 +81,7 @@ export const Route = createFileRoute("/api/public/oauth/authorize-post")({
         if (!body.approve) {
           u.searchParams.set("error", "access_denied");
           if (body.state) u.searchParams.set("state", body.state);
+          await log("out", "Verknüpfung abgelehnt");
           return jsonResponse({ redirect: u.toString() });
         }
 
@@ -92,12 +93,14 @@ export const Route = createFileRoute("/api/public/oauth/authorize-post")({
             sc: typeof scope === "string" ? scope.split(" ").filter(Boolean) : scope,
             cid: body.client_id,
             ru: body.redirect_uri,
+            n: randomBytes(8).toString("base64url"),
           },
           "owner",
         );
 
         u.searchParams.set("code", code);
         if (body.state) u.searchParams.set("state", body.state);
+        await log("out", "Verknüpfung zugestimmt", { scope, ttl: CODE_TTL_SEC });
         return jsonResponse({ redirect: u.toString() });
       },
     },
