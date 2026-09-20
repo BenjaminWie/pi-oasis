@@ -127,9 +127,13 @@ export const Route = createFileRoute("/api/public/oauth/token")({
           if (grant_type === "refresh_token") {
             const rt = form.get("refresh_token");
             const payload = verifyToken(rt, "refresh");
-            if (!payload) return oauthResponse({ error: "invalid_grant" }, 400);
+            if (!payload) {
+              await log("error", "Token: Refresh-Token ungültig");
+              return oauthResponse({ error: "invalid_grant" }, 400);
+            }
             const scopes = normalizeScopes((payload.sc as string[]) ?? ["read"]);
             const { access, refresh } = mint(payload.sub, scopes);
+            await log("out", "Token erneuert", { scope: scopes.join(" ") });
             return oauthResponse({
               access_token: access,
               token_type: "Bearer",
