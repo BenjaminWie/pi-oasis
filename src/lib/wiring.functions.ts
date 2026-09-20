@@ -114,3 +114,75 @@ export const installTelegramWebhook = createServerFn({ method: "POST" })
     if (!body.ok) throw new Error(body.description || "setWebhook fehlgeschlagen");
     return { ok: true, url };
   });
+
+export interface SelftestStep {
+  name: string;
+  ok: boolean;
+  info: string;
+}
+
+/**
+ * Walks the whole Alexa chain without Amazon: mints a token like the OAuth
+ * routes do, then answers real intents through the endpoint catalogue.
+ */
+export const alexaSelftest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async (): Promise<{ steps: SelftestStep[] }> => {
+    const { oauthClient, issueToken, verifyToken } = await import("@/lib/stateless-token.server");
+    const { endpointList, pumpStatus, systemStatus } = await import("@/lib/voice-intents.server");
+    const steps: SelftestStep[] = [];
+
+    const client = oauthClient();
+    steps.push({
+      name: "OAuth-Client",
+      ok: client.configured,
+      info: client.configured ? "Client-ID und Secret gesetzt" : "PIHUB_OAUTH_CLIENT_ID/_SECRET fehlen",
+    });
+    steps.push({
+      name: "Link-Geheimwort",
+      ok: Boolean(process.env.PIHUB_LINK_SECRET || process.env.PIHUB_DEVICE_TOKEN),
+      info: "wird auf der Zustimmungs-Seite abgefragt",
+    });
+
+    let tokenOk = false;
+    try {
+      const access = issueToken("access", 60, { sc: ["read", "control"] }, "selftest");
+      tokenOk = Boolean(verifyToken(access, "access"));
+    } catch (e) {
+      tokenOk = false;
+      steps.push({ name: "Token-Signatur", ok: false, info: String((e as Error)?.message ?? e) });
+    }
+    if (tokenOk) steps.push({ name: "Token-Signatur", ok: true, info: "Token signiert und geprüft" });
+
+    const ctx = { source: "alexa" as const, userId: "selftest", allowControl: true };
+    try {
+      const list = await endpointList();
+      steps.push({ name: "Endpunkt-Katalog", ok: list.ok, info: list.speech.slice(0, 160) });
+    } catch (e) {
+      steps.push({ name: "Endpunkt-Katalog", ok: false, info: String((e as Error)?.message ?? e) });
+    }
+    try {
+      const st = await pumpStatus(ctx);
+      steps.push({ name: "Pumpen-Status", ok: st.ok, info: st.speech.slice(0, 160) });
+    } catch (e) {
+      steps.push({ name: "Pumpen-Status", ok: false, info: String((e as Error)?.message ?? e) });
+    }
+    try {
+      const sys = await systemStatus(ctx);
+      steps.push({ name: "Gesamtstatus", ok: sys.ok, info: sys.speech.slice(0, 160) });
+    } catch (e) {
+      steps.push({ name: "Gesamtstatus", ok: false, info: String((e as Error)?.message ?? e) });
+    }
+
+    return { steps };
+  });
+
+/** The de-DE interaction model as pretty JSON, built from the live catalogue. */
+export const getAlexaModelJson = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async (): Promise<{ json: string; endpoints: number }> => {
+    const { buildAlexaModel } = await import("@/lib/alexa-model.server");
+    const model = await buildAlexaModel("alexa");
+    const values = model.interactionModel.languageModel.types[0]?.values?.length ?? 0;
+    return { json: JSON.stringify(model, null, 2), endpoints: values };
+  });
