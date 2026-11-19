@@ -43,7 +43,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold">System fault</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {error.message || "An unexpected error occurred."}
+          {(error instanceof Error && error.message) || "An unexpected error occurred."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
