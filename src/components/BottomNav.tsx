@@ -3,19 +3,19 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Activity,
-  SlidersHorizontal,
   Settings as SettingsIcon,
   Radio,
   Bug,
   ToggleLeft,
+  Search,
 } from "lucide-react";
 import { listMqttBrokers } from "@/lib/mqtt.functions";
 
 const baseTabs = [
   { to: "/overview", label: "Overview", icon: Activity },
   { to: "/control", label: "Steuerung", icon: ToggleLeft },
-  { to: "/tuning", label: "Feintuning", icon: SlidersHorizontal },
   { to: "/debug", label: "Debug", icon: Bug },
+  { to: "/diagnose", label: "Diagnose", icon: Search },
   { to: "/settings", label: "System", icon: SettingsIcon },
 ] as const;
 
@@ -38,6 +38,7 @@ export function BottomNav() {
         baseTabs[0],
         baseTabs[1],
         { to: "/mqtt", label: "MQTT", icon: Radio } as const,
+        baseTabs[2],
         baseTabs[3],
         baseTabs[4],
       ] as const)

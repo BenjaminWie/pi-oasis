@@ -20,6 +20,7 @@ import { Route as PumpRouteImport } from './routes/pump'
 import { Route as PumpeRouteImport } from './routes/pumpe'
 import { Route as AuthenticatedControlRouteImport } from './routes/_authenticated/control'
 import { Route as AuthenticatedDebugRouteImport } from './routes/_authenticated/debug'
+import { Route as AuthenticatedDiagnoseRouteImport } from './routes/_authenticated/diagnose'
 import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
 import { Route as AuthenticatedMqttRouteImport } from './routes/_authenticated/mqtt'
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
@@ -28,6 +29,7 @@ import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedTuningRouteImport } from './routes/_authenticated/tuning'
 import { Route as CloudConnectionsRouteImport } from './routes/_cloud/connections'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiDiagnoseRouteImport } from './routes/api/diagnose'
 import { Route as ApiLiveStreamRouteImport } from './routes/api/live-stream'
 import { Route as CloudConnectionsIndexRouteImport } from './routes/_cloud/connections.index'
 import { Route as CloudConnectionsAlexaRouteImport } from './routes/_cloud/connections.alexa'
@@ -102,6 +104,11 @@ const AuthenticatedDebugRoute = AuthenticatedDebugRouteImport.update({
   path: '/debug',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedDiagnoseRoute = AuthenticatedDiagnoseRouteImport.update({
+  id: '/diagnose',
+  path: '/diagnose',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedIntegrationsRoute =
   AuthenticatedIntegrationsRouteImport.update({
     id: '/integrations',
@@ -141,6 +148,11 @@ const CloudConnectionsRoute = CloudConnectionsRouteImport.update({
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDiagnoseRoute = ApiDiagnoseRouteImport.update({
+  id: '/api/diagnose',
+  path: '/api/diagnose',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLiveStreamRoute = ApiLiveStreamRouteImport.update({
@@ -260,6 +272,7 @@ export interface FileRoutesByFullPath {
   '/pumpe': typeof PumpeRoute
   '/control': typeof AuthenticatedControlRoute
   '/debug': typeof AuthenticatedDebugRoute
+  '/diagnose': typeof AuthenticatedDiagnoseRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
@@ -268,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/tuning': typeof AuthenticatedTuningRoute
   '/connections': typeof CloudConnectionsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
+  '/api/diagnose': typeof ApiDiagnoseRoute
   '/api/live-stream': typeof ApiLiveStreamRoute
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
   '/connections/assistant': typeof CloudConnectionsAssistantRoute
@@ -299,6 +313,7 @@ export interface FileRoutesByTo {
   '/pumpe': typeof PumpeRoute
   '/control': typeof AuthenticatedControlRoute
   '/debug': typeof AuthenticatedDebugRoute
+  '/diagnose': typeof AuthenticatedDiagnoseRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/mqtt': typeof AuthenticatedMqttRoute
   '/overview': typeof AuthenticatedOverviewRoute
@@ -306,6 +321,7 @@ export interface FileRoutesByTo {
   '/terminal': typeof AuthenticatedTerminalRoute
   '/tuning': typeof AuthenticatedTuningRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/diagnose': typeof ApiDiagnoseRoute
   '/api/live-stream': typeof ApiLiveStreamRoute
   '/connections/alexa': typeof CloudConnectionsAlexaRoute
   '/connections/assistant': typeof CloudConnectionsAssistantRoute
@@ -340,6 +356,7 @@ export interface FileRoutesById {
   '/pumpe': typeof PumpeRoute
   '/_authenticated/control': typeof AuthenticatedControlRoute
   '/_authenticated/debug': typeof AuthenticatedDebugRoute
+  '/_authenticated/diagnose': typeof AuthenticatedDiagnoseRoute
   '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
   '/_authenticated/mqtt': typeof AuthenticatedMqttRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
@@ -348,6 +365,7 @@ export interface FileRoutesById {
   '/_authenticated/tuning': typeof AuthenticatedTuningRoute
   '/_cloud/connections': typeof CloudConnectionsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
+  '/api/diagnose': typeof ApiDiagnoseRoute
   '/api/live-stream': typeof ApiLiveStreamRoute
   '/_cloud/connections/alexa': typeof CloudConnectionsAlexaRoute
   '/_cloud/connections/assistant': typeof CloudConnectionsAssistantRoute
@@ -381,6 +399,7 @@ export interface FileRouteTypes {
     | '/pumpe'
     | '/control'
     | '/debug'
+    | '/diagnose'
     | '/integrations'
     | '/mqtt'
     | '/overview'
@@ -389,6 +408,7 @@ export interface FileRouteTypes {
     | '/tuning'
     | '/connections'
     | '/api/chat'
+    | '/api/diagnose'
     | '/api/live-stream'
     | '/connections/alexa'
     | '/connections/assistant'
@@ -420,6 +440,7 @@ export interface FileRouteTypes {
     | '/pumpe'
     | '/control'
     | '/debug'
+    | '/diagnose'
     | '/integrations'
     | '/mqtt'
     | '/overview'
@@ -427,6 +448,7 @@ export interface FileRouteTypes {
     | '/terminal'
     | '/tuning'
     | '/api/chat'
+    | '/api/diagnose'
     | '/api/live-stream'
     | '/connections/alexa'
     | '/connections/assistant'
@@ -460,6 +482,7 @@ export interface FileRouteTypes {
     | '/pumpe'
     | '/_authenticated/control'
     | '/_authenticated/debug'
+    | '/_authenticated/diagnose'
     | '/_authenticated/integrations'
     | '/_authenticated/mqtt'
     | '/_authenticated/overview'
@@ -468,6 +491,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tuning'
     | '/_cloud/connections'
     | '/api/chat'
+    | '/api/diagnose'
     | '/api/live-stream'
     | '/_cloud/connections/alexa'
     | '/_cloud/connections/assistant'
@@ -501,6 +525,7 @@ export interface RootRouteChildren {
   PumpRoute: typeof PumpRoute
   PumpeRoute: typeof PumpeRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiDiagnoseRoute: typeof ApiDiagnoseRoute
   ApiLiveStreamRoute: typeof ApiLiveStreamRoute
   ApiPublicIngestEventRoute: typeof ApiPublicIngestEventRoute
   ApiPublicIngestLiveRoute: typeof ApiPublicIngestLiveRoute
@@ -597,6 +622,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDebugRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/diagnose': {
+      id: '/_authenticated/diagnose'
+      path: '/diagnose'
+      fullPath: '/diagnose'
+      preLoaderRoute: typeof AuthenticatedDiagnoseRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/integrations': {
       id: '/_authenticated/integrations'
       path: '/integrations'
@@ -651,6 +683,13 @@ declare module '@tanstack/react-router' {
       path: '/api/chat'
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/diagnose': {
+      id: '/api/diagnose'
+      path: '/api/diagnose'
+      fullPath: '/api/diagnose'
+      preLoaderRoute: typeof ApiDiagnoseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/live-stream': {
@@ -799,6 +838,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedControlRoute: typeof AuthenticatedControlRoute
   AuthenticatedDebugRoute: typeof AuthenticatedDebugRoute
+  AuthenticatedDiagnoseRoute: typeof AuthenticatedDiagnoseRoute
   AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
   AuthenticatedMqttRoute: typeof AuthenticatedMqttRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
@@ -810,6 +850,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedControlRoute: AuthenticatedControlRoute,
   AuthenticatedDebugRoute: AuthenticatedDebugRoute,
+  AuthenticatedDiagnoseRoute: AuthenticatedDiagnoseRoute,
   AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
   AuthenticatedMqttRoute: AuthenticatedMqttRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
@@ -862,6 +903,7 @@ const rootRouteChildren: RootRouteChildren = {
   PumpRoute: PumpRoute,
   PumpeRoute: PumpeRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiDiagnoseRoute: ApiDiagnoseRoute,
   ApiLiveStreamRoute: ApiLiveStreamRoute,
   ApiPublicIngestEventRoute: ApiPublicIngestEventRoute,
   ApiPublicIngestLiveRoute: ApiPublicIngestLiveRoute,
